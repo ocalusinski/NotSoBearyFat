@@ -123,28 +123,32 @@ public class HomePage {
         clientLoginButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e){
-                JOptionPane.showMessageDialog(frame, "Client Login - Feature Coming Soon!", "Login", JOptionPane.INFORMATION_MESSAGE);
+                frame.dispose();
+                new LoginPage("Client");
             }
         });
 
         trainerLoginButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e){
-                JOptionPane.showMessageDialog(frame, "Trainer Login - Feature Coming Soon!", "Login", JOptionPane.INFORMATION_MESSAGE);
+                frame.dispose();
+                new LoginPage("Trainer");
             }
         });
 
         clientSignUpButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e){
-                JOptionPane.showMessageDialog(frame, "Client Sign Up - Feature Coming Soon!", "Sign Up", JOptionPane.INFORMATION_MESSAGE);
+                frame.dispose();
+                new SignUpPage("Client");
             }
         });
 
         trainerSignUpButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e){
-                JOptionPane.showMessageDialog(frame, "Trainer Sign Up - Feature Coming Soon!", "Sign Up", JOptionPane.INFORMATION_MESSAGE);
+                frame.dispose();
+                new SignUpPage("Trainer");
             }
         });
 
