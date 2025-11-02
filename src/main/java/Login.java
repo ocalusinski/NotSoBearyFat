@@ -105,17 +105,9 @@ public class Login {
         );
     }
 
-    // Temporary showDashboard
-    // TODO: Dashboard Use Cases
+    // Open Dashboard UI
     private void showDashboard(String role) {
-        JFrame dash = new JFrame(role + " Dashboard");
-        dash.setSize(400, 300);
-        dash.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        JLabel welcome = new JLabel("Welcome to your " + role + " dashboard!");
-        welcome.setHorizontalAlignment(SwingConstants.CENTER);
-        dash.add(welcome);
-        dash.setLocationRelativeTo(null);
-        dash.setVisible(true);
+        SwingUtilities.invokeLater(() -> new DashboardUI(role));
     }
 
     public static void main(String[] args) {

@@ -248,12 +248,22 @@ public class SignUpPage extends JFrame {
                 
                 if (success) {
                     JOptionPane.showMessageDialog(SignUpPage.this, 
-                        "Account created successfully! You can now login.", 
+                        "Account created successfully! Logging you in...", 
                         "Success", 
                         JOptionPane.INFORMATION_MESSAGE);
+                    
+                    // Automatically log the user in after successful signup
+                    User newUser = dbManager.loginUser(username, password);
                     dbManager.closeConnection();
                     dispose();
-                    HomePage.main(null);
+                    
+                    if (newUser != null) {
+                        // Open dashboard for the newly registered user
+                        SwingUtilities.invokeLater(() -> new DashboardUI(newUser.getFirstName()));
+                    } else {
+                        // If auto-login fails, go to homepage (shouldn't happen)
+                        HomePage.main(null);
+                    }
                 } else {
                     JOptionPane.showMessageDialog(SignUpPage.this, 
                         "Registration failed. Please try again.", 
