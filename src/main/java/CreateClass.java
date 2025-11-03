@@ -143,10 +143,15 @@ public class CreateClass{
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     // Convert JSpinner date values to LocalDateTime
+                    classType[0] = typeField.getText();
+                    description[0] = descField.getText();
+                    maxParticipants[0] = Integer.parseInt(maxField.getText());
+                    cost[0] = Double.parseDouble(costField.getText());
                     Date startDate = (Date) startSpinner.getValue();
                     Date endDate = (Date) endSpinner.getValue();
                     startTime[0] = java.time.LocalDateTime.ofInstant(startDate.toInstant(), java.time.ZoneId.systemDefault());
                     endTime[0] = java.time.LocalDateTime.ofInstant(endDate.toInstant(), java.time.ZoneId.systemDefault());
+
                     
                     // Validation: checks if all required fields are filled
                     if(classType[0] == null || description[0] == null || 

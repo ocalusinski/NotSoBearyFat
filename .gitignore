@@ -1,3 +1,4 @@
+GEMINI.md
 *.class
 target/
 !.mvn/wrapper/maven-wrapper.jar
