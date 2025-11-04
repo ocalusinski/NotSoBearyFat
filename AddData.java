@@ -17,8 +17,8 @@ public class AddData{
         frame.setVisible(true);
 
         JButton addDataButton = new JButton("Add Data");
-        addDataButton.setBackground(new Color(186, 140, 167));
-        addDataButton.setForeground(new Color(186, 140, 167));
+        addDataButton.setBackground(new Color(0, 71, 56));
+        addDataButton.setForeground(new Color(0, 71, 56));
         addDataButton.setOpaque(true);
         addDataButton.setPreferredSize(new Dimension(100, 50));
         addDataButton.addActionListener(new ActionListener() {
@@ -32,7 +32,7 @@ public class AddData{
 
         JPanel panel = new JPanel(new GridBagLayout());
         panel.add(addDataButton, new GridBagConstraints());
-        panel.setBackground(new Color(227, 172, 204));
+        panel.setBackground(new Color(0, 71, 56));
         frame.getContentPane().add(panel);
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
@@ -149,7 +149,7 @@ public class AddData{
             menuBar.setLayout(new GridBagLayout());
             menuBar.setPreferredSize(new Dimension(600, 300));
             GridBagConstraints g = new GridBagConstraints();
-            menuBar.setBackground(new Color(186, 140, 167));
+            menuBar.setBackground(new Color(0, 71, 56));
             menuBar.setOpaque(true);
             menuBar.setPreferredSize(new Dimension(100, 50));
             JLabel item = new JLabel("Add Data");
@@ -196,7 +196,7 @@ public class AddData{
             gbc.gridx = 2;
             gbc.gridy = 15;
             panel.add(saveButton, gbc);
-            panel.setBackground(new Color(227, 172, 204));
+            panel.setBackground(new Color(0, 71, 56));
 
             dataFrame.add(menuBar, BorderLayout.NORTH);
             dataFrame.getContentPane().add(panel);
@@ -224,14 +224,14 @@ public class AddData{
                                    LocalDate date, int cal, double sleep, double weight, int totalCal){
         JFrame frame = new JFrame(message);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.getContentPane().setBackground(new Color(227, 172, 204));
+        frame.getContentPane().setBackground(new Color(0, 71, 56));
 
         JButton yesButton = new JButton("Yes");
         JButton noButton = new JButton("No");
         JLabel label = new JLabel("Are you sure?");
         JPanel panel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
-        panel.setBackground(new Color(227, 172, 204));
+        panel.setBackground(new Color(0, 71, 56));
         gbc.gridx = 1;
         gbc.gridy = 0;
         gbc.insets = new Insets(5, 5, 20, 5);
