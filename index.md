@@ -28,3 +28,10 @@ github: https://github.com/ocalusinski/NotSoBearyFat
   ⬇️ Download ZIP
 </a>
 
+Watch our Iteration 2 Demo Here: https://youtu.be/bFxDc7fwwCY
+
+Download the PDF of our Iteration 2 Deliverables:
+<a class="download-btn" href="{{ '/Iteration2.pdf' | relative_url }}" download>
+⬇️ Download PDF
+</a>
+
