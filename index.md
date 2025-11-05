@@ -30,8 +30,5 @@ github: https://github.com/ocalusinski/NotSoBearyFat
 
 Watch our Iteration 2 Demo Here: https://youtu.be/bFxDc7fwwCY
 
-Download the PDF of our Iteration 2 Deliverables:
-<a class="download-btn" href="{{ '/Iteration2.pdf' | relative_url }}" download>
-⬇️ Download PDF
-</a>
+Download the PDF of our Iteration 2 Deliverables: [⬇️ Download PDF](./Iteration2.pdf)
 
