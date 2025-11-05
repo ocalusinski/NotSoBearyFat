@@ -30,5 +30,5 @@ github: https://github.com/ocalusinski/NotSoBearyFat
 
 Watch our Iteration 2 Demo Here: https://youtu.be/bFxDc7fwwCY
 
-Download the PDF of our Iteration 2 Deliverables: [⬇️ Download PDF](./Iteration2.pdf)
+Download the PDF of our Iteration 2 Deliverables: [⬇️ Download PDF](./Iteration%202.pdf)
 
