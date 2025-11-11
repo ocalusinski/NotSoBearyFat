@@ -184,6 +184,103 @@ public class DatabaseManager {
     }
 
     /**
+     * Gets user ID from username
+     * @return user ID if found, -1 if not found
+     */
+    public int getUserIdByUsername(String username) {
+        String sql = "SELECT id FROM users WHERE username = ?";
+        
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setString(1, username);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt("id");
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting user ID: " + e.getMessage());
+        }
+        return -1;
+    }
+
+    /**
+     * Gets user ID from first name (for backward compatibility)
+     * @return user ID if found, -1 if not found
+     */
+    public int getUserIdByFirstName(String firstName) {
+        String sql = "SELECT id FROM users WHERE first_name = ? LIMIT 1";
+        
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setString(1, firstName);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt("id");
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting user ID by first name: " + e.getMessage());
+        }
+        return -1;
+    }
+
+    /**
+     * Gets the latest user data entry with weight and sleep as doubles
+     * @return array with [caloriesConsumed, weight, sleepHours, totalCaloriesBurned] or null if no data
+     */
+    public double[] getLatestUserDataDouble(int userId) {
+        String sql = "SELECT calories_consumed, weight, sleep_hours, total_calories_burned " +
+                     "FROM user_data WHERE user_id = ? " +
+                     "ORDER BY date DESC, id DESC LIMIT 1";
+        
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                int caloriesConsumed = rs.getInt("calories_consumed");
+                double weight = rs.getDouble("weight");
+                double sleepHours = rs.getDouble("sleep_hours");
+                int totalCaloriesBurned = rs.getInt("total_calories_burned");
+                
+                return new double[]{
+                    caloriesConsumed,
+                    weight,
+                    sleepHours,
+                    totalCaloriesBurned
+                };
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting latest user data: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Checks if user has data entries within the last 7 days
+     * @return true if recent data exists, false otherwise
+     */
+    public boolean hasRecentData(int userId) {
+        String sql = "SELECT COUNT(*) FROM user_data " +
+                     "WHERE user_id = ? AND date >= date('now', '-7 days')";
+        
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            System.err.println("Error checking recent data: " + e.getMessage());
+        }
+        return false;
+    }
+
+    /**
      * Closes the database connection
      */
     public void closeConnection() {
