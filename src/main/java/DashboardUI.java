@@ -33,14 +33,42 @@ public class DashboardUI extends JFrame {
         setLayout(new BorderLayout());
         getContentPane().setBackground(BACKGROUND_COLOR);
 
-        // Header
+        // Header with logout button
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(BAYLOR_GREEN);
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 10, 15, 10));
+
         JLabel header = new JLabel("Welcome back, " + username + "!", SwingConstants.CENTER);
-        header.setOpaque(true);
-        header.setBackground(BAYLOR_GREEN);
         header.setForeground(Color.WHITE);
         header.setFont(new Font("Arial", Font.BOLD, 18));
-        header.setBorder(BorderFactory.createEmptyBorder(15, 10, 15, 10));
-        add(header, BorderLayout.NORTH);
+        headerPanel.add(header, BorderLayout.CENTER);
+        
+        // Logout button
+        JButton logoutButton = new JButton("Logout");
+        logoutButton.setBackground(LIGHT_GREEN);
+        logoutButton.setForeground(Color.WHITE);
+        logoutButton.setOpaque(true);
+        logoutButton.setBorderPainted(false);
+        logoutButton.setFocusPainted(false);
+        logoutButton.setFont(new Font("Arial", Font.PLAIN, 12));
+        logoutButton.setPreferredSize(new Dimension(80, 30));
+        logoutButton.addActionListener(e -> {
+            dispose();
+            SwingUtilities.invokeLater(() -> new LoginPage("Client"));
+        });
+        
+        // Add hover effect
+        logoutButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                logoutButton.setBackground(new Color(0, 120, 100));
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                logoutButton.setBackground(LIGHT_GREEN);
+            }
+        });
+        
+        headerPanel.add(logoutButton, BorderLayout.EAST);
+        add(headerPanel, BorderLayout.NORTH);
 
         // Create tabbed pane
         JTabbedPane tabbedPane = new JTabbedPane();
@@ -295,6 +323,7 @@ public class DashboardUI extends JFrame {
     }
 
     public static void main(String[] args) {
+        // Test main - in production, DashboardUI is called from LoginPage with actual first name
         SwingUtilities.invokeLater(() -> new DashboardUI("Lademi"));
     }
 }
