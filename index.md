@@ -22,9 +22,13 @@ Jira Task Board: https://notsobearyfat.atlassian.net/jira/core/projects/NSBF/boa
 
 github: https://github.com/ocalusinski/NotSoBearyFat
 
-[download ZIP] (Project Deliverable 5 Iteration 1.zip)
+[download ZIP] (Project Deliverable 10 Iteration 2.zip)
 
-<a class="download-btn" href="{{ '/ProjectDeliverable5Iteration1.zip' | relative_url }}" download>
+<a class="download-btn" href="{{ '/ProjectDeliverable10Iteration2.zip' | relative_url }}" download>
   ⬇️ Download ZIP
 </a>
+
+Watch our Iteration 2 Demo Here: https://youtu.be/bFxDc7fwwCY
+
+View the PDF of our Iteration 2 Deliverables: [View PDF](./Iteration%202.pdf)
 
