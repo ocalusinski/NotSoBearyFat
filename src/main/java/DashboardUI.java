@@ -10,6 +10,7 @@ public class DashboardUI extends JFrame {
     private DatabaseManager dbManager;
     private int userId;
     private String username;
+    private String userType;
     
     // Baylor green color scheme
     private static final Color BAYLOR_GREEN = new Color(0, 71, 56);
@@ -17,13 +18,23 @@ public class DashboardUI extends JFrame {
     private static final Color BACKGROUND_COLOR = new Color(240, 255, 250);
 
     public DashboardUI(String username) {
+        this(username, null);
+    }
+    
+    public DashboardUI(String username, String userType) {
         this.username = username;
+        this.userType = userType;
         this.dbManager = new DatabaseManager();
         
         // Try to get user ID by username first, then by first name (for backward compatibility)
         this.userId = dbManager.getUserIdByUsername(username);
         if (this.userId == -1) {
             this.userId = dbManager.getUserIdByFirstName(username);
+        }
+        
+        // If userType not provided, try to get it from database
+        if (this.userType == null && this.userId != -1) {
+            this.userType = dbManager.getUserType(this.userId);
         }
         
         setTitle("Dashboard - Not So Beary Fat");
@@ -87,6 +98,12 @@ public class DashboardUI extends JFrame {
         // Classes Tab (placeholder)
         JPanel classesTab = createClassesTab();
         tabbedPane.addTab("Classes", classesTab);
+        
+        // Create Class Tab (only for trainers)
+        if (isTrainer()) {
+            JPanel createClassTab = createCreateClassTab();
+            tabbedPane.addTab("Create Class", createClassTab);
+        }
         
         // Achievements Tab (placeholder)
         JPanel achievementsTab = createAchievementsTab();
@@ -186,6 +203,75 @@ public class DashboardUI extends JFrame {
         return classesPanel;
     }
 
+    private JPanel createCreateClassTab() {
+        JPanel createClassPanel = new JPanel(new BorderLayout());
+        createClassPanel.setBackground(BACKGROUND_COLOR);
+        createClassPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        
+        // Center panel with button to create class
+        JPanel centerPanel = new JPanel(new GridBagLayout());
+        centerPanel.setBackground(BACKGROUND_COLOR);
+        GridBagConstraints gbc = new GridBagConstraints();
+        
+        JLabel titleLabel = new JLabel("Create New Class");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
+        titleLabel.setForeground(BAYLOR_GREEN);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.insets = new Insets(20, 20, 30, 20);
+        centerPanel.add(titleLabel, gbc);
+        
+        JButton createClassButton = new JButton("Create Class");
+        createClassButton.setBackground(BAYLOR_GREEN);
+        createClassButton.setForeground(Color.WHITE);
+        createClassButton.setOpaque(true);
+        createClassButton.setBorderPainted(false);
+        createClassButton.setFocusPainted(false);
+        createClassButton.setFont(new Font("Arial", Font.BOLD, 16));
+        createClassButton.setPreferredSize(new Dimension(200, 50));
+        createClassButton.addActionListener(e -> {
+            // Open CreateClass window
+            SwingUtilities.invokeLater(() -> {
+                CreateClass.CreateAndShowGUI();
+            });
+        });
+        
+        // Add hover effect
+        createClassButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                createClassButton.setBackground(LIGHT_GREEN);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                createClassButton.setBackground(BAYLOR_GREEN);
+            }
+        });
+        
+        gbc.gridy = 1;
+        gbc.insets = new Insets(10, 20, 20, 20);
+        centerPanel.add(createClassButton, gbc);
+        
+        JLabel infoLabel = new JLabel(
+            "<html><div style='text-align: center;'>" +
+            "<p>Click the button above to create a new fitness class.</p>" +
+            "<p>You'll be able to set:</p>" +
+            "<ul style='text-align: left; display: inline-block;'>" +
+            "<li>Class type and description</li>" +
+            "<li>Start and end times</li>" +
+            "<li>Maximum participants</li>" +
+            "<li>Cost</li>" +
+            "</ul>" +
+            "</div></html>"
+        );
+        infoLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        gbc.gridy = 2;
+        gbc.insets = new Insets(20, 20, 20, 20);
+        centerPanel.add(infoLabel, gbc);
+        
+        createClassPanel.add(centerPanel, BorderLayout.CENTER);
+        
+        return createClassPanel;
+    }
+
     private JPanel createAchievementsTab() {
         JPanel achievementsPanel = new JPanel(new BorderLayout());
         achievementsPanel.setBackground(BACKGROUND_COLOR);
@@ -210,6 +296,11 @@ public class DashboardUI extends JFrame {
         
         return achievementsPanel;
     }
+    
+    private boolean isTrainer() {
+        return userType != null && userType.equalsIgnoreCase("trainer");
+    }
+    
 
     private void loadUserData() {
         if (userId == -1) {

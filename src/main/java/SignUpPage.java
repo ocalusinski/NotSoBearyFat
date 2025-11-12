@@ -259,7 +259,7 @@ public class SignUpPage extends JFrame {
                     
                     if (newUser != null) {
                         // Open dashboard for the newly registered user
-                        SwingUtilities.invokeLater(() -> new DashboardUI(newUser.getFirstName()));
+                        SwingUtilities.invokeLater(() -> new DashboardUI(newUser.getFirstName(), newUser.getUserType()));
                     } else {
                         // If auto-login fails, go to homepage (shouldn't happen)
                         HomePage.main(null);

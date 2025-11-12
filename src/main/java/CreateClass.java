@@ -11,7 +11,7 @@ import java.util.Date;
 public class CreateClass{
     
     // Creates the initial GUI with a button to start creating a class
-    private static void CreateAndShowGUI(){
+    public static void CreateAndShowGUI(){
         JFrame frame = new JFrame("Create Class");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 

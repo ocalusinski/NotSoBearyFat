@@ -137,7 +137,7 @@ public class LoginPage extends JFrame {
                         dbManager.closeConnection();
                         dispose();
                         // Open user dashboard
-                        SwingUtilities.invokeLater(() -> new DashboardUI(user.getFirstName()));
+                        SwingUtilities.invokeLater(() -> new DashboardUI(user.getFirstName(), user.getUserType()));
                     }
                 } else {
                     JOptionPane.showMessageDialog(LoginPage.this, 

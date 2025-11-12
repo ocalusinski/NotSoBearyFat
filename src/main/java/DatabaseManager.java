@@ -281,6 +281,27 @@ public class DatabaseManager {
     }
 
     /**
+     * Gets user type from user ID
+     * @return user type string (e.g., "trainer" or "client") or null if not found
+     */
+    public String getUserType(int userId) {
+        String sql = "SELECT user_type FROM users WHERE id = ?";
+        
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getString("user_type");
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting user type: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
      * Closes the database connection
      */
     public void closeConnection() {
