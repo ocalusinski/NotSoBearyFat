@@ -66,7 +66,7 @@ public class DashboardUI extends JFrame {
         logoutButton.setMargin(new Insets(5, 10, 5, 10));
         logoutButton.addActionListener(e -> {
             dispose();
-            SwingUtilities.invokeLater(() -> new LoginPage("Client"));
+            SwingUtilities.invokeLater(() -> new LoginPage());
         });
         
         // Add hover effect

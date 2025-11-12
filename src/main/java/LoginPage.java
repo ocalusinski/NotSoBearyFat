@@ -9,10 +9,10 @@ import java.awt.event.ActionListener;
 public class LoginPage extends JFrame {
     private DatabaseManager dbManager;
     
-    public LoginPage(String userType) {
+    public LoginPage() {
         dbManager = new DatabaseManager();
         
-        setTitle("Login as " + userType);
+        setTitle("Login");
         setSize(500, 500);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -31,7 +31,7 @@ public class LoginPage extends JFrame {
 
         GridBagConstraints gbc = new GridBagConstraints();
         
-        JLabel title = new JLabel("🐻 Login as " + userType + " 🐻");
+        JLabel title = new JLabel("🐻 Login 🐻");
         title.setFont(new Font("Arial", Font.BOLD, 24));
         title.setForeground(baylorGreen);
         gbc.gridx = 0;
@@ -124,21 +124,14 @@ public class LoginPage extends JFrame {
                 
                 User user = dbManager.loginUser(username, password);
                 if (user != null) {
-                    if (!user.getUserType().equalsIgnoreCase(userType)) {
-                        JOptionPane.showMessageDialog(LoginPage.this, 
-                            "This account is not a " + userType + " account", 
-                            "Invalid Account Type", 
-                            JOptionPane.ERROR_MESSAGE);
-                    } else {
-                        JOptionPane.showMessageDialog(LoginPage.this, 
-                            "Welcome back, " + user.getFirstName() + "!", 
-                            "Login Successful", 
-                            JOptionPane.INFORMATION_MESSAGE);
-                        dbManager.closeConnection();
-                        dispose();
-                        // Open user dashboard
-                        SwingUtilities.invokeLater(() -> new DashboardUI(user.getFirstName(), user.getUserType()));
-                    }
+                    JOptionPane.showMessageDialog(LoginPage.this, 
+                        "Welcome back, " + user.getFirstName() + "!", 
+                        "Login Successful", 
+                        JOptionPane.INFORMATION_MESSAGE);
+                    dbManager.closeConnection();
+                    dispose();
+                    // Open user dashboard
+                    SwingUtilities.invokeLater(() -> new DashboardUI(user.getFirstName(), user.getUserType()));
                 } else {
                     JOptionPane.showMessageDialog(LoginPage.this, 
                         "Invalid username or password", 
@@ -168,7 +161,7 @@ public class LoginPage extends JFrame {
 
     public static void main(String[] args) {
         // For testing
-        SwingUtilities.invokeLater(() -> new LoginPage("Client"));
+        SwingUtilities.invokeLater(() -> new LoginPage());
     }
 }
 

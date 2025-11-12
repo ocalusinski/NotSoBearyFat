@@ -10,11 +10,11 @@ import java.util.regex.Pattern;
 public class SignUpPage extends JFrame {
     private DatabaseManager dbManager;
     
-    public SignUpPage(String userType) {
+    public SignUpPage() {
         dbManager = new DatabaseManager();
         
-        setTitle("Sign Up as " + userType);
-        setSize(600, 700);
+        setTitle("Sign Up");
+        setSize(600, 750);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
 
@@ -32,7 +32,7 @@ public class SignUpPage extends JFrame {
 
         GridBagConstraints gbc = new GridBagConstraints();
         
-        JLabel title = new JLabel("🐻 Sign Up as " + userType + " 🐻");
+        JLabel title = new JLabel("🐻 Sign Up 🐻");
         title.setFont(new Font("Arial", Font.BOLD, 24));
         title.setForeground(baylorGreen);
         gbc.gridx = 0;
@@ -141,6 +141,43 @@ public class SignUpPage extends JFrame {
         gbc.anchor = GridBagConstraints.WEST;
         centerPanel.add(confirmPasswordField, gbc);
 
+        // User Type Selection (Radio Buttons)
+        JLabel userTypeLabel = new JLabel("Account Type:");
+        userTypeLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        userTypeLabel.setForeground(baylorGold);
+        gbc.gridx = 0;
+        gbc.gridy = 6;
+        gbc.insets = new Insets(15, 20, 5, 20);
+        gbc.anchor = GridBagConstraints.EAST;
+        centerPanel.add(userTypeLabel, gbc);
+
+        JPanel userTypePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        userTypePanel.setBackground(baylorGreen);
+        userTypePanel.setOpaque(false);
+        
+        JRadioButton clientRadio = new JRadioButton("Client", true);
+        clientRadio.setForeground(baylorGold);
+        clientRadio.setBackground(baylorGreen);
+        clientRadio.setOpaque(false);
+        clientRadio.setFont(new Font("Arial", Font.PLAIN, 14));
+        
+        JRadioButton trainerRadio = new JRadioButton("Trainer", false);
+        trainerRadio.setForeground(baylorGold);
+        trainerRadio.setBackground(baylorGreen);
+        trainerRadio.setOpaque(false);
+        trainerRadio.setFont(new Font("Arial", Font.PLAIN, 14));
+        
+        ButtonGroup userTypeGroup = new ButtonGroup();
+        userTypeGroup.add(clientRadio);
+        userTypeGroup.add(trainerRadio);
+        
+        userTypePanel.add(clientRadio);
+        userTypePanel.add(trainerRadio);
+        
+        gbc.gridx = 1;
+        gbc.anchor = GridBagConstraints.WEST;
+        centerPanel.add(userTypePanel, gbc);
+
         // Buttons panel
         JPanel buttonPanel = new JPanel(new FlowLayout());
         buttonPanel.setBackground(baylorGreen);
@@ -166,7 +203,7 @@ public class SignUpPage extends JFrame {
         buttonPanel.add(signUpButton);
 
         gbc.gridx = 0;
-        gbc.gridy = 6;
+        gbc.gridy = 7;
         gbc.gridwidth = 2;
         gbc.insets = new Insets(30, 20, 20, 20);
         gbc.anchor = GridBagConstraints.CENTER;
@@ -242,9 +279,12 @@ public class SignUpPage extends JFrame {
                     return;
                 }
 
+                // Get selected user type
+                String selectedUserType = clientRadio.isSelected() ? "Client" : "Trainer";
+                
                 // Register user
                 boolean success = dbManager.registerUser(username, password, email, 
-                                                         userType, firstName, lastName);
+                                                         selectedUserType, firstName, lastName);
                 
                 if (success) {
                     JOptionPane.showMessageDialog(SignUpPage.this, 
@@ -292,7 +332,7 @@ public class SignUpPage extends JFrame {
 
     public static void main(String[] args) {
         // For testing
-        SwingUtilities.invokeLater(() -> new SignUpPage("Client"));
+        SwingUtilities.invokeLater(() -> new SignUpPage());
     }
 }
 

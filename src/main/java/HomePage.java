@@ -55,100 +55,62 @@ public class HomePage {
         gbcCenter.insets = new Insets(20, 20, 20, 20);
         centerPanel.add(loginLabel, gbcCenter);
 
-        JButton clientLoginButton = new JButton("Login as Client");
-        clientLoginButton.setBackground(baylorGold);
-        clientLoginButton.setForeground(baylorGreen);
-        clientLoginButton.setFont(new Font("Arial", Font.BOLD, 16));
-        clientLoginButton.setOpaque(true);
-        clientLoginButton.setPreferredSize(new Dimension(250, 50));
-        clientLoginButton.setBorderPainted(false);
+        JButton loginButton = new JButton("Login");
+        loginButton.setBackground(baylorGold);
+        loginButton.setForeground(baylorGreen);
+        loginButton.setFont(new Font("Arial", Font.BOLD, 16));
+        loginButton.setOpaque(true);
+        loginButton.setPreferredSize(new Dimension(250, 50));
+        loginButton.setBorderPainted(false);
         gbcCenter.gridy = 2;
         gbcCenter.insets = new Insets(10, 20, 20, 20);
-        centerPanel.add(clientLoginButton, gbcCenter);
-
-        JButton trainerLoginButton = new JButton("Login as Trainer");
-        trainerLoginButton.setBackground(baylorGold);
-        trainerLoginButton.setForeground(baylorGreen);
-        trainerLoginButton.setFont(new Font("Arial", Font.BOLD, 16));
-        trainerLoginButton.setOpaque(true);
-        trainerLoginButton.setPreferredSize(new Dimension(250, 50));
-        trainerLoginButton.setBorderPainted(false);
-        gbcCenter.gridy = 3;
-        gbcCenter.insets = new Insets(10, 20, 20, 20);
-        centerPanel.add(trainerLoginButton, gbcCenter);
+        centerPanel.add(loginButton, gbcCenter);
 
         JLabel spacer = new JLabel("or");
         spacer.setFont(new Font("Arial", Font.PLAIN, 16));
         spacer.setForeground(Color.WHITE);
-        gbcCenter.gridy = 4;
+        gbcCenter.gridy = 3;
         gbcCenter.insets = new Insets(20, 20, 20, 20);
         centerPanel.add(spacer, gbcCenter);
 
         JLabel signUpLabel = new JLabel("New Here? Sign Up!");
         signUpLabel.setFont(new Font("Arial", Font.BOLD, 24));
         signUpLabel.setForeground(baylorGold);
-        gbcCenter.gridy = 5;
+        gbcCenter.gridy = 4;
         gbcCenter.insets = new Insets(20, 20, 20, 20);
         centerPanel.add(signUpLabel, gbcCenter);
 
-        JButton clientSignUpButton = new JButton("Sign Up as Client");
-        clientSignUpButton.setBackground(baylorGold);
-        clientSignUpButton.setForeground(baylorGreen);
-        clientSignUpButton.setFont(new Font("Arial", Font.BOLD, 16));
-        clientSignUpButton.setOpaque(true);
-        clientSignUpButton.setPreferredSize(new Dimension(250, 50));
-        clientSignUpButton.setBorderPainted(false);
-        gbcCenter.gridy = 6;
-        gbcCenter.insets = new Insets(10, 20, 20, 20);
-        centerPanel.add(clientSignUpButton, gbcCenter);
-
-        JButton trainerSignUpButton = new JButton("Sign Up as Trainer");
-        trainerSignUpButton.setBackground(baylorGold);
-        trainerSignUpButton.setForeground(baylorGreen);
-        trainerSignUpButton.setFont(new Font("Arial", Font.BOLD, 16));
-        trainerSignUpButton.setOpaque(true);
-        trainerSignUpButton.setPreferredSize(new Dimension(250, 50));
-        trainerSignUpButton.setBorderPainted(false);
-        gbcCenter.gridy = 7;
+        JButton signUpButton = new JButton("Sign Up");
+        signUpButton.setBackground(baylorGold);
+        signUpButton.setForeground(baylorGreen);
+        signUpButton.setFont(new Font("Arial", Font.BOLD, 16));
+        signUpButton.setOpaque(true);
+        signUpButton.setPreferredSize(new Dimension(250, 50));
+        signUpButton.setBorderPainted(false);
+        gbcCenter.gridy = 5;
         gbcCenter.insets = new Insets(10, 20, 30, 20);
-        centerPanel.add(trainerSignUpButton, gbcCenter);
+        centerPanel.add(signUpButton, gbcCenter);
 
         JLabel bottomPaws = new JLabel("🐾 🐾 🐾");
         bottomPaws.setFont(new Font("Arial", Font.PLAIN, 35));
         bottomPaws.setForeground(baylorGold);
-        gbcCenter.gridy = 8;
+        gbcCenter.gridy = 6;
         gbcCenter.insets = new Insets(10, 20, 30, 20);
         centerPanel.add(bottomPaws, gbcCenter);
 
-        clientLoginButton.addActionListener(new ActionListener() {
+        loginButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e){
                 frame.dispose();
-                new LoginPage("Client");
+                new LoginPage();
             }
         });
 
-        trainerLoginButton.addActionListener(new ActionListener() {
+        signUpButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e){
                 frame.dispose();
-                new LoginPage("Trainer");
-            }
-        });
-
-        clientSignUpButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e){
-                frame.dispose();
-                new SignUpPage("Client");
-            }
-        });
-
-        trainerSignUpButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e){
-                frame.dispose();
-                new SignUpPage("Trainer");
+                new SignUpPage();
             }
         });
 
