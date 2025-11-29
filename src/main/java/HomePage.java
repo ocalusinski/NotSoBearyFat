@@ -4,6 +4,9 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 public class HomePage {
+    HomePage() {
+        CreateAndShowGUI();
+    }
     private static void CreateAndShowGUI(){
         JFrame frame = new JFrame("Not So Beary Fat");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
