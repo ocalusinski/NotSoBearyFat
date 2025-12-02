@@ -14,6 +14,10 @@ public class DatabaseManager {
     public DatabaseManager() {
         try {
             connection = DriverManager.getConnection(DB_URL);
+            // If another connection is writing, wait up to 5 seconds instead of failing immediately
+            try (Statement busyStmt = connection.createStatement()) {
+                busyStmt.execute("PRAGMA busy_timeout = 5000");
+            }
             createTables();
             System.out.println("Database connected successfully!");
         } catch (SQLException e) {
@@ -49,10 +53,34 @@ public class DatabaseManager {
             "FOREIGN KEY (user_id) REFERENCES users(id)" +
             ")";
 
+        String createClassesTable =
+            "CREATE TABLE IF NOT EXISTS classes (" +
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+            "trainer_username TEXT NOT NULL, " +
+            "class_type TEXT NOT NULL, " +
+            "description TEXT, " +
+            "start_time TEXT NOT NULL, " +
+            "end_time TEXT NOT NULL, " +
+            "max_participants INTEGER NOT NULL, " +
+            "cost REAL NOT NULL" +
+            ")";
+
+        String createClassEnrollmentsTable =
+            "CREATE TABLE IF NOT EXISTS class_enrollments (" +
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+            "class_id INTEGER NOT NULL, " +
+            "user_id INTEGER NOT NULL, " +
+            "enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+            "FOREIGN KEY (class_id) REFERENCES classes(id), " +
+            "FOREIGN KEY (user_id) REFERENCES users(id)" +
+            ")";
+
         try {
             Statement stmt = connection.createStatement();
             stmt.execute(createUsersTable);
             stmt.execute(createDataTable);
+            stmt.execute(createClassesTable);
+            stmt.execute(createClassEnrollmentsTable);
             System.out.println("Tables created successfully!");
         } catch (SQLException e) {
             System.err.println("Error creating tables: " + e.getMessage());
@@ -313,6 +341,93 @@ public class DatabaseManager {
         } catch (SQLException e) {
             System.err.println("Error closing connection: " + e.getMessage());
         }
+    }
+
+    /**
+     * Saves a workout class created by a trainer
+     */
+    public boolean saveClass(String trainerUsername, String classType, String description,
+                             String startTime, String endTime, int maxParticipants, double cost) {
+        String sql = "INSERT INTO classes (trainer_username, class_type, description, start_time, end_time, max_participants, cost) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setString(1, trainerUsername);
+            pstmt.setString(2, classType);
+            pstmt.setString(3, description);
+            pstmt.setString(4, startTime);
+            pstmt.setString(5, endTime);
+            pstmt.setInt(6, maxParticipants);
+            pstmt.setDouble(7, cost);
+            pstmt.executeUpdate();
+            System.out.println("Class saved for trainer: " + trainerUsername);
+            return true;
+        } catch (SQLException e) {
+            System.err.println("Error saving class: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Returns all classes created by any trainer
+     */
+    public java.util.List<WorkoutClass> getAllClasses() {
+        java.util.List<WorkoutClass> classes = new java.util.ArrayList<>();
+        String sql = "SELECT * FROM classes ORDER BY start_time ASC";
+
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                WorkoutClass wc = new WorkoutClass(
+                    rs.getInt("id"),
+                    rs.getString("trainer_username"),
+                    rs.getString("class_type"),
+                    rs.getString("description"),
+                    rs.getString("start_time"),
+                    rs.getString("end_time"),
+                    rs.getInt("max_participants"),
+                    rs.getDouble("cost")
+                );
+                classes.add(wc);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting classes: " + e.getMessage());
+        }
+        return classes;
+    }
+
+    /**
+     * Returns list of user display names enrolled in a given class
+     */
+    public java.util.List<String> getUsersForClass(int classId) {
+        java.util.List<String> users = new java.util.ArrayList<>();
+        String sql = "SELECT u.first_name, u.last_name, u.username " +
+                     "FROM class_enrollments ce " +
+                     "JOIN users u ON ce.user_id = u.id " +
+                     "WHERE ce.class_id = ?";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, classId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                String first = rs.getString("first_name");
+                String last = rs.getString("last_name");
+                String username = rs.getString("username");
+                String display;
+                if (first != null && last != null) {
+                    display = first + " " + last + " (" + username + ")";
+                } else if (first != null) {
+                    display = first + " (" + username + ")";
+                } else {
+                    display = username;
+                }
+                users.add(display);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting users for class: " + e.getMessage());
+        }
+        return users;
     }
 }
 
