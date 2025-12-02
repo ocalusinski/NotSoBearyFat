@@ -429,5 +429,123 @@ public class DatabaseManager {
         }
         return users;
     }
+
+    /**
+     * Gets the current number of enrolled participants for a class
+     * @return count of enrolled participants
+     */
+    public int getCurrentEnrollmentCount(int classId) {
+        String sql = "SELECT COUNT(*) FROM class_enrollments WHERE class_id = ?";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, classId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting enrollment count: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    /**
+     * Checks if a user is already enrolled in a class
+     * @return true if enrolled, false otherwise
+     */
+    public boolean isUserEnrolled(int userId, int classId) {
+        String sql = "SELECT COUNT(*) FROM class_enrollments WHERE user_id = ? AND class_id = ?";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            pstmt.setInt(2, classId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            System.err.println("Error checking enrollment: " + e.getMessage());
+        }
+        return false;
+    }
+
+    /**
+     * Enrolls a user in a class, but only if the class hasn't reached max capacity
+     * @return true if enrollment successful, false if class is full or user already enrolled
+     */
+    public boolean enrollUserInClass(int userId, int classId) {
+        // First check if user is already enrolled
+        if (isUserEnrolled(userId, classId)) {
+            System.err.println("User already enrolled in this class");
+            return false;
+        }
+
+        // Get the class to check max participants
+        String getClassSql = "SELECT max_participants FROM classes WHERE id = ?";
+        try {
+            PreparedStatement getClassStmt = connection.prepareStatement(getClassSql);
+            getClassStmt.setInt(1, classId);
+            ResultSet rs = getClassStmt.executeQuery();
+            
+            if (!rs.next()) {
+                System.err.println("Class not found");
+                return false;
+            }
+            
+            int maxParticipants = rs.getInt("max_participants");
+            int currentCount = getCurrentEnrollmentCount(classId);
+            
+            if (currentCount >= maxParticipants) {
+                System.err.println("Class is full. Current: " + currentCount + ", Max: " + maxParticipants);
+                return false;
+            }
+            
+            // Enroll the user
+            String enrollSql = "INSERT INTO class_enrollments (class_id, user_id) VALUES (?, ?)";
+            PreparedStatement enrollStmt = connection.prepareStatement(enrollSql);
+            enrollStmt.setInt(1, classId);
+            enrollStmt.setInt(2, userId);
+            enrollStmt.executeUpdate();
+            
+            System.out.println("User " + userId + " enrolled in class " + classId);
+            return true;
+        } catch (SQLException e) {
+            System.err.println("Error enrolling user in class: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Gets all classes that a user is enrolled in
+     * @return list of WorkoutClass objects the user is enrolled in
+     */
+    public java.util.List<WorkoutClass> getUserEnrolledClasses(int userId) {
+        java.util.List<WorkoutClass> classes = new java.util.ArrayList<>();
+        String sql = "SELECT c.* FROM classes c " +
+                     "JOIN class_enrollments ce ON c.id = ce.class_id " +
+                     "WHERE ce.user_id = ? " +
+                     "ORDER BY c.start_time ASC";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                WorkoutClass wc = new WorkoutClass(
+                    rs.getInt("id"),
+                    rs.getString("trainer_username"),
+                    rs.getString("class_type"),
+                    rs.getString("description"),
+                    rs.getString("start_time"),
+                    rs.getString("end_time"),
+                    rs.getInt("max_participants"),
+                    rs.getDouble("cost")
+                );
+                classes.add(wc);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting user enrolled classes: " + e.getMessage());
+        }
+        return classes;
+    }
 }
 
