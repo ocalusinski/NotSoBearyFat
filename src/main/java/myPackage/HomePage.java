@@ -1,3 +1,4 @@
+package myPackage;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -113,7 +114,7 @@ public class HomePage {
             @Override
             public void actionPerformed(ActionEvent e){
                 frame.dispose();
-                new SignUpPage();
+                new SignUpPage(true);
             }
         });
 

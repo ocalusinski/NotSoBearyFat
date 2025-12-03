@@ -1,76 +1,30 @@
+package myPackage;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.regex.Pattern;
 
-public class UserManagement {
-    private static void CreateAndShowAdminPortal(){
-        JFrame frame = new JFrame("Admin Portal");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(700, 500);
-        frame.getContentPane().setBackground(new Color(0, 71, 56));
-        //make a three sized box layout and place the flowLayout in the middle!
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new FlowLayout());
-        buttonPanel.setSize(420, 120);
+import static myPackage.Constants.*;
 
-        JButton b = new JButton("Create New Admin");
-        b.addActionListener(new ActionListener() {
-          @Override
-          public void actionPerformed(ActionEvent e) {
-              System.out.println("Create New Admin");
-              frame.dispose();
-              CreateAddAdminPage();
-          }
-        });
-        buttonPanel.add(b);
-        b = new JButton("Change Password");
-        b.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                System.out.println("Change Password");
-            }
-        });
-        buttonPanel.add(b);
-        b = new JButton("Remove User");
-        b.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                System.out.println("Remove User");
-            }
-        });
-        buttonPanel.add(b);
+/**
+ * SignUpPage - GUI for user registration (Client and Trainer)
+ */
+public class SignUpPage extends JFrame {
+    private DatabaseManager dbManager;
+    private JRadioButton clientRadio;
+    
+    public SignUpPage(boolean admin) {
+        dbManager = new DatabaseManager();
+        setTitle("Sign Up");
+        setSize(600, 750);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setLocationRelativeTo(null);
 
-        b = new JButton("Return to Main Page");
-        b.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                System.out.println("Return to Main Page");
-                frame.dispose();
-                new HomePage();
-            }
-        });
-        buttonPanel.add(b);
-        buttonPanel.setBackground(new Color(0, 71, 56));
-        frame.setLayout(new GridBagLayout());
-        frame.add(buttonPanel, new GridBagConstraints());
-        frame.setVisible(true);
-    }
-    public static void CreateAddAdminPage(){
-        DatabaseManager dbManager = new DatabaseManager();
-        JFrame frame = new JFrame("Add Admin");
-
-        frame.setSize(600, 750);
-        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        frame.setLocationRelativeTo(null);
-
-        Color baylorGreen = new Color(0, 71, 56);
-        Color baylorGold = new Color(255, 199, 44);
 
         // Main panel
         JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(baylorGreen);
+        mainPanel.setBackground(Constants.baylorGreen);
 
         // Header panel
         JPanel headerPanel = new JPanel(new GridBagLayout());
@@ -79,7 +33,11 @@ public class UserManagement {
 
         GridBagConstraints gbc = new GridBagConstraints();
 
-        JLabel title = new JLabel("Admin SignUp Page");
+        String titleTitle = "🐻 Sign Up 🐻";
+        if(admin) {
+           titleTitle = "Admin Sign Up";
+        }
+        JLabel title = new JLabel(titleTitle);
         title.setFont(new Font("Arial", Font.BOLD, 24));
         title.setForeground(baylorGreen);
         gbc.gridx = 0;
@@ -188,6 +146,44 @@ public class UserManagement {
         gbc.anchor = GridBagConstraints.WEST;
         centerPanel.add(confirmPasswordField, gbc);
 
+        // User Type Selection (Radio Buttons)
+        if(!admin) {
+            JLabel userTypeLabel = new JLabel("Account Type:");
+            userTypeLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+            userTypeLabel.setForeground(baylorGold);
+            gbc.gridx = 0;
+            gbc.gridy = 6;
+            gbc.insets = new Insets(15, 20, 5, 20);
+            gbc.anchor = GridBagConstraints.EAST;
+            centerPanel.add(userTypeLabel, gbc);
+
+            JPanel userTypePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            userTypePanel.setBackground(baylorGreen);
+            userTypePanel.setOpaque(false);
+
+            clientRadio = new JRadioButton("Client", true);
+            clientRadio.setForeground(baylorGold);
+            clientRadio.setBackground(baylorGreen);
+            clientRadio.setOpaque(false);
+            clientRadio.setFont(new Font("Arial", Font.PLAIN, 14));
+
+            JRadioButton trainerRadio = new JRadioButton("Trainer", false);
+            trainerRadio.setForeground(baylorGold);
+            trainerRadio.setBackground(baylorGreen);
+            trainerRadio.setOpaque(false);
+            trainerRadio.setFont(new Font("Arial", Font.PLAIN, 14));
+
+            ButtonGroup userTypeGroup = new ButtonGroup();
+            userTypeGroup.add(clientRadio);
+            userTypeGroup.add(trainerRadio);
+
+            userTypePanel.add(clientRadio);
+            userTypePanel.add(trainerRadio);
+
+            gbc.gridx = 1;
+            gbc.anchor = GridBagConstraints.WEST;
+            centerPanel.add(userTypePanel, gbc);
+        }
 
         // Buttons panel
         JPanel buttonPanel = new JPanel(new FlowLayout());
@@ -232,30 +228,30 @@ public class UserManagement {
                 String confirmPassword = new String(confirmPasswordField.getPassword());
 
                 // Validation
-                if (firstName.isEmpty() || lastName.isEmpty() || username.isEmpty() ||
-                        email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
-                    JOptionPane.showMessageDialog(frame,
-                            "Please fill in all fields",
-                            "Missing Information",
-                            JOptionPane.WARNING_MESSAGE);
+                if (firstName.isEmpty() || lastName.isEmpty() || username.isEmpty() || 
+                    email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
+                    JOptionPane.showMessageDialog(SignUpPage.this, 
+                        "Please fill in all fields", 
+                        "Missing Information", 
+                        JOptionPane.WARNING_MESSAGE);
                     return;
                 }
 
                 if (!password.equals(confirmPassword)) {
-                    JOptionPane.showMessageDialog(frame,
-                            "Passwords do not match",
-                            "Validation Error",
-                            JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(SignUpPage.this, 
+                        "Passwords do not match", 
+                        "Validation Error", 
+                        JOptionPane.ERROR_MESSAGE);
                     passwordField.setText("");
                     confirmPasswordField.setText("");
                     return;
                 }
 
                 if (password.length() < 6) {
-                    JOptionPane.showMessageDialog(frame,
-                            "Password must be at least 6 characters long",
-                            "Validation Error",
-                            JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(SignUpPage.this, 
+                        "Password must be at least 6 characters long", 
+                        "Validation Error", 
+                        JOptionPane.ERROR_MESSAGE);
                     passwordField.setText("");
                     confirmPasswordField.setText("");
                     return;
@@ -264,62 +260,77 @@ public class UserManagement {
                 // Simple email validation
                 String emailPattern = "^[A-Za-z0-9+_.-]+@(.+)$";
                 if (!Pattern.matches(emailPattern, email)) {
-                    JOptionPane.showMessageDialog(frame,
-                            "Please enter a valid email address",
-                            "Validation Error",
-                            JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(SignUpPage.this, 
+                        "Please enter a valid email address", 
+                        "Validation Error", 
+                        JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
                 // Check if username or email already exists
                 if (dbManager.usernameExists(username)) {
-                    JOptionPane.showMessageDialog(frame,
-                            "Username already exists. Please choose a different one.",
-                            "Username Taken",
-                            JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(SignUpPage.this, 
+                        "Username already exists. Please choose a different one.", 
+                        "Username Taken", 
+                        JOptionPane.ERROR_MESSAGE);
                     usernameField.setText("");
                     return;
                 }
 
                 if (dbManager.emailExists(email)) {
-                    JOptionPane.showMessageDialog(frame,
-                            "Email already registered. Please use a different email.",
-                            "Email Taken",
-                            JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(SignUpPage.this, 
+                        "Email already registered. Please use a different email.", 
+                        "Email Taken", 
+                        JOptionPane.ERROR_MESSAGE);
                     emailField.setText("");
                     return;
                 }
 
-                // Get selected user type, it is always Admin in this case
+                // Get selected user type
                 String selectedUserType = "Admin";
-
+                if(!admin) {
+                    selectedUserType = clientRadio.isSelected() ? "Client" : "Trainer";
+                }
                 // Register user
-                boolean success = dbManager.registerUser(username, password, email,
-                        selectedUserType, firstName, lastName);
-
+                boolean success = dbManager.registerUser(username, password, email, 
+                                                         selectedUserType, firstName, lastName);
+                StringBuilder b = new StringBuilder();
+                b.append("Account created successfully!");
+                if(!admin){
+                    b.append(" Logging you in...\n");
+                }
+                String message = b.toString();
                 if (success) {
-                    JOptionPane.showMessageDialog(frame,
-                            "Account created successfully! Logging you in...",
-                            "Success",
-                            JOptionPane.INFORMATION_MESSAGE);
-
+                    JOptionPane.showMessageDialog(SignUpPage.this, 
+                        message,
+                        "Success", 
+                        JOptionPane.INFORMATION_MESSAGE);
+                    
                     // Automatically log the user in after successful signup
-                    User newUser = dbManager.loginUser(username, password);
-                    dbManager.closeConnection();
-                    frame.dispose();
+                    if(!admin) {
+                        User newUser = dbManager.loginUser(username, password);
+                        dbManager.closeConnection();
+                        dispose();
 
-                    if (newUser != null) {
-                        // Open dashboard for the newly registered user
-                        SwingUtilities.invokeLater(() -> new DashboardUI(newUser.getFirstName(), newUser.getUserType()));
-                    } else {
-                        // If auto-login fails, go to homepage (shouldn't happen)
-                        HomePage.main(null);
+
+                        if (newUser != null) {
+                            // Open dashboard for the newly registered user
+                            SwingUtilities.invokeLater(() -> new DashboardUI(newUser.getFirstName(), newUser.getUserType()));
+                        } else {
+                            // If auto-login fails, go to homepage (shouldn't happen)
+                            HomePage.main(null);
+                        }
+                    }
+                    //return to Admin Page
+                    else{
+                        dispose();
+                        UserManagement.main(null);
                     }
                 } else {
-                    JOptionPane.showMessageDialog(frame,
-                            "Registration failed. Please try again.",
-                            "Error",
-                            JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(SignUpPage.this, 
+                        "Registration failed. Please try again.", 
+                        "Error", 
+                        JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
@@ -329,20 +340,21 @@ public class UserManagement {
             @Override
             public void actionPerformed(ActionEvent e) {
                 dbManager.closeConnection();
-                frame.dispose();
+                dispose();
                 HomePage.main(null);
             }
         });
 
         mainPanel.add(headerPanel, BorderLayout.NORTH);
         mainPanel.add(centerPanel, BorderLayout.CENTER);
-        frame.add(mainPanel);
-
-        frame.setVisible(true);
+        add(mainPanel);
+        
+        setVisible(true);
     }
-
 
     public static void main(String[] args) {
-        CreateAndShowAdminPortal();
+        // For testing
+        SwingUtilities.invokeLater(() -> new SignUpPage(false));
     }
 }
+
