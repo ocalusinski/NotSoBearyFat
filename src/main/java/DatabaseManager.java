@@ -18,10 +18,89 @@ public class DatabaseManager {
             try (Statement busyStmt = connection.createStatement()) {
                 busyStmt.execute("PRAGMA busy_timeout = 5000");
             }
+            
+            // Check database integrity
+            if (!checkDatabaseIntegrity()) {
+                System.err.println("Database corruption detected. Attempting to recover...");
+                closeConnection();
+                recoverDatabase();
+                // Reconnect after recovery
+                connection = DriverManager.getConnection(DB_URL);
+                try (Statement busyStmt = connection.createStatement()) {
+                    busyStmt.execute("PRAGMA busy_timeout = 5000");
+                }
+            }
+            
             createTables();
             System.out.println("Database connected successfully!");
         } catch (SQLException e) {
             System.err.println("Error connecting to database: " + e.getMessage());
+            // If connection failed due to corruption, try to recover
+            if (e.getMessage() != null && (e.getMessage().contains("malformed") || e.getMessage().contains("corrupt"))) {
+                System.err.println("Attempting to recover corrupted database...");
+                recoverDatabase();
+                // Try connecting again
+                try {
+                    connection = DriverManager.getConnection(DB_URL);
+                    try (Statement busyStmt = connection.createStatement()) {
+                        busyStmt.execute("PRAGMA busy_timeout = 5000");
+                    }
+                    createTables();
+                    System.out.println("Database recovered and reconnected successfully!");
+                } catch (SQLException e2) {
+                    System.err.println("Failed to recover database: " + e2.getMessage());
+                }
+            }
+        }
+    }
+    
+    /**
+     * Checks database integrity
+     * @return true if database is valid, false if corrupted
+     */
+    private boolean checkDatabaseIntegrity() {
+        try {
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery("PRAGMA integrity_check");
+            if (rs.next()) {
+                String result = rs.getString(1);
+                return "ok".equals(result.toLowerCase());
+            }
+        } catch (SQLException e) {
+            // If we can't even run integrity check, database is likely corrupted
+            return false;
+        }
+        return false;
+    }
+    
+    /**
+     * Recovers from database corruption by backing up and recreating the database
+     */
+    private void recoverDatabase() {
+        try {
+            java.io.File dbFile = new java.io.File("notsobearyfat.db");
+            if (dbFile.exists()) {
+                // Backup the corrupted database
+                java.io.File backupFile = new java.io.File("notsobearyfat.db.corrupted.backup");
+                if (backupFile.exists()) {
+                    backupFile.delete();
+                }
+                dbFile.renameTo(backupFile);
+                System.out.println("Corrupted database backed up to: notsobearyfat.db.corrupted.backup");
+                System.out.println("A new database will be created automatically.");
+            }
+        } catch (Exception e) {
+            System.err.println("Error during database recovery: " + e.getMessage());
+            // If backup fails, try to delete the corrupted file
+            try {
+                java.io.File dbFile = new java.io.File("notsobearyfat.db");
+                if (dbFile.exists()) {
+                    dbFile.delete();
+                    System.out.println("Corrupted database file deleted. A new one will be created.");
+                }
+            } catch (Exception e2) {
+                System.err.println("Could not delete corrupted database file: " + e2.getMessage());
+            }
         }
     }
 
