@@ -780,6 +780,25 @@ public class DashboardUI extends JFrame {
             }
         });
         
+        // Add action listener to Quick Add Calories button
+        quickCalories.addActionListener(e -> {
+            if (userId == -1) {
+                JOptionPane.showMessageDialog(DashboardUI.this,
+                    "Unable to add data: User not found.",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            // Open AddData page with current user's ID and database manager
+            // Pass a callback to refresh dashboard data after saving
+            AddData.openAddDataPage(userId, dbManager, () -> {
+                loadUserData();
+                checkForReminders();
+            });
+        });
+        
+        // TODO: Add action listener for Quick Add Workout button when implemented
+        
         quickPanel.add(quickCalories);
         quickPanel.add(quickWorkout);
         
