@@ -1,6 +1,11 @@
 package myPackage;
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import java.awt.*;
+import java.util.List;
 
 public class DashboardUI extends JFrame {
     private JLabel caloriesLabel;
@@ -12,6 +17,11 @@ public class DashboardUI extends JFrame {
     private int userId;
     private String username;
     private String userType;
+    
+    // References to Classes tab components for refreshing
+    private DefaultListModel<WorkoutClass> classListModel;
+    private JList<WorkoutClass> classList;
+    private JTabbedPane tabbedPane;
     
     // Baylor green color scheme
     private static final Color BAYLOR_GREEN = new Color(0, 71, 56);
@@ -84,7 +94,7 @@ public class DashboardUI extends JFrame {
         add(headerPanel, BorderLayout.NORTH);
 
         // Create tabbed pane
-        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane = new JTabbedPane();
         tabbedPane.setBackground(BACKGROUND_COLOR);
         tabbedPane.setForeground(BAYLOR_GREEN);
         
@@ -109,6 +119,18 @@ public class DashboardUI extends JFrame {
         // Achievements Tab (placeholder)
         JPanel achievementsTab = createAchievementsTab();
         tabbedPane.addTab("Achievements", achievementsTab);
+        
+        // Add listener to refresh Classes tab when it becomes visible
+        tabbedPane.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                int selectedIndex = tabbedPane.getSelectedIndex();
+                String selectedTitle = tabbedPane.getTitleAt(selectedIndex);
+                if ("Classes".equals(selectedTitle) && isTrainer() && classListModel != null) {
+                    refreshClassesList();
+                }
+            }
+        });
         
         add(tabbedPane, BorderLayout.CENTER);
 
@@ -180,28 +202,395 @@ public class DashboardUI extends JFrame {
     }
 
     private JPanel createClassesTab() {
-        JPanel classesPanel = new JPanel(new BorderLayout());
-        classesPanel.setBackground(BACKGROUND_COLOR);
-        classesPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        // Client view: show available classes and allow registration
+        if (!isTrainer()) {
+            return createClientClassesTab();
+        }
+
+        // Trainer view: list of all classes and enrolled users for the selected class
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(BACKGROUND_COLOR);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        // Header panel with title and refresh button
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(BACKGROUND_COLOR);
         
-        JLabel placeholderLabel = new JLabel(
-            "<html><div style='text-align: center;'>" +
-            "<h2>Classes</h2>" +
-            "<p>This feature will be implemented in the future.</p>" +
-            "<p>Here you'll be able to:</p>" +
-            "<ul style='text-align: left; display: inline-block;'>" +
-            "<li>View available fitness classes</li>" +
-            "<li>Register for classes</li>" +
-            "<li>View your enrolled classes</li>" +
-            "<li>See class schedules</li>" +
-            "</ul>" +
-            "</div></html>",
-            SwingConstants.CENTER
-        );
-        placeholderLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        classesPanel.add(placeholderLabel, BorderLayout.CENTER);
+        JLabel header = new JLabel("All Classes (for all trainers)", SwingConstants.CENTER);
+        header.setFont(new Font("Arial", Font.BOLD, 18));
+        header.setForeground(BAYLOR_GREEN);
+        headerPanel.add(header, BorderLayout.CENTER);
         
-        return classesPanel;
+        // Refresh button
+        JButton refreshButton = new JButton("Refresh");
+        refreshButton.setBackground(BAYLOR_GREEN);
+        refreshButton.setForeground(Color.WHITE);
+        refreshButton.setOpaque(true);
+        refreshButton.setBorderPainted(false);
+        refreshButton.setFocusPainted(false);
+        refreshButton.setFont(new Font("Arial", Font.PLAIN, 12));
+        refreshButton.setPreferredSize(new Dimension(80, 30));
+        refreshButton.addActionListener(e -> refreshClassesList());
+        
+        // Add hover effect
+        refreshButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                refreshButton.setBackground(LIGHT_GREEN);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                refreshButton.setBackground(BAYLOR_GREEN);
+            }
+        });
+        
+        headerPanel.add(refreshButton, BorderLayout.EAST);
+        mainPanel.add(headerPanel, BorderLayout.NORTH);
+
+        JPanel centerPanel = new JPanel(new GridLayout(1, 2, 20, 0));
+        centerPanel.setBackground(BACKGROUND_COLOR);
+
+        // Left: classes list
+        classListModel = new DefaultListModel<>();
+        classList = new JList<>(classListModel);
+        classList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        classList.setVisibleRowCount(12);
+
+        // Load all classes from database
+        refreshClassesList();
+
+        JScrollPane classScroll = new JScrollPane(classList);
+        classScroll.setBorder(BorderFactory.createTitledBorder("Classes"));
+
+        // Right: enrolled users for selected class
+        DefaultListModel<String> userListModel = new DefaultListModel<>();
+        JList<String> userList = new JList<>(userListModel);
+        userList.setVisibleRowCount(12);
+        JScrollPane userScroll = new JScrollPane(userList);
+        userScroll.setBorder(BorderFactory.createTitledBorder("Enrolled Users"));
+
+        // When a class is selected, load its enrolled users
+        classList.addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent e) {
+                if (!e.getValueIsAdjusting()) {
+                    userListModel.clear();
+                    WorkoutClass selected = classList.getSelectedValue();
+                    if (selected != null) {
+                        List<String> users = dbManager.getUsersForClass(selected.getId());
+                        if (users.isEmpty()) {
+                            userListModel.addElement("No users enrolled yet.");
+                        } else {
+                            for (String u : users) {
+                                userListModel.addElement(u);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        centerPanel.add(classScroll);
+        centerPanel.add(userScroll);
+        mainPanel.add(centerPanel, BorderLayout.CENTER);
+
+        return mainPanel;
+    }
+    
+    // Method to refresh the classes list from the database
+    private void refreshClassesList() {
+        if (classListModel != null && dbManager != null) {
+            classListModel.clear();
+            List<WorkoutClass> classes = dbManager.getAllClasses();
+            for (WorkoutClass wc : classes) {
+                classListModel.addElement(wc);
+            }
+        }
+    }
+
+    // Client view for Classes tab - shows available classes and allows registration
+    private JPanel createClientClassesTab() {
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(BACKGROUND_COLOR);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        // Create tabbed pane for Available Classes and My Classes
+        JTabbedPane clientTabbedPane = new JTabbedPane();
+        clientTabbedPane.setBackground(BACKGROUND_COLOR);
+        clientTabbedPane.setForeground(BAYLOR_GREEN);
+
+        // Available Classes tab
+        JPanel availablePanel = createAvailableClassesPanel();
+        clientTabbedPane.addTab("Available Classes", availablePanel);
+
+        // My Classes tab (enrolled classes)
+        JPanel enrolledPanel = createEnrolledClassesPanel();
+        clientTabbedPane.addTab("My Classes", enrolledPanel);
+
+        mainPanel.add(clientTabbedPane, BorderLayout.CENTER);
+
+        // Refresh when switching tabs
+        clientTabbedPane.addChangeListener(e -> {
+            int selectedIndex = clientTabbedPane.getSelectedIndex();
+            if (selectedIndex == 0) {
+                // Refresh available classes
+                refreshAvailableClasses();
+            } else if (selectedIndex == 1) {
+                // Refresh enrolled classes
+                refreshEnrolledClasses();
+            }
+        });
+
+        return mainPanel;
+    }
+
+    // Panel showing all available classes with register buttons
+    private DefaultListModel<WorkoutClass> availableClassesModel;
+    private JList<WorkoutClass> availableClassesList;
+
+    private JPanel createAvailableClassesPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(BACKGROUND_COLOR);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // Header with refresh button
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(BACKGROUND_COLOR);
+        
+        JLabel header = new JLabel("Available Classes", SwingConstants.CENTER);
+        header.setFont(new Font("Arial", Font.BOLD, 18));
+        header.setForeground(BAYLOR_GREEN);
+        headerPanel.add(header, BorderLayout.CENTER);
+
+        JButton refreshButton = new JButton("Refresh");
+        refreshButton.setBackground(BAYLOR_GREEN);
+        refreshButton.setForeground(Color.WHITE);
+        refreshButton.setOpaque(true);
+        refreshButton.setBorderPainted(false);
+        refreshButton.setFocusPainted(false);
+        refreshButton.setFont(new Font("Arial", Font.PLAIN, 12));
+        refreshButton.setPreferredSize(new Dimension(80, 30));
+        refreshButton.addActionListener(e -> refreshAvailableClasses());
+        refreshButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                refreshButton.setBackground(LIGHT_GREEN);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                refreshButton.setBackground(BAYLOR_GREEN);
+            }
+        });
+        headerPanel.add(refreshButton, BorderLayout.EAST);
+        panel.add(headerPanel, BorderLayout.NORTH);
+
+        // Classes list
+        availableClassesModel = new DefaultListModel<>();
+        availableClassesList = new JList<>(availableClassesModel);
+        availableClassesList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        availableClassesList.setCellRenderer(new ClassListCellRenderer());
+        availableClassesList.setVisibleRowCount(10);
+
+        JScrollPane scrollPane = new JScrollPane(availableClassesList);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Select a class to register"));
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        // Details and register button panel
+        JPanel detailsPanel = new JPanel(new BorderLayout());
+        detailsPanel.setBackground(BACKGROUND_COLOR);
+        detailsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JTextArea detailsArea = new JTextArea();
+        detailsArea.setEditable(false);
+        detailsArea.setFont(new Font("Arial", Font.PLAIN, 12));
+        detailsArea.setBackground(BACKGROUND_COLOR);
+        detailsArea.setLineWrap(true);
+        detailsArea.setWrapStyleWord(true);
+        detailsArea.setText("Select a class to see details and register.");
+        JScrollPane detailsScroll = new JScrollPane(detailsArea);
+        detailsScroll.setPreferredSize(new Dimension(0, 150));
+        detailsPanel.add(detailsScroll, BorderLayout.CENTER);
+
+        JButton registerButton = new JButton("Register for Selected Class");
+        registerButton.setBackground(BAYLOR_GREEN);
+        registerButton.setForeground(Color.WHITE);
+        registerButton.setOpaque(true);
+        registerButton.setBorderPainted(false);
+        registerButton.setFocusPainted(false);
+        registerButton.setFont(new Font("Arial", Font.BOLD, 14));
+        registerButton.setPreferredSize(new Dimension(0, 40));
+        registerButton.setEnabled(false);
+        registerButton.addActionListener(e -> {
+            WorkoutClass selected = availableClassesList.getSelectedValue();
+            if (selected != null) {
+                registerForClass(selected, detailsArea);
+            }
+        });
+        registerButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                if (registerButton.isEnabled()) {
+                    registerButton.setBackground(LIGHT_GREEN);
+                }
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                registerButton.setBackground(BAYLOR_GREEN);
+            }
+        });
+        detailsPanel.add(registerButton, BorderLayout.SOUTH);
+
+        // Update details when class is selected
+        availableClassesList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                WorkoutClass selected = availableClassesList.getSelectedValue();
+                if (selected != null) {
+                    int currentEnrolled = dbManager.getCurrentEnrollmentCount(selected.getId());
+                    int spotsAvailable = selected.getMaxParticipants() - currentEnrolled;
+                    boolean alreadyEnrolled = userId != -1 && dbManager.isUserEnrolled(userId, selected.getId());
+                    
+                    String details = "Class Type: " + selected.getClassType() + "\n" +
+                                    "Description: " + (selected.getDescription() != null ? selected.getDescription() : "N/A") + "\n" +
+                                    "Trainer: " + selected.getTrainerUsername() + "\n" +
+                                    "Start Time: " + selected.getStartTime() + "\n" +
+                                    "End Time: " + selected.getEndTime() + "\n" +
+                                    "Cost: $" + String.format("%.2f", selected.getCost()) + "\n" +
+                                    "Spots Available: " + spotsAvailable + " / " + selected.getMaxParticipants() + "\n" +
+                                    (alreadyEnrolled ? "\n⚠ You are already enrolled in this class." : "");
+                    
+                    detailsArea.setText(details);
+                    registerButton.setEnabled(!alreadyEnrolled && spotsAvailable > 0);
+                } else {
+                    detailsArea.setText("Select a class to see details and register.");
+                    registerButton.setEnabled(false);
+                }
+            }
+        });
+
+        panel.add(detailsPanel, BorderLayout.SOUTH);
+
+        // Load classes
+        refreshAvailableClasses();
+
+        return panel;
+    }
+
+    // Panel showing user's enrolled classes
+    private DefaultListModel<WorkoutClass> enrolledClassesModel;
+    private JList<WorkoutClass> enrolledClassesList;
+
+    private JPanel createEnrolledClassesPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(BACKGROUND_COLOR);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JLabel header = new JLabel("My Enrolled Classes", SwingConstants.CENTER);
+        header.setFont(new Font("Arial", Font.BOLD, 18));
+        header.setForeground(BAYLOR_GREEN);
+        panel.add(header, BorderLayout.NORTH);
+
+        enrolledClassesModel = new DefaultListModel<>();
+        enrolledClassesList = new JList<>(enrolledClassesModel);
+        enrolledClassesList.setCellRenderer(new ClassListCellRenderer());
+        enrolledClassesList.setVisibleRowCount(15);
+
+        JScrollPane scrollPane = new JScrollPane(enrolledClassesList);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Classes you are registered for"));
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        // Load enrolled classes
+        refreshEnrolledClasses();
+
+        return panel;
+    }
+
+    private void refreshAvailableClasses() {
+        if (availableClassesModel != null && dbManager != null) {
+            availableClassesModel.clear();
+            List<WorkoutClass> classes = dbManager.getAllClasses();
+            for (WorkoutClass wc : classes) {
+                availableClassesModel.addElement(wc);
+            }
+        }
+    }
+
+    private void refreshEnrolledClasses() {
+        if (enrolledClassesModel != null && dbManager != null && userId != -1) {
+            enrolledClassesModel.clear();
+            List<WorkoutClass> classes = dbManager.getUserEnrolledClasses(userId);
+            if (classes.isEmpty()) {
+                // Add a placeholder message
+                // We'll handle this differently - maybe show a label
+            } else {
+                for (WorkoutClass wc : classes) {
+                    enrolledClassesModel.addElement(wc);
+                }
+            }
+        }
+    }
+
+    private void registerForClass(WorkoutClass workoutClass, JTextArea detailsArea) {
+        if (userId == -1) {
+            JOptionPane.showMessageDialog(this,
+                "Unable to register: User not found.",
+                "Registration Error",
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Check if already enrolled
+        if (dbManager.isUserEnrolled(userId, workoutClass.getId())) {
+            JOptionPane.showMessageDialog(this,
+                "You are already enrolled in this class.",
+                "Already Enrolled",
+                JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // Check if class is full
+        int currentEnrolled = dbManager.getCurrentEnrollmentCount(workoutClass.getId());
+        if (currentEnrolled >= workoutClass.getMaxParticipants()) {
+            JOptionPane.showMessageDialog(this,
+                "This class is full. Please select another class.",
+                "Class Full",
+                JOptionPane.WARNING_MESSAGE);
+            refreshAvailableClasses();
+            return;
+        }
+
+        // Attempt enrollment
+        boolean success = dbManager.enrollUserInClass(userId, workoutClass.getId());
+        if (success) {
+            JOptionPane.showMessageDialog(this,
+                "Successfully registered for " + workoutClass.getClassType() + "!",
+                "Registration Successful",
+                JOptionPane.INFORMATION_MESSAGE);
+            // Refresh both lists
+            refreshAvailableClasses();
+            refreshEnrolledClasses();
+            // Update details area
+            availableClassesList.clearSelection();
+            detailsArea.setText("Select a class to see details and register.");
+        } else {
+            JOptionPane.showMessageDialog(this,
+                "Failed to register. The class may be full or you may already be enrolled.",
+                "Registration Failed",
+                JOptionPane.ERROR_MESSAGE);
+            refreshAvailableClasses();
+        }
+    }
+
+    // Custom cell renderer for class list to show more info
+    private class ClassListCellRenderer extends DefaultListCellRenderer {
+        @Override
+        public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                     boolean isSelected, boolean cellHasFocus) {
+            super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            if (value instanceof WorkoutClass) {
+                WorkoutClass wc = (WorkoutClass) value;
+                int currentEnrolled = dbManager.getCurrentEnrollmentCount(wc.getId());
+                int spotsAvailable = wc.getMaxParticipants() - currentEnrolled;
+                String text = wc.getClassType() + " - " + wc.getStartTime() + 
+                             " ($" + String.format("%.2f", wc.getCost()) + ") - " +
+                             spotsAvailable + " spots available";
+                setText(text);
+            }
+            return this;
+        }
     }
 
     private JPanel createCreateClassTab() {
@@ -231,9 +620,10 @@ public class DashboardUI extends JFrame {
         createClassButton.setFont(new Font("Arial", Font.BOLD, 16));
         createClassButton.setPreferredSize(new Dimension(200, 50));
         createClassButton.addActionListener(e -> {
-            // Open CreateClass window
+            // Open CreateClass window, passing the current trainer's username
+            // and reusing the existing DatabaseManager connection
             SwingUtilities.invokeLater(() -> {
-                CreateClass.CreateAndShowGUI();
+                CreateClass.CreateAndShowGUI(username, dbManager);
             });
         });
         
@@ -390,6 +780,25 @@ public class DashboardUI extends JFrame {
                 quickWorkout.setBackground(BAYLOR_GREEN);
             }
         });
+        
+        // Add action listener to Quick Add Calories button
+        quickCalories.addActionListener(e -> {
+            if (userId == -1) {
+                JOptionPane.showMessageDialog(DashboardUI.this,
+                    "Unable to add data: User not found.",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            // Open AddData page with current user's ID and database manager
+            // Pass a callback to refresh dashboard data after saving
+            AddData.openAddDataPage(userId, dbManager, () -> {
+                loadUserData();
+                checkForReminders();
+            });
+        });
+        
+        // TODO: Add action listener for Quick Add Workout button when implemented
         
         quickPanel.add(quickCalories);
         quickPanel.add(quickWorkout);

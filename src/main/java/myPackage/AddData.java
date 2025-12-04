@@ -10,6 +10,20 @@ import java.util.Date;
 
 
 public class AddData{
+    // Static method to open AddDataPage directly (for use from DashboardUI)
+    // refreshCallback can be null - if provided, it will be called after successful save
+    public static void openAddDataPage(int userId, DatabaseManager dbManager, Runnable refreshCallback) {
+        SwingUtilities.invokeLater(() -> {
+            AddDataPage newPage = new AddDataPage(userId, dbManager, refreshCallback);
+            newPage.setVisible(true);
+        });
+    }
+    
+    // Overload without refresh callback for backward compatibility
+    public static void openAddDataPage(int userId, DatabaseManager dbManager) {
+        openAddDataPage(userId, dbManager, null);
+    }
+
     private static void CreateAndShowGUI(){
         JFrame frame = new JFrame("Add Data");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -25,7 +39,9 @@ public class AddData{
         addDataButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e){
-                AddDataPage newPage = new AddDataPage();
+                // For standalone use, create a temporary DatabaseManager
+                DatabaseManager tempDb = new DatabaseManager();
+                AddDataPage newPage = new AddDataPage(-1, tempDb);
                 newPage.setVisible(true);
                 frame.dispose();
             }
@@ -40,8 +56,20 @@ public class AddData{
     }
 
     static class AddDataPage extends JFrame{
+        private int userId;
+        private DatabaseManager dbManager;
+        private Runnable refreshCallback;
 
-        public AddDataPage(){
+        // Constructor without refresh callback for backward compatibility
+        public AddDataPage(int userId, DatabaseManager dbManager){
+            this(userId, dbManager, null);
+        }
+
+        public AddDataPage(int userId, DatabaseManager dbManager, Runnable refreshCallback){
+            this.userId = userId;
+            this.dbManager = dbManager;
+            this.refreshCallback = refreshCallback;
+            
             final LocalDate[] date = new LocalDate[1];
             final int[] cal = new int[1];
             final double[] weight = new double[1];
@@ -50,7 +78,8 @@ public class AddData{
 
             JFrame dataFrame = new JFrame("Add Data");
             dataFrame.setSize(600, 800);
-            dataFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            // Don't exit the whole program when closing this window
+            dataFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
 
             JPanel panel = new JPanel(new GridBagLayout());
@@ -70,15 +99,26 @@ public class AddData{
             JButton cancelButton = new JButton("Cancel");
 
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM-dd-yyyy");
+            DateTimeFormatter formatter2 = DateTimeFormatter.ofPattern("M-d-yyyy"); // Allow single digit month/day
+            DateTimeFormatter formatter3 = DateTimeFormatter.ofPattern("MM/dd/yyyy"); // Allow slashes
+            DateTimeFormatter formatter4 = DateTimeFormatter.ofPattern("M/d/yyyy"); // Single digit with slashes
+            
+            // Set today's date as default/placeholder
+            dateField.setText(LocalDate.now().format(formatter));
+            date[0] = LocalDate.now();
+            
+            // Optional: parse date when user types (but don't require it)
             dateField.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    try{
-                        date[0] = LocalDate.parse(dateField.getText(), formatter);
-                    }
-                    catch(DateTimeParseException ex){
-                        tempMessage(dateField, "Must be in MM-dd-yyyy form");
-                    }
+                    parseDateField(dateField, date, formatter, formatter2, formatter3, formatter4);
+                }
+            });
+            
+            // Also parse when field loses focus
+            dateField.addFocusListener(new java.awt.event.FocusAdapter() {
+                public void focusLost(java.awt.event.FocusEvent evt) {
+                    parseDateField(dateField, date, formatter, formatter2, formatter3, formatter4);
                 }
             });
             calIntake.addActionListener(new ActionListener() {
@@ -135,13 +175,47 @@ public class AddData{
             cancelButton.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    areYouSure("Cancel", dataFrame, date[0], cal[0], sleep[0], weight[0], totalCal[0]);
+                    areYouSure("Cancel", dataFrame, date[0], cal[0], sleep[0], weight[0], totalCal[0], userId, dbManager, refreshCallback);
                 }
             });
             saveButton.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    areYouSure("Save", dataFrame, date[0], cal[0], sleep[0], weight[0], totalCal[0]);
+                    // Parse date field when Save is clicked (in case user didn't press Enter)
+                    if (!parseDateField(dateField, date, formatter, formatter2, formatter3, formatter4)) {
+                        // If parsing failed, show error and don't proceed
+                        JOptionPane.showMessageDialog(dataFrame,
+                            "Please enter a valid date.\nAccepted formats: MM-dd-yyyy, M-d-yyyy, MM/dd/yyyy, or M/d/yyyy\nExample: 12-03-2024 or 12/03/2024",
+                            "Invalid Date Format",
+                            JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+                    
+                    // Validate required fields before showing confirmation
+                    if (date[0] == null) {
+                        // Default to today if still null
+                        date[0] = LocalDate.now();
+                    }
+                    
+                    // Parse calories from field if not already parsed
+                    try {
+                        String calText = calIntake.getText().trim();
+                        if (!calText.isEmpty()) {
+                            cal[0] = Integer.parseInt(calText);
+                        }
+                    } catch (NumberFormatException ex) {
+                        // Will be handled below
+                    }
+                    
+                    if (cal[0] == 0) {
+                        JOptionPane.showMessageDialog(dataFrame,
+                            "Please enter calories consumed.",
+                            "Missing Calories",
+                            JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+                    
+                    areYouSure("Save", dataFrame, date[0], cal[0], sleep[0], weight[0], totalCal[0], userId, dbManager, refreshCallback);
                 }
             });
 
@@ -206,14 +280,40 @@ public class AddData{
 
         }
     }
+    // Helper method to parse date field with multiple format support
+    private static boolean parseDateField(JTextField dateField, LocalDate[] date, 
+                                         DateTimeFormatter... formatters) {
+        String dateText = dateField.getText().trim();
+        if (dateText.isEmpty()) {
+            date[0] = LocalDate.now(); // Default to today
+            return true;
+        }
+        
+        // Try each format
+        for (DateTimeFormatter fmt : formatters) {
+            try {
+                date[0] = LocalDate.parse(dateText, fmt);
+                dateField.setForeground(Color.BLACK);
+                return true;
+            } catch (DateTimeParseException ex) {
+                // Try next format
+            }
+        }
+        
+        // If all formats failed, show error
+        dateField.setForeground(Color.RED);
+        tempMessage(dateField, "Invalid date format");
+        return false;
+    }
+    
     private static void tempMessage(JTextField field, String message){
-        field.setText(message);
         field.setForeground(Color.RED);
+        // Don't overwrite the text, just change color
+        // The error will be shown via the red color
 
         new javax.swing.Timer(2000, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                field.setText("");
                 field.setForeground(Color.BLACK);
             }
         }) {{
@@ -222,9 +322,11 @@ public class AddData{
         }};
     }
     private static void areYouSure(String message, JFrame prevFrame,
-                                   LocalDate date, int cal, double sleep, double weight, int totalCal){
+                                   LocalDate date, int cal, double sleep, double weight, int totalCal,
+                                   int userId, DatabaseManager dbManager, Runnable refreshCallback){
         JFrame frame = new JFrame(message);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        // Don't exit the whole program when closing this window
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.getContentPane().setBackground(new Color(227, 172, 204));
 
         JButton yesButton = new JButton("Yes");
@@ -255,9 +357,43 @@ public class AddData{
             @Override
             public void actionPerformed(ActionEvent e) {
                 if(message.equals("Save")){
-                    Data data = new Data(date, cal, weight, sleep);
+                    // Save to database if userId and dbManager are available
+                    if (userId != -1 && dbManager != null && date != null) {
+                        String dateStr = date.format(DateTimeFormatter.ofPattern("MM-dd-yyyy"));
+                        boolean success = dbManager.saveUserData(
+                            userId,
+                            dateStr,
+                            cal,
+                            weight,
+                            sleep,
+                            totalCal
+                        );
+                        if (success) {
+                            JOptionPane.showMessageDialog(frame,
+                                "Data saved successfully!",
+                                "Success",
+                                JOptionPane.INFORMATION_MESSAGE);
+                            // Call refresh callback if provided (to refresh dashboard)
+                            SwingUtilities.invokeLater(() -> {
+                                if (refreshCallback != null) {
+                                    refreshCallback.run();
+                                }
+                            });
+                        } else {
+                            JOptionPane.showMessageDialog(frame,
+                                "Error saving data. Please try again.",
+                                "Error",
+                                JOptionPane.ERROR_MESSAGE);
+                        }
+                    } else {
+                        // Fallback: just create Data object (for standalone use)
+                        Data data = new Data(date, cal, weight, sleep);
+                        JOptionPane.showMessageDialog(frame,
+                            "Data object created (not saved to database).",
+                            "Note",
+                            JOptionPane.INFORMATION_MESSAGE);
+                    }
                 }
-                CreateAndShowGUI();
                 frame.dispose();
                 prevFrame.dispose();
             }

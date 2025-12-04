@@ -15,10 +15,93 @@ public class DatabaseManager {
     public DatabaseManager() {
         try {
             connection = DriverManager.getConnection(DB_URL);
+            // If another connection is writing, wait up to 5 seconds instead of failing immediately
+            try (Statement busyStmt = connection.createStatement()) {
+                busyStmt.execute("PRAGMA busy_timeout = 5000");
+            }
+            
+            // Check database integrity
+            if (!checkDatabaseIntegrity()) {
+                System.err.println("Database corruption detected. Attempting to recover...");
+                closeConnection();
+                recoverDatabase();
+                // Reconnect after recovery
+                connection = DriverManager.getConnection(DB_URL);
+                try (Statement busyStmt = connection.createStatement()) {
+                    busyStmt.execute("PRAGMA busy_timeout = 5000");
+                }
+            }
+            
             createTables();
             System.out.println("Database connected successfully!");
         } catch (SQLException e) {
             System.err.println("Error connecting to database: " + e.getMessage());
+            // If connection failed due to corruption, try to recover
+            if (e.getMessage() != null && (e.getMessage().contains("malformed") || e.getMessage().contains("corrupt"))) {
+                System.err.println("Attempting to recover corrupted database...");
+                recoverDatabase();
+                // Try connecting again
+                try {
+                    connection = DriverManager.getConnection(DB_URL);
+                    try (Statement busyStmt = connection.createStatement()) {
+                        busyStmt.execute("PRAGMA busy_timeout = 5000");
+                    }
+                    createTables();
+                    System.out.println("Database recovered and reconnected successfully!");
+                } catch (SQLException e2) {
+                    System.err.println("Failed to recover database: " + e2.getMessage());
+                }
+            }
+        }
+    }
+    
+    /**
+     * Checks database integrity
+     * @return true if database is valid, false if corrupted
+     */
+    private boolean checkDatabaseIntegrity() {
+        try {
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery("PRAGMA integrity_check");
+            if (rs.next()) {
+                String result = rs.getString(1);
+                return "ok".equals(result.toLowerCase());
+            }
+        } catch (SQLException e) {
+            // If we can't even run integrity check, database is likely corrupted
+            return false;
+        }
+        return false;
+    }
+    
+    /**
+     * Recovers from database corruption by backing up and recreating the database
+     */
+    private void recoverDatabase() {
+        try {
+            java.io.File dbFile = new java.io.File("notsobearyfat.db");
+            if (dbFile.exists()) {
+                // Backup the corrupted database
+                java.io.File backupFile = new java.io.File("notsobearyfat.db.corrupted.backup");
+                if (backupFile.exists()) {
+                    backupFile.delete();
+                }
+                dbFile.renameTo(backupFile);
+                System.out.println("Corrupted database backed up to: notsobearyfat.db.corrupted.backup");
+                System.out.println("A new database will be created automatically.");
+            }
+        } catch (Exception e) {
+            System.err.println("Error during database recovery: " + e.getMessage());
+            // If backup fails, try to delete the corrupted file
+            try {
+                java.io.File dbFile = new java.io.File("notsobearyfat.db");
+                if (dbFile.exists()) {
+                    dbFile.delete();
+                    System.out.println("Corrupted database file deleted. A new one will be created.");
+                }
+            } catch (Exception e2) {
+                System.err.println("Could not delete corrupted database file: " + e2.getMessage());
+            }
         }
     }
 
@@ -50,10 +133,34 @@ public class DatabaseManager {
             "FOREIGN KEY (user_id) REFERENCES users(id)" +
             ")";
 
+        String createClassesTable =
+            "CREATE TABLE IF NOT EXISTS classes (" +
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+            "trainer_username TEXT NOT NULL, " +
+            "class_type TEXT NOT NULL, " +
+            "description TEXT, " +
+            "start_time TEXT NOT NULL, " +
+            "end_time TEXT NOT NULL, " +
+            "max_participants INTEGER NOT NULL, " +
+            "cost REAL NOT NULL" +
+            ")";
+
+        String createClassEnrollmentsTable =
+            "CREATE TABLE IF NOT EXISTS class_enrollments (" +
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+            "class_id INTEGER NOT NULL, " +
+            "user_id INTEGER NOT NULL, " +
+            "enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+            "FOREIGN KEY (class_id) REFERENCES classes(id), " +
+            "FOREIGN KEY (user_id) REFERENCES users(id)" +
+            ")";
+
         try {
             Statement stmt = connection.createStatement();
             stmt.execute(createUsersTable);
             stmt.execute(createDataTable);
+            stmt.execute(createClassesTable);
+            stmt.execute(createClassEnrollmentsTable);
             System.out.println("Tables created successfully!");
         } catch (SQLException e) {
             System.err.println("Error creating tables: " + e.getMessage());
@@ -352,6 +459,211 @@ public class DatabaseManager {
         } catch (SQLException e) {
             System.err.println("Error closing connection: " + e.getMessage());
         }
+    }
+
+    /**
+     * Saves a workout class created by a trainer
+     */
+    public boolean saveClass(String trainerUsername, String classType, String description,
+                             String startTime, String endTime, int maxParticipants, double cost) {
+        String sql = "INSERT INTO classes (trainer_username, class_type, description, start_time, end_time, max_participants, cost) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setString(1, trainerUsername);
+            pstmt.setString(2, classType);
+            pstmt.setString(3, description);
+            pstmt.setString(4, startTime);
+            pstmt.setString(5, endTime);
+            pstmt.setInt(6, maxParticipants);
+            pstmt.setDouble(7, cost);
+            pstmt.executeUpdate();
+            System.out.println("Class saved for trainer: " + trainerUsername);
+            return true;
+        } catch (SQLException e) {
+            System.err.println("Error saving class: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Returns all classes created by any trainer
+     */
+    public java.util.List<WorkoutClass> getAllClasses() {
+        java.util.List<WorkoutClass> classes = new java.util.ArrayList<>();
+        String sql = "SELECT * FROM classes ORDER BY start_time ASC";
+
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                WorkoutClass wc = new WorkoutClass(
+                    rs.getInt("id"),
+                    rs.getString("trainer_username"),
+                    rs.getString("class_type"),
+                    rs.getString("description"),
+                    rs.getString("start_time"),
+                    rs.getString("end_time"),
+                    rs.getInt("max_participants"),
+                    rs.getDouble("cost")
+                );
+                classes.add(wc);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting classes: " + e.getMessage());
+        }
+        return classes;
+    }
+
+    /**
+     * Returns list of user display names enrolled in a given class
+     */
+    public java.util.List<String> getUsersForClass(int classId) {
+        java.util.List<String> users = new java.util.ArrayList<>();
+        String sql = "SELECT u.first_name, u.last_name, u.username " +
+                     "FROM class_enrollments ce " +
+                     "JOIN users u ON ce.user_id = u.id " +
+                     "WHERE ce.class_id = ?";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, classId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                String first = rs.getString("first_name");
+                String last = rs.getString("last_name");
+                String username = rs.getString("username");
+                String display;
+                if (first != null && last != null) {
+                    display = first + " " + last + " (" + username + ")";
+                } else if (first != null) {
+                    display = first + " (" + username + ")";
+                } else {
+                    display = username;
+                }
+                users.add(display);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting users for class: " + e.getMessage());
+        }
+        return users;
+    }
+
+    /**
+     * Gets the current number of enrolled participants for a class
+     * @return count of enrolled participants
+     */
+    public int getCurrentEnrollmentCount(int classId) {
+        String sql = "SELECT COUNT(*) FROM class_enrollments WHERE class_id = ?";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, classId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting enrollment count: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    /**
+     * Checks if a user is already enrolled in a class
+     * @return true if enrolled, false otherwise
+     */
+    public boolean isUserEnrolled(int userId, int classId) {
+        String sql = "SELECT COUNT(*) FROM class_enrollments WHERE user_id = ? AND class_id = ?";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            pstmt.setInt(2, classId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            System.err.println("Error checking enrollment: " + e.getMessage());
+        }
+        return false;
+    }
+
+    /**
+     * Enrolls a user in a class, but only if the class hasn't reached max capacity
+     * @return true if enrollment successful, false if class is full or user already enrolled
+     */
+    public boolean enrollUserInClass(int userId, int classId) {
+        // First check if user is already enrolled
+        if (isUserEnrolled(userId, classId)) {
+            System.err.println("User already enrolled in this class");
+            return false;
+        }
+
+        // Get the class to check max participants
+        String getClassSql = "SELECT max_participants FROM classes WHERE id = ?";
+        try {
+            PreparedStatement getClassStmt = connection.prepareStatement(getClassSql);
+            getClassStmt.setInt(1, classId);
+            ResultSet rs = getClassStmt.executeQuery();
+            
+            if (!rs.next()) {
+                System.err.println("Class not found");
+                return false;
+            }
+            
+            int maxParticipants = rs.getInt("max_participants");
+            int currentCount = getCurrentEnrollmentCount(classId);
+            
+            if (currentCount >= maxParticipants) {
+                System.err.println("Class is full. Current: " + currentCount + ", Max: " + maxParticipants);
+                return false;
+            }
+            
+            // Enroll the user
+            String enrollSql = "INSERT INTO class_enrollments (class_id, user_id) VALUES (?, ?)";
+            PreparedStatement enrollStmt = connection.prepareStatement(enrollSql);
+            enrollStmt.setInt(1, classId);
+            enrollStmt.setInt(2, userId);
+            enrollStmt.executeUpdate();
+            
+            System.out.println("User " + userId + " enrolled in class " + classId);
+            return true;
+        } catch (SQLException e) {
+            System.err.println("Error enrolling user in class: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Gets all classes that a user is enrolled in
+     * @return list of WorkoutClass objects the user is enrolled in
+     */
+    public java.util.List<WorkoutClass> getUserEnrolledClasses(int userId) {
+        java.util.List<WorkoutClass> classes = new java.util.ArrayList<>();
+        String sql = "SELECT c.* FROM classes c " +
+                     "JOIN class_enrollments ce ON c.id = ce.class_id " +
+                     "WHERE ce.user_id = ? " +
+                     "ORDER BY c.start_time ASC";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                WorkoutClass wc = new WorkoutClass(
+                    rs.getInt("id"),
+                    rs.getString("trainer_username"),
+                    rs.getString("class_type"),
+                    rs.getString("description"),
+                    rs.getString("start_time"),
+                    rs.getString("end_time"),
+                    rs.getInt("max_participants"),
+                    rs.getDouble("cost")
+                );
+                classes.add(wc);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting user enrolled classes: " + e.getMessage());
+        }
+        return classes;
     }
 }
 
