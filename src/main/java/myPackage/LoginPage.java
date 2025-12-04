@@ -1,3 +1,4 @@
+package myPackage;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -130,8 +131,15 @@ public class LoginPage extends JFrame {
                         JOptionPane.INFORMATION_MESSAGE);
                     dbManager.closeConnection();
                     dispose();
-                    // Open user dashboard
-                    SwingUtilities.invokeLater(() -> new DashboardUI(user.getFirstName(), user.getUserType()));
+
+                    //if admin, login to admin portal. Spooky!
+                    if (user.getUserType().equalsIgnoreCase("admin")){
+                        UserManagement.main(null);
+                    }
+                    // Open user dashboard if user is not an admin
+                    else {
+                        SwingUtilities.invokeLater(() -> new DashboardUI(user.getFirstName(), user.getUserType()));
+                    }
                 } else {
                     JOptionPane.showMessageDialog(LoginPage.this, 
                         "Invalid username or password", 

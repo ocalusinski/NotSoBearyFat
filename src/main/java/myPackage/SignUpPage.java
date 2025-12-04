@@ -1,29 +1,30 @@
+package myPackage;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.regex.Pattern;
 
+import static myPackage.Constants.*;
+
 /**
  * SignUpPage - GUI for user registration (Client and Trainer)
  */
 public class SignUpPage extends JFrame {
     private DatabaseManager dbManager;
+    private JRadioButton clientRadio;
     
-    public SignUpPage() {
+    public SignUpPage(boolean admin) {
         dbManager = new DatabaseManager();
-        
         setTitle("Sign Up");
         setSize(600, 750);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        Color baylorGreen = new Color(0, 71, 56);
-        Color baylorGold = new Color(255, 199, 44);
 
         // Main panel
         JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(baylorGreen);
+        mainPanel.setBackground(Constants.baylorGreen);
 
         // Header panel
         JPanel headerPanel = new JPanel(new GridBagLayout());
@@ -31,8 +32,12 @@ public class SignUpPage extends JFrame {
         headerPanel.setPreferredSize(new Dimension(600, 100));
 
         GridBagConstraints gbc = new GridBagConstraints();
-        
-        JLabel title = new JLabel("🐻 Sign Up 🐻");
+
+        String titleTitle = "🐻 Sign Up 🐻";
+        if(admin) {
+           titleTitle = "Admin Sign Up";
+        }
+        JLabel title = new JLabel(titleTitle);
         title.setFont(new Font("Arial", Font.BOLD, 24));
         title.setForeground(baylorGreen);
         gbc.gridx = 0;
@@ -142,41 +147,43 @@ public class SignUpPage extends JFrame {
         centerPanel.add(confirmPasswordField, gbc);
 
         // User Type Selection (Radio Buttons)
-        JLabel userTypeLabel = new JLabel("Account Type:");
-        userTypeLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        userTypeLabel.setForeground(baylorGold);
-        gbc.gridx = 0;
-        gbc.gridy = 6;
-        gbc.insets = new Insets(15, 20, 5, 20);
-        gbc.anchor = GridBagConstraints.EAST;
-        centerPanel.add(userTypeLabel, gbc);
+        if(!admin) {
+            JLabel userTypeLabel = new JLabel("Account Type:");
+            userTypeLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+            userTypeLabel.setForeground(baylorGold);
+            gbc.gridx = 0;
+            gbc.gridy = 6;
+            gbc.insets = new Insets(15, 20, 5, 20);
+            gbc.anchor = GridBagConstraints.EAST;
+            centerPanel.add(userTypeLabel, gbc);
 
-        JPanel userTypePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        userTypePanel.setBackground(baylorGreen);
-        userTypePanel.setOpaque(false);
-        
-        JRadioButton clientRadio = new JRadioButton("Client", true);
-        clientRadio.setForeground(baylorGold);
-        clientRadio.setBackground(baylorGreen);
-        clientRadio.setOpaque(false);
-        clientRadio.setFont(new Font("Arial", Font.PLAIN, 14));
-        
-        JRadioButton trainerRadio = new JRadioButton("Trainer", false);
-        trainerRadio.setForeground(baylorGold);
-        trainerRadio.setBackground(baylorGreen);
-        trainerRadio.setOpaque(false);
-        trainerRadio.setFont(new Font("Arial", Font.PLAIN, 14));
-        
-        ButtonGroup userTypeGroup = new ButtonGroup();
-        userTypeGroup.add(clientRadio);
-        userTypeGroup.add(trainerRadio);
-        
-        userTypePanel.add(clientRadio);
-        userTypePanel.add(trainerRadio);
-        
-        gbc.gridx = 1;
-        gbc.anchor = GridBagConstraints.WEST;
-        centerPanel.add(userTypePanel, gbc);
+            JPanel userTypePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            userTypePanel.setBackground(baylorGreen);
+            userTypePanel.setOpaque(false);
+
+            clientRadio = new JRadioButton("Client", true);
+            clientRadio.setForeground(baylorGold);
+            clientRadio.setBackground(baylorGreen);
+            clientRadio.setOpaque(false);
+            clientRadio.setFont(new Font("Arial", Font.PLAIN, 14));
+
+            JRadioButton trainerRadio = new JRadioButton("Trainer", false);
+            trainerRadio.setForeground(baylorGold);
+            trainerRadio.setBackground(baylorGreen);
+            trainerRadio.setOpaque(false);
+            trainerRadio.setFont(new Font("Arial", Font.PLAIN, 14));
+
+            ButtonGroup userTypeGroup = new ButtonGroup();
+            userTypeGroup.add(clientRadio);
+            userTypeGroup.add(trainerRadio);
+
+            userTypePanel.add(clientRadio);
+            userTypePanel.add(trainerRadio);
+
+            gbc.gridx = 1;
+            gbc.anchor = GridBagConstraints.WEST;
+            centerPanel.add(userTypePanel, gbc);
+        }
 
         // Buttons panel
         JPanel buttonPanel = new JPanel(new FlowLayout());
@@ -280,29 +287,44 @@ public class SignUpPage extends JFrame {
                 }
 
                 // Get selected user type
-                String selectedUserType = clientRadio.isSelected() ? "Client" : "Trainer";
-                
+                String selectedUserType = "Admin";
+                if(!admin) {
+                    selectedUserType = clientRadio.isSelected() ? "Client" : "Trainer";
+                }
                 // Register user
                 boolean success = dbManager.registerUser(username, password, email, 
                                                          selectedUserType, firstName, lastName);
-                
+                StringBuilder b = new StringBuilder();
+                b.append("Account created successfully!");
+                if(!admin){
+                    b.append(" Logging you in...\n");
+                }
+                String message = b.toString();
                 if (success) {
                     JOptionPane.showMessageDialog(SignUpPage.this, 
-                        "Account created successfully! Logging you in...", 
+                        message,
                         "Success", 
                         JOptionPane.INFORMATION_MESSAGE);
                     
                     // Automatically log the user in after successful signup
-                    User newUser = dbManager.loginUser(username, password);
-                    dbManager.closeConnection();
-                    dispose();
-                    
-                    if (newUser != null) {
-                        // Open dashboard for the newly registered user
-                        SwingUtilities.invokeLater(() -> new DashboardUI(newUser.getFirstName(), newUser.getUserType()));
-                    } else {
-                        // If auto-login fails, go to homepage (shouldn't happen)
-                        HomePage.main(null);
+                    if(!admin) {
+                        User newUser = dbManager.loginUser(username, password);
+                        dbManager.closeConnection();
+                        dispose();
+
+
+                        if (newUser != null) {
+                            // Open dashboard for the newly registered user
+                            SwingUtilities.invokeLater(() -> new DashboardUI(newUser.getFirstName(), newUser.getUserType()));
+                        } else {
+                            // If auto-login fails, go to homepage (shouldn't happen)
+                            HomePage.main(null);
+                        }
+                    }
+                    //return to Admin Page
+                    else{
+                        dispose();
+                        UserManagement.main(null);
                     }
                 } else {
                     JOptionPane.showMessageDialog(SignUpPage.this, 
@@ -319,7 +341,10 @@ public class SignUpPage extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 dbManager.closeConnection();
                 dispose();
-                HomePage.main(null);
+                if(!admin) {
+                    HomePage.main(null);
+                }
+                SwingUtilities.invokeLater(() -> new UserManagement().main(null));
             }
         });
 
@@ -332,7 +357,7 @@ public class SignUpPage extends JFrame {
 
     public static void main(String[] args) {
         // For testing
-        SwingUtilities.invokeLater(() -> new SignUpPage());
+        SwingUtilities.invokeLater(() -> new SignUpPage(false));
     }
 }
 

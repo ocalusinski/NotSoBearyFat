@@ -1,3 +1,4 @@
+package myPackage;
 import java.sql.*;
 
 /**
@@ -113,7 +114,7 @@ public class DatabaseManager {
             "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
             "username TEXT UNIQUE NOT NULL, " +
             "password TEXT NOT NULL, " +
-            "email TEXT NOT NULL, " +
+            "email TEXT UNIQUE NOT NULL, " +
             "user_type TEXT NOT NULL, " +
             "first_name TEXT, " +
             "last_name TEXT, " +
@@ -261,6 +262,44 @@ public class DatabaseManager {
         } catch (SQLException e) {
             System.err.println("Error checking email: " + e.getMessage());
         }
+        return false;
+    }
+
+    public boolean updateUser(String username, String password, String email) {
+        String sql = "UPDATE users SET password = ?, username = ? WHERE email = ?";
+        int rowsUpdated = 0;
+        try{
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setString(1, password);
+            pstmt.setString(2, username);
+            pstmt.setString(3, email);
+            rowsUpdated = pstmt.executeUpdate();
+            if( rowsUpdated == 1){
+                return true;
+            }
+        }catch (SQLException e){
+            System.err.println("Error updating user: " + e.getMessage());
+        }
+        //implied else
+        System.out.println("Error updating users: " + rowsUpdated);
+        return false;
+    }
+
+    public boolean removeUser(String username, String password) {
+        String sql = "DELETE FROM users WHERE username = ? AND password = ?";
+        int rowsUpdated = 0;
+        try{
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setString(1, username);
+            pstmt.setString(2, password);
+            rowsUpdated = pstmt.executeUpdate();
+            if( rowsUpdated == 1){
+                return true;
+            }
+        }catch (SQLException e){
+            System.err.println("Error deleting user: " + e.getMessage());
+        }
+        System.out.println("Error deleting users: " + rowsUpdated);
         return false;
     }
 
