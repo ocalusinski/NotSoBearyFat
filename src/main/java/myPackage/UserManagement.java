@@ -7,7 +7,6 @@ import java.util.regex.Pattern;
 import static myPackage.Constants.*;
 
 public class UserManagement {
-    private static DatabaseManager dbMan = new DatabaseManager();
     private static void CreateAndShowAdminPortal(){
         JFrame frame = new JFrame("Admin Portal");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -180,8 +179,8 @@ public class UserManagement {
                             JOptionPane.ERROR_MESSAGE);
                     return;
                 }
-                if(dbMan.emailExists(email)){
-                    if(dbMan.updateUser(username, password, email)){
+                if(DB_MANAGER.emailExists(email)){
+                    if(DB_MANAGER.updateUser(username, password, email)){
                         JOptionPane.showMessageDialog(frame, "User has been updated successfully",
                                 "Success!", JOptionPane.INFORMATION_MESSAGE);
                         frame.dispose();
@@ -294,8 +293,8 @@ public class UserManagement {
                     return;
                 }
 
-                if(dbMan.usernameExists(username)){
-                    if(dbMan.removeUser(username, password)){
+                if(DB_MANAGER.usernameExists(username)){
+                    if(DB_MANAGER.removeUser(username, password)){
                         JOptionPane.showMessageDialog(frame, "User has been successfully removed",
                                 "Success!", JOptionPane.INFORMATION_MESSAGE);
                         frame.dispose();

@@ -5,6 +5,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.time.LocalDateTime;
 import java.util.Date;
+import static myPackage.Constants.*;
 
 
 // Main class for creating workout classes
@@ -46,7 +47,7 @@ public class CreateClass{
 
     // Convenience overload for testing without a real trainer user
     public static void CreateAndShowGUI(){
-        CreateAndShowGUI("trainer", new DatabaseManager());
+        CreateAndShowGUI("trainer", DB_MANAGER);
     }
 
     // Inner class that contains the form for creating a class

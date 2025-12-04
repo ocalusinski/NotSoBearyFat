@@ -35,6 +35,7 @@ public class DatabaseManager {
             }
             
             createTables();
+            createOGAdmin();
             System.out.println("Database connected successfully!");
         } catch (SQLException e) {
             System.err.println("Error connecting to database: " + e.getMessage());
@@ -49,6 +50,7 @@ public class DatabaseManager {
                         busyStmt.execute("PRAGMA busy_timeout = 5000");
                     }
                     createTables();
+                    createOGAdmin();
                     System.out.println("Database recovered and reconnected successfully!");
                 } catch (SQLException e2) {
                     System.err.println("Failed to recover database: " + e2.getMessage());
@@ -166,6 +168,18 @@ public class DatabaseManager {
             System.out.println("Tables created successfully!");
         } catch (SQLException e) {
             System.err.println("Error creating tables: " + e.getMessage());
+        }
+    }
+    private void createOGAdmin() {
+        String createOGAdmin = "INSERT INTO users (username, password, email, user_type, first_name, last_name) " +
+                "values('admin', 'secretAdminPassword', 'admin@nsfb.com', 'admin', 'admin', 'admin')";
+        try {
+            Statement stmt = connection.createStatement();
+            stmt.execute(createOGAdmin);
+        } catch (SQLException e) {
+            if(e.getErrorCode() != 19) {
+                System.err.println("Error creating OG admin: " + e.getErrorCode());
+            }
         }
     }
 
