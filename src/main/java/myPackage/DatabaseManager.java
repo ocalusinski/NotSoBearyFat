@@ -170,13 +170,14 @@ public class DatabaseManager {
     }
     private void createOGAdmin() {
         String createOGAdmin = "INSERT INTO users (username, password, email, user_type, first_name, last_name) " +
-                "values(admin, secretAdminPassword, admin@nsfb.com, 'admin', 'admin', 'admin')";
+                "values('admin', 'secretAdminPassword', 'admin@nsfb.com', 'admin', 'admin', 'admin')";
         try {
             Statement stmt = connection.createStatement();
             stmt.execute(createOGAdmin);
-            System.out.println("OG admin created successfully!");
         } catch (SQLException e) {
-            System.err.println("Error creating OG admin: " + e.getMessage());
+            if(e.getErrorCode() != 19) {
+                System.err.println("Error creating OG admin: " + e.getErrorCode());
+            }
         }
     }
 

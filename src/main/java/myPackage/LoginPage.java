@@ -3,16 +3,16 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import static myPackage.Constants.*;
 
 /**
  * LoginPage - GUI for user login (Client and Trainer)
  */
 public class LoginPage extends JFrame {
-    private DatabaseManager dbManager;
+    //private DatabaseManager DB_MANAGER;
     
     public LoginPage() {
-        dbManager = new DatabaseManager();
-        
+
         setTitle("Login");
         setSize(500, 500);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -123,13 +123,13 @@ public class LoginPage extends JFrame {
                     return;
                 }
                 
-                User user = dbManager.loginUser(username, password);
+                User user = DB_MANAGER.loginUser(username, password);
                 if (user != null) {
                     JOptionPane.showMessageDialog(LoginPage.this, 
                         "Welcome back, " + user.getFirstName() + "!", 
                         "Login Successful", 
                         JOptionPane.INFORMATION_MESSAGE);
-                    dbManager.closeConnection();
+                    DB_MANAGER.closeConnection();
                     dispose();
 
                     //if admin, login to admin portal. Spooky!
@@ -154,7 +154,7 @@ public class LoginPage extends JFrame {
         backButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                dbManager.closeConnection();
+                DB_MANAGER.closeConnection();
                 dispose();
                 HomePage.main(null);
             }
