@@ -240,7 +240,7 @@ public class UserManagement {
         panel.add(title);
 
         //username label
-        JLabel usernameLabel = new JLabel("new username:");
+        JLabel usernameLabel = new JLabel("username:");
         usernameLabel.setFont(new Font("Arial", Font.PLAIN, 14));
         usernameLabel.setForeground(baylorGold);
         panel.add(usernameLabel);
@@ -252,7 +252,7 @@ public class UserManagement {
         panel.add(usernameField);
 
         //password label
-        JLabel passwordLabel = new JLabel("new password:");
+        JLabel passwordLabel = new JLabel("password:");
         passwordLabel.setFont(new Font("Arial", Font.PLAIN, 14));
         passwordLabel.setForeground(baylorGold);
         panel.add(passwordLabel);
@@ -296,18 +296,18 @@ public class UserManagement {
 
                 if(dbMan.usernameExists(username)){
                     if(dbMan.removeUser(username, password)){
-                        JOptionPane.showMessageDialog(frame, "User has been updated successfully",
+                        JOptionPane.showMessageDialog(frame, "User has been successfully removed",
                                 "Success!", JOptionPane.INFORMATION_MESSAGE);
                         frame.dispose();
                         CreateAndShowAdminPortal();
                     }
                     else{
-                        JOptionPane.showMessageDialog(frame, "Username already exists, please select a different username",
+                        JOptionPane.showMessageDialog(frame, "Error occurred. Please try again",
                                 "Error!", JOptionPane.ERROR_MESSAGE);
                     }
                 }
                 else{
-                    JOptionPane.showMessageDialog(frame, "Email does not exist. Try creating a new user",
+                    JOptionPane.showMessageDialog(frame, "Username/password combo does not exist. Try resetting username and password first",
                             "Error!", JOptionPane.ERROR_MESSAGE);
                     //route to add user
                 }
