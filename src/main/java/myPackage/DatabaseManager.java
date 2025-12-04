@@ -516,6 +516,74 @@ public class DatabaseManager {
     }
 
     /**
+     * Returns all classes created by a specific trainer 
+     * If the trainer has no classes this returns an empty list
+     */
+    public List<WorkoutClass> getClassesForTrainer(String trainerUsername) {
+        List<WorkoutClass> classes = new ArrayList<>();
+        String sql = "SELECT * FROM classes WHERE trainer_username = ? ORDER BY start_time ASC";
+
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setString(1, trainerUsername);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                WorkoutClass wc = new WorkoutClass(
+                        rs.getInt("id"),
+                        rs.getString("trainer_username"),
+                        rs.getString("class_type"),
+                        rs.getString("description"),
+                        rs.getString("start_time"),
+                        rs.getString("end_time"),
+                        rs.getInt("max_participants"),
+                        rs.getDouble("cost")
+                );
+                classes.add(wc);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting classes for trainer: " + e.getMessage());
+        }
+        return classes;
+    }
+
+    /**
+     * Updates the details of an existing class in the database
+     */
+    public boolean updateClass(int id,
+                               String classType,
+                               String description,
+                               String startTime,
+                               String endTime,
+                               int maxParticipants,
+                               double cost) {
+        String sql = "UPDATE classes SET " +
+                "class_type = ?, " +
+                "description = ?, " +
+                "start_time = ?, " +
+                "end_time = ?, " +
+                "max_participants = ?, " +
+                "cost = ? " +
+                "WHERE id = ?";
+
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setString(1, classType);
+            pstmt.setString(2, description);
+            pstmt.setString(3, startTime);
+            pstmt.setString(4, endTime);
+            pstmt.setInt(5, maxParticipants);
+            pstmt.setDouble(6, cost);
+            pstmt.setInt(7, id);
+
+            int rowsUpdated = pstmt.executeUpdate();
+            return rowsUpdated > 0;
+        } catch (SQLException e) {
+            System.err.println("Error updating class: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Returns list of user display names enrolled in a given class
      */
     public java.util.List<String> getUsersForClass(int classId) {
