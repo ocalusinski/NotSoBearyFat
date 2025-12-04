@@ -1,3 +1,4 @@
+package myPackage;
 /**
  * User model class to represent user data
  */

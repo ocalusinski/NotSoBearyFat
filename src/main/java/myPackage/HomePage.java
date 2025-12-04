@@ -1,9 +1,13 @@
+package myPackage;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 public class HomePage {
+    HomePage() {
+        CreateAndShowGUI();
+    }
     private static void CreateAndShowGUI(){
         JFrame frame = new JFrame("Not So Beary Fat");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -110,7 +114,7 @@ public class HomePage {
             @Override
             public void actionPerformed(ActionEvent e){
                 frame.dispose();
-                new SignUpPage();
+                new SignUpPage(true);
             }
         });
 

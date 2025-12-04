@@ -1,3 +1,4 @@
+package myPackage;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -11,9 +12,12 @@ import java.util.Date;
 public class CreateClass{
     
     // Creates the initial GUI with a button to start creating a class
-    public static void CreateAndShowGUI(){
+    // trainerUsername is used to track which trainer created the class
+    // dbManager is passed in so we share one connection with the dashboard
+    public static void CreateAndShowGUI(String trainerUsername, DatabaseManager dbManager){
         JFrame frame = new JFrame("Create Class");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        // When closing this window, only dispose this frame instead of exiting the app
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
         frame.setSize(600, 800);
         frame.setVisible(true);
@@ -26,7 +30,7 @@ public class CreateClass{
         createClassButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e){
-                CreateClassPage newPage = new CreateClassPage();
+                CreateClassPage newPage = new CreateClassPage(trainerUsername, dbManager);
                 newPage.setVisible(true);
                 frame.dispose();
             }
@@ -40,11 +44,21 @@ public class CreateClass{
         frame.setVisible(true);
     }
 
+    // Convenience overload for testing without a real trainer user
+    public static void CreateAndShowGUI(){
+        CreateAndShowGUI("trainer", new DatabaseManager());
+    }
+
     // Inner class that contains the form for creating a class
     // This is where trainers input all the class details
     static class CreateClassPage extends JFrame{
 
-        public CreateClassPage(){
+        private final String trainerUsername;
+        private final DatabaseManager dbManager;
+
+        public CreateClassPage(String trainerUsername, DatabaseManager dbManager){
+            this.trainerUsername = trainerUsername;
+            this.dbManager = dbManager;
             // Using arrays to store values because inner classes can't modify local variables
             final String[] classType = new String[1];
             final String[] description = new String[1];
@@ -55,7 +69,8 @@ public class CreateClass{
 
             JFrame classFrame = new JFrame("Create Class");
             classFrame.setSize(600, 800);
-            classFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            // Do not exit the whole program when this window is closed
+            classFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
 
             JPanel panel = new JPanel(new GridBagLayout());
@@ -134,7 +149,8 @@ public class CreateClass{
                     Date endDate = (Date) endSpinner.getValue();
                     startTime[0] = java.time.LocalDateTime.ofInstant(startDate.toInstant(), java.time.ZoneId.systemDefault());
                     endTime[0] = java.time.LocalDateTime.ofInstant(endDate.toInstant(), java.time.ZoneId.systemDefault());
-                    areYouSure("Cancel", classFrame, classType[0], description[0], startTime[0], endTime[0], maxParticipants[0], cost[0]);
+                    areYouSure("Cancel", classFrame, trainerUsername, classType[0], description[0],
+                               startTime[0], endTime[0], maxParticipants[0], cost[0], dbManager);
                 }
             });
             
@@ -169,7 +185,8 @@ public class CreateClass{
                             JOptionPane.WARNING_MESSAGE);
                     }
                     else{
-                        areYouSure("Save", classFrame, classType[0], description[0], startTime[0], endTime[0], maxParticipants[0], cost[0]);
+                        areYouSure("Save", classFrame, trainerUsername, classType[0], description[0],
+                                   startTime[0], endTime[0], maxParticipants[0], cost[0], dbManager);
                     }
                 }
             });
@@ -257,11 +274,13 @@ public class CreateClass{
     }
     
     // Confirmation dialog that asks "Are you sure?" before saving or canceling
-    private static void areYouSure(String message, JFrame prevFrame,
-                                   String classType, String description, LocalDateTime startTime, 
-                                   LocalDateTime endTime, int maxParticipants, double cost){
+    private static void areYouSure(String message, JFrame prevFrame, String trainerUsername,
+                                   String classType, String description, LocalDateTime startTime,
+                                   LocalDateTime endTime, int maxParticipants, double cost,
+                                   DatabaseManager dbManager){
         JFrame frame = new JFrame(message);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        // Only close this confirmation window when the user exits it
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.getContentPane().setBackground(new Color(0, 71, 56));
 
         JButton yesButton = new JButton("Yes");
@@ -293,12 +312,27 @@ public class CreateClass{
             @Override
             public void actionPerformed(ActionEvent e) {
                 if(message.equals("Save")){
-                    JOptionPane.showMessageDialog(frame, 
-                        "Class successfully created!", 
-                        "Confirmation", 
-                        JOptionPane.INFORMATION_MESSAGE);
+                    boolean success = dbManager.saveClass(
+                        trainerUsername,
+                        classType != null ? classType : "",
+                        description != null ? description : "",
+                        startTime != null ? startTime.toString() : "",
+                        endTime != null ? endTime.toString() : "",
+                        maxParticipants,
+                        cost
+                    );
+                    if (success) {
+                        JOptionPane.showMessageDialog(frame, 
+                            "Class successfully created!", 
+                            "Confirmation", 
+                            JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(frame, 
+                            "There was an error saving the class.", 
+                            "Error", 
+                            JOptionPane.ERROR_MESSAGE);
+                    }
                 }
-                CreateAndShowGUI();
                 frame.dispose();
                 prevFrame.dispose();
             }
