@@ -640,6 +640,43 @@ public class DashboardUI extends JFrame {
         gbc.gridy = 1;
         gbc.insets = new Insets(10, 20, 20, 20);
         centerPanel.add(createClassButton, gbc);
+
+        /**
+         * Modify Existing Class button
+          */
+        JButton modifyClassButton = new JButton("Modify Existing Class");
+        modifyClassButton.setBackground(BAYLOR_GREEN);
+        modifyClassButton.setForeground(Color.WHITE);
+        modifyClassButton.setOpaque(true);
+        modifyClassButton.setBorderPainted(false);
+        modifyClassButton.setFocusPainted(false);
+        modifyClassButton.setFont(new Font("Arial", Font.BOLD, 16));
+        modifyClassButton.setPreferredSize(new Dimension(200, 50));
+
+        modifyClassButton.addActionListener(e -> {
+            SwingUtilities.invokeLater(() -> {
+                // Open ModifyClass window and refresh lists after successful update
+                ModifyClass.openModifyClassPage(username, dbManager, () -> {
+                    refreshClassesList();     // Trainer “Classes” tab
+                    refreshAvailableClasses(); // Client “Available Classes” tab
+                    refreshEnrolledClasses();  // Client “My Classes” tab
+                });
+            });
+        });
+
+        // Hover effect
+        modifyClassButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                modifyClassButton.setBackground(LIGHT_GREEN);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                modifyClassButton.setBackground(BAYLOR_GREEN);
+            }
+        });
+
+        gbc.gridy = 2;
+        gbc.insets = new Insets(20, 20, 20, 20);
+        centerPanel.add(modifyClassButton, gbc);
         
         JLabel infoLabel = new JLabel(
             "<html><div style='text-align: center;'>" +
@@ -654,7 +691,7 @@ public class DashboardUI extends JFrame {
             "</div></html>"
         );
         infoLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        gbc.gridy = 2;
+        gbc.gridy = 3;
         gbc.insets = new Insets(20, 20, 20, 20);
         centerPanel.add(infoLabel, gbc);
         
