@@ -109,6 +109,10 @@ public class DashboardUI extends JFrame {
         // Classes Tab (placeholder)
         JPanel classesTab = createClassesTab();
         tabbedPane.addTab("Classes", classesTab);
+
+        //historical Tab
+        JPanel historicalTab = createHistoricalTab();
+        tabbedPane.addTab("Historical", historicalTab);
         
         // Create Class Tab (only for trainers)
         if (isTrainer()) {
@@ -686,6 +690,24 @@ public class DashboardUI extends JFrame {
         achievementsPanel.add(placeholderLabel, BorderLayout.CENTER);
         
         return achievementsPanel;
+    }
+
+    private JPanel createHistoricalTab() {
+        JPanel historicalPanel = new JPanel(new BorderLayout());
+        JPanel optionsPanel = new JPanel(new GridLayout(3, 1));
+        optionsPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        JButton daysButton = new JButton("Days");
+        JButton weeksButton = new JButton("Weeks");
+        JButton monthsButton = new JButton("Months");
+        //adding buttons yo
+        optionsPanel.add(daysButton);
+        optionsPanel.add(weeksButton);
+        optionsPanel.add(monthsButton);
+
+        //JPanel
+        historicalPanel.setBackground(BACKGROUND_COLOR);
+        historicalPanel.add(optionsPanel, BorderLayout.LINE_START);
+        return historicalPanel;
     }
     
     private boolean isTrainer() {
