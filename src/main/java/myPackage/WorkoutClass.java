@@ -1,3 +1,4 @@
+package myPackage;
 public class WorkoutClass {
     private int id;
     private String trainerUsername;
