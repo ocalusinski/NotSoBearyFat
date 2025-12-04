@@ -341,7 +341,10 @@ public class SignUpPage extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 dbManager.closeConnection();
                 dispose();
-                HomePage.main(null);
+                if(!admin) {
+                    HomePage.main(null);
+                }
+                SwingUtilities.invokeLater(() -> new UserManagement().main(null));
             }
         });
 
