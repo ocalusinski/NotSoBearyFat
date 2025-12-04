@@ -1,5 +1,7 @@
 package myPackage;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * DatabaseManager handles all database operations using JDBC
