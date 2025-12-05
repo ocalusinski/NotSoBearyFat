@@ -1,34 +1,6 @@
 package myPackage;
 import java.time.LocalDateTime;
 public class WorkoutClass {
-    public enum ClassType {
-        HIIT("HIIT"),
-        CARDIO("Cardio"),
-        WEIGHT_TRAINING("Weight Training"),
-        YOGA("Yoga"),
-        PILATES("Pilates"),
-        CALISTHENICS("Calisthenics");
-
-        private final String type;
-
-        ClassType(String name) {
-            this.type = name;
-        }
-
-        // Provide a public getter method to retrieve the string valu
-        public String getType() {
-            return this.type;
-        }
-
-        public static ClassType fromString(String text) {
-            for (ClassType b : ClassType.values()) {
-                if (b.type.equalsIgnoreCase(text)) {
-                    return b;
-                }
-            }
-            throw new IllegalArgumentException("No constant with text " + text + " found");
-        }
-    }
 
     private int id;
     private String trainerUsername;

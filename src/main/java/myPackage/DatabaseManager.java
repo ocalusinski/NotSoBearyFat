@@ -143,8 +143,8 @@ public class DatabaseManager {
             "trainer_username TEXT NOT NULL, " +
             "class_type TEXT NOT NULL, " +
             "description TEXT, " +
-            "start_time TIMESTAMP NOT NULL, " +
-            "end_time TIMESTAMP NOT NULL, " +
+            "start_time TEXT NOT NULL, " +
+            "end_time TEXT NOT NULL, " +
             "max_participants INTEGER NOT NULL, " +
             "cost REAL NOT NULL" +
             ")";

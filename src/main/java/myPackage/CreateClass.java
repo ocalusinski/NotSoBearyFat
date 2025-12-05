@@ -82,7 +82,7 @@ public class CreateClass{
             JLabel endLabel = new JLabel("End Time");
             JLabel maxLabel = new JLabel("Max Participants");
             JLabel costLabel = new JLabel("Cost ($)");
-            JTextField typeField = new JTextField(20);
+            JComboBox<String> typeField = new JComboBox<>(ClassType.getClassTypes());
             JTextField descField = new JTextField(20);
             
             // Date and time pickers using JSpinner
@@ -104,7 +104,7 @@ public class CreateClass{
             typeField.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    classType[0] = typeField.getText();
+                    classType[0] = typeField.getSelectedItem().toString();
                 }
             });
             
@@ -160,7 +160,7 @@ public class CreateClass{
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     // Convert JSpinner date values to LocalDateTime
-                    classType[0] = typeField.getText();
+                    classType[0] = typeField.getSelectedItem().toString();
                     description[0] = descField.getText();
                     maxParticipants[0] = Integer.parseInt(maxField.getText());
                     cost[0] = Double.parseDouble(costField.getText());
