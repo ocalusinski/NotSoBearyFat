@@ -251,8 +251,8 @@ public final class ModifyClass {
         descArea.setText(wc.getDescription());
         // Parse stored ISO strings into local date time
         try {
-            LocalDateTime startLdt = LocalDateTime.parse(wc.getStartTime());
-            LocalDateTime endLdt = LocalDateTime.parse(wc.getEndTime());
+            LocalDateTime startLdt = wc.getStartTime();
+            LocalDateTime endLdt = wc.getEndTime();
             startSpinner.setValue(Date.from(startLdt.atZone(ZoneId.systemDefault()).toInstant()));
             endSpinner.setValue(Date.from(endLdt.atZone(ZoneId.systemDefault()).toInstant()));
         } catch (Exception ignore) {

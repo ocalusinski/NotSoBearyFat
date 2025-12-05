@@ -143,8 +143,8 @@ public class DatabaseManager {
             "trainer_username TEXT NOT NULL, " +
             "class_type TEXT NOT NULL, " +
             "description TEXT, " +
-            "start_time TEXT NOT NULL, " +
-            "end_time TEXT NOT NULL, " +
+            "start_time TIMESTAMP NOT NULL, " +
+            "end_time TIMESTAMP NOT NULL, " +
             "max_participants INTEGER NOT NULL, " +
             "cost REAL NOT NULL" +
             ")";
@@ -518,8 +518,8 @@ public class DatabaseManager {
                     rs.getString("trainer_username"),
                     rs.getString("class_type"),
                     rs.getString("description"),
-                    rs.getString("start_time"),
-                    rs.getString("end_time"),
+                    rs.getTimestamp("start_time").toLocalDateTime(),
+                    rs.getTimestamp("end_time").toLocalDateTime(),
                     rs.getInt("max_participants"),
                     rs.getDouble("cost")
                 );
@@ -549,8 +549,8 @@ public class DatabaseManager {
                         rs.getString("trainer_username"),
                         rs.getString("class_type"),
                         rs.getString("description"),
-                        rs.getString("start_time"),
-                        rs.getString("end_time"),
+                        rs.getTimestamp("start_time").toLocalDateTime(),
+                        rs.getTimestamp("end_time").toLocalDateTime(),
                         rs.getInt("max_participants"),
                         rs.getDouble("cost")
                 );
@@ -737,8 +737,8 @@ public class DatabaseManager {
                     rs.getString("trainer_username"),
                     rs.getString("class_type"),
                     rs.getString("description"),
-                    rs.getString("start_time"),
-                    rs.getString("end_time"),
+                    rs.getTimestamp("start_time").toLocalDateTime(),
+                    rs.getTimestamp("end_time").toLocalDateTime(),
                     rs.getInt("max_participants"),
                     rs.getDouble("cost")
                 );

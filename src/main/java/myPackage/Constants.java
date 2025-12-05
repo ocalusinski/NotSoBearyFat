@@ -7,4 +7,6 @@ public class Constants {
     public static final Color LIGHT_GREEN = new Color(0, 100, 80);
     public static final Color BACKGROUND_COLOR = new Color(240, 255, 250);
     public static final DatabaseManager DB_MANAGER = new DatabaseManager();
+
+
 }
