@@ -163,7 +163,7 @@ public final class ModifyClass {
             // Persist changes
             boolean success = dbManager.updateClass(
                     selected.getId(), classType, description,
-                    startLdt.toString(), endLdt.toString(), maxParticipants, cost);
+                    startLdt, endLdt, maxParticipants, cost);
             if (success) {
                 JOptionPane.showMessageDialog(frame, "Class updated successfully!",
                         "Success", JOptionPane.INFORMATION_MESSAGE);

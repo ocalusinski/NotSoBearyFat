@@ -317,8 +317,8 @@ public class CreateClass{
                         trainerUsername,
                         classType != null ? classType : "",
                         description != null ? description : "",
-                        startTime != null ? startTime.toString() : "",
-                        endTime != null ? endTime.toString() : "",
+                        startTime,
+                        endTime,
                         maxParticipants,
                         cost
                     );
