@@ -10,6 +10,13 @@ import java.time.format.DateTimeParseException;
 import java.util.Date;
 
 public class recordWorkout {
+{
+    static String[] workoutOptions = {"Walking", "Running", "Lifting", "HIIT", "Other"};
+    static JTextField dateField = new JTextField(20);
+    static JComboBox<String> workoutDropDown = new JComboBox<>(workoutOptions);
+    static JTextField durationField = new JTextField(20);
+    static JTextField caloriesBurntField = new JTextField(20);
+
     private static void createAndShowGUI(){
         JFrame frame = new JFrame("RecordWorkout");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -25,15 +32,12 @@ public class recordWorkout {
         final int exerciseMinutes[] = new int[1];
         final int caloriesBurnt[] = new int[1];
 
+
         JLabel dateLabel = new JLabel("Date (MM-dd-yyyy)");
         JLabel workoutTypeLabel = new JLabel("Workout Type");
         JLabel exerciseMinutesLabel = new JLabel("Duration (in minutes)");
         JLabel caloriesBurntLabel = new JLabel("Calories burnt");
         JLabel optionalLabel = new JLabel("(Optional)");
-        JTextField dateField = new JTextField(20);
-        JTextField workoutTypeField = new JTextField(20); //change to dropdown menu
-        JTextField durationField = new JTextField(20);
-        JTextField caloriesBurntField = new JTextField(20);
         JButton saveButton = new JButton("Save");
         JButton cancelButton = new JButton("Cancel");
 
@@ -49,7 +53,7 @@ public class recordWorkout {
         panel.add(workoutTypeLabel, gbc);
         gbc.gridy = 3;
         gbc.insets = new Insets(5, 5, 20, 5);
-        panel.add(workoutTypeField, gbc);
+        panel.add(workoutDropDown, gbc);
         gbc.gridy = 4;
         gbc.insets = new Insets(5, 5, 5, 5);
         panel.add(exerciseMinutesLabel, gbc);
@@ -119,13 +123,19 @@ public class recordWorkout {
         cancelButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                areYouSure("Cancel", frame, date[0],workoutType[0], exerciseMinutes[0], caloriesBurnt[0]);
+                areYouSure("Cancel", frame, date[0], workoutType[0], exerciseMinutes[0], caloriesBurnt[0]);
             }
         });
         saveButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                areYouSure("Save", frame, date[0],workoutType[0], exerciseMinutes[0], caloriesBurnt[0]);
+                boolean fieldsFull = checkFields();
+                if(!fieldsFull){
+                    fieldsNotFull();
+                }
+                else {
+                    areYouSure("Save", frame, date[0], workoutType[0], exerciseMinutes[0], caloriesBurnt[0]);
+                }
             }
         });
     }
@@ -191,6 +201,52 @@ public class recordWorkout {
         frame.setVisible(true);
         frame.setLocationRelativeTo(null);
     }
+
+    private static boolean checkFields(){
+        boolean fieldsFull = true;
+        if(dateField.getText().isEmpty()){
+            fieldsFull = false;
+        }
+        else if(workoutDropDown.getSelectedIndex() == -1){
+            fieldsFull = false;
+        }
+        else if(durationField.getText().isEmpty()){
+            fieldsFull = false;
+        }
+
+            return fieldsFull;
+    }
+
+    private static void fieldsNotFull(){
+        JFrame frame = new JFrame();
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        JPanel panel = new JPanel(new GridBagLayout());
+
+        JLabel label = new JLabel("One or more fields are missing input");
+        JButton okayButton = new JButton("Okay");
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        panel.add(label, gbc);
+        gbc.gridy = 1;
+        panel.add(okayButton, gbc);
+
+        okayButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+            frame.dispose();
+        }
+        });
+
+        frame.getContentPane().add(panel);
+        frame.setSize(300, 200);
+        frame.setVisible(true);
+        frame.setLocationRelativeTo(null);
+    }
+
+
 
     public static void main(String[] args) {
         createAndShowGUI();
