@@ -10,7 +10,7 @@ import java.time.format.DateTimeParseException;
 import java.util.Date;
 
 public class recordWorkout {
-{
+
     static String[] workoutOptions = {"Walking", "Running", "Lifting", "HIIT", "Other"};
     static JTextField dateField = new JTextField(20);
     static JComboBox<String> workoutDropDown = new JComboBox<>(workoutOptions);
