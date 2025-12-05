@@ -1,10 +1,15 @@
 package myPackage;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Date;
+import com.github.lgooddatepicker.components.DatePicker;
+import com.github.lgooddatepicker.components.TimePicker;
 import static myPackage.Constants.*;
 
 
@@ -84,17 +89,19 @@ public class CreateClass{
             JLabel costLabel = new JLabel("Cost ($)");
             JComboBox<String> typeField = new JComboBox<>(ClassType.getClassTypes());
             JTextField descField = new JTextField(20);
-            
-            // Date and time pickers using JSpinner
-            // Users can click the arrows to pick a date/time
-            JSpinner startSpinner = new JSpinner(new SpinnerDateModel());
-            JSpinner.DateEditor startEditor = new JSpinner.DateEditor(startSpinner, "MM-dd-yyyy HH:mm");
-            startSpinner.setEditor(startEditor);
-            
-            JSpinner endSpinner = new JSpinner(new SpinnerDateModel());
-            JSpinner.DateEditor endEditor = new JSpinner.DateEditor(endSpinner, "MM-dd-yyyy HH:mm");
-            endSpinner.setEditor(endEditor);
-            
+
+            //start date & time pickers
+            TimePicker startTimePicker = new TimePicker();
+            startTimePicker.setTime(LocalTime.now());
+            DatePicker startDatePicker = new DatePicker();
+            startDatePicker.setDate(LocalDate.now());
+
+            //end date & time pickers
+            TimePicker endTimePicker = new TimePicker();
+            endTimePicker.setTime(LocalTime.now().plusHours(1));
+            DatePicker endDatePicker = new DatePicker();
+            endDatePicker.setDate(LocalDate.now());
+
             JTextField maxField = new JTextField(20);
             JTextField costField = new JTextField(20);
             JButton saveButton = new JButton("Save");
@@ -146,10 +153,10 @@ public class CreateClass{
             cancelButton.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    Date startDate = (Date) startSpinner.getValue();
-                    Date endDate = (Date) endSpinner.getValue();
-                    startTime[0] = java.time.LocalDateTime.ofInstant(startDate.toInstant(), java.time.ZoneId.systemDefault());
-                    endTime[0] = java.time.LocalDateTime.ofInstant(endDate.toInstant(), java.time.ZoneId.systemDefault());
+                    LocalDateTime startDate = LocalDateTime.of(startDatePicker.getDate(), startTimePicker.getTime());
+                    LocalDateTime endDate = LocalDateTime.of(endDatePicker.getDate(), endTimePicker.getTime());
+                    startTime[0] = startDate;
+                    endTime[0] = endDate;
                     areYouSure("Cancel", classFrame, trainerUsername, classType[0], description[0],
                                startTime[0], endTime[0], maxParticipants[0], cost[0], dbManager);
                 }
@@ -164,11 +171,10 @@ public class CreateClass{
                     description[0] = descField.getText();
                     maxParticipants[0] = Integer.parseInt(maxField.getText());
                     cost[0] = Double.parseDouble(costField.getText());
-                    Date startDate = (Date) startSpinner.getValue();
-                    Date endDate = (Date) endSpinner.getValue();
-                    startTime[0] = java.time.LocalDateTime.ofInstant(startDate.toInstant(), java.time.ZoneId.systemDefault());
-                    endTime[0] = java.time.LocalDateTime.ofInstant(endDate.toInstant(), java.time.ZoneId.systemDefault());
 
+                    //this just creates LocalDateTime r-values instead of creating my own variables
+                    startTime[0] = LocalDateTime.of(startDatePicker.getDate(), startTimePicker.getTime());
+                    endTime[0] = LocalDateTime.of(endDatePicker.getDate(), endTimePicker.getTime());
                     
                     // Validation: checks if all required fields are filled
                     if(classType[0] == null || description[0] == null || 
@@ -215,36 +221,48 @@ public class CreateClass{
             gbc.gridy = 3;
             gbc.insets = new Insets(5, 5, 20, 5);
             panel.add(descField, gbc);
+
+            //start date stuff
             gbc.gridy = 4;
             gbc.insets = new Insets(5, 5, 5, 5);
             panel.add(startLabel, gbc);
             gbc.gridy = 5;
             gbc.insets = new Insets(5, 5, 20, 5);
-            panel.add(startSpinner, gbc);
+            panel.add(startTimePicker, gbc);
             gbc.gridy = 6;
+            gbc.insets = new Insets(5, 5, 20, 5);
+            panel.add(startDatePicker, gbc);
+
+            //end date stuff
+            gbc.gridy = 7;
             gbc.insets = new Insets(5, 5, 5, 5);
             panel.add(endLabel, gbc);
-            gbc.gridy = 7;
-            gbc.insets = new Insets(5, 5, 20, 5);
-            panel.add(endSpinner, gbc);
             gbc.gridy = 8;
-            gbc.insets = new Insets(5, 5, 5, 5);
-            panel.add(maxLabel, gbc);
+            gbc.insets = new Insets(5, 5, 20, 5);
+            panel.add(endTimePicker, gbc);
             gbc.gridy = 9;
             gbc.insets = new Insets(5, 5, 20, 5);
-            panel.add(maxField, gbc);
+            panel.add(endDatePicker, gbc);
+
+            //everything else
             gbc.gridy = 10;
             gbc.insets = new Insets(5, 5, 5, 5);
-            panel.add(costLabel, gbc);
+            panel.add(maxLabel, gbc);
             gbc.gridy = 11;
+            gbc.insets = new Insets(5, 5, 20, 5);
+            panel.add(maxField, gbc);
+            gbc.gridy = 12;
+            gbc.insets = new Insets(5, 5, 5, 5);
+            panel.add(costLabel, gbc);
+            gbc.gridy = 13;
             gbc.insets = new Insets(5, 5, 1, 5);
             panel.add(costField, gbc);
             gbc.insets = new Insets(10, 10, 10, 10);
             gbc.gridx = 0;
-            gbc.gridy = 15;
+            gbc.gridy = 16;
             panel.add(cancelButton, gbc);
             gbc.gridx = 2;
-            gbc.gridy = 15;
+            gbc.gridy = 16;
             panel.add(saveButton, gbc);
             panel.setBackground(new Color(0, 71, 56));
 
