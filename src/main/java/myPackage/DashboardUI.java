@@ -329,6 +329,10 @@ public class DashboardUI extends JFrame {
         JPanel enrolledPanel = createEnrolledClassesPanel();
         clientTabbedPane.addTab("My Classes", enrolledPanel);
 
+        //My Classes tab (classes Search)
+        JPanel searchPanel = createClassesSearchPanel();
+        clientTabbedPane.addTab("Search", searchPanel);
+
         mainPanel.add(clientTabbedPane, BorderLayout.CENTER);
 
         // Refresh when switching tabs
@@ -495,6 +499,32 @@ public class DashboardUI extends JFrame {
         JScrollPane scrollPane = new JScrollPane(enrolledClassesList);
         scrollPane.setBorder(BorderFactory.createTitledBorder("Classes you are registered for"));
         panel.add(scrollPane, BorderLayout.CENTER);
+
+        // Load enrolled classes
+        refreshEnrolledClasses();
+
+        return panel;
+    }
+
+    private JPanel createClassesSearchPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        JPanel centerPanel = new JPanel(new GridLayout(2,2));
+        String buttonNames[] = {"Class Type", "Instructor Name", "Duration", "Start Time"};
+        for (String buttonName : buttonNames) {
+            JButton button = new JButton(buttonName);
+            centerPanel.add(button);
+        }
+        JButton button = new JButton("Save");
+        panel.add(button, BorderLayout.PAGE_END);
+        panel.setBackground(BACKGROUND_COLOR);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JLabel header = new JLabel("Classes Search", SwingConstants.CENTER);
+        header.setFont(new Font("Arial", Font.BOLD, 18));
+        header.setForeground(BAYLOR_GREEN);
+        panel.add(header, BorderLayout.NORTH);
+        panel.add(centerPanel, BorderLayout.CENTER);
+
 
         // Load enrolled classes
         refreshEnrolledClasses();
@@ -885,6 +915,6 @@ public class DashboardUI extends JFrame {
 
     public static void main(String[] args) {
         // Test main - in production, DashboardUI is called from LoginPage with actual first name
-        SwingUtilities.invokeLater(() -> new DashboardUI("hippowenc"));
+        SwingUtilities.invokeLater(() -> new DashboardUI("mowen"));
     }
 }
