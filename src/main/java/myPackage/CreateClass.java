@@ -7,7 +7,7 @@ import java.awt.event.ActionListener;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.Date;
+import java.util.List;
 import com.github.lgooddatepicker.components.DatePicker;
 import com.github.lgooddatepicker.components.TimePicker;
 import static myPackage.Constants.*;
@@ -87,7 +87,9 @@ public class CreateClass{
             JLabel endLabel = new JLabel("End Time");
             JLabel maxLabel = new JLabel("Max Participants");
             JLabel costLabel = new JLabel("Cost ($)");
-            JComboBox<String> typeField = new JComboBox<>(ClassType.getClassTypes());
+            List<String> classTypes = ClassType.getClassTypes();
+            JComboBox<String> typeField = new JComboBox<String>(classTypes.toArray(new String[classTypes.size()]));
+            //return list.toArray(new String[list.size()]);
             JTextField descField = new JTextField(20);
 
             //start date & time pickers

@@ -752,5 +752,19 @@ public class DatabaseManager {
         }
         return classes;
     }
+    public List<String> getAllTrainers() {
+        String sql = "SELECT username FROM users WHERE user_type = 'Trainer'";
+        List<String> trainers = new java.util.ArrayList<>();
+        try{
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+            while (rs.next()) {
+                trainers.add(rs.getString("username"));
+            }
+        }catch(SQLException e){
+            System.err.println("Error getting trainers: " + e.getMessage());
+        }
+        return trainers;
+    }
 }
 

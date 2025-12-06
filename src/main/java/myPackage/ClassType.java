@@ -31,11 +31,12 @@ public enum ClassType {
         }
         throw new IllegalArgumentException("No constant with text " + text + " found");
     }
-    public static String[] getClassTypes() {
+    public static List getClassTypes() {
         List<String> list = new ArrayList<String>();
         for (ClassType b : ClassType.values()) {
             list.add(b.type);
         }
-        return list.toArray(new String[list.size()]);
+        return list;
+        //return list.toArray(new String[list.size()]);
     }
 }

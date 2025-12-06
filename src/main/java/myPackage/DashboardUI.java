@@ -509,12 +509,29 @@ public class DashboardUI extends JFrame {
     private JPanel createClassesSearchPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         JPanel centerPanel = new JPanel(new GridLayout(2,2));
-        String buttonNames[] = {"Class Type", "Instructor Name", "Duration", "Start Time"};
-        for (String buttonName : buttonNames) {
-            JButton button = new JButton(buttonName);
-            centerPanel.add(button);
-        }
-        JButton button = new JButton("Save");
+        String buttonNames[] = {"Class Type", "Instructor Name", "Duration", "Time of Day"};
+
+        //initializing buttons
+        //class type box
+        List<String> classTypes = ClassType.getClassTypes();
+        classTypes.add(0, "Class Type--");
+        JComboBox<String> classTypeBox = new JComboBox<>(classTypes.toArray(new String[classTypes.size()]));
+        centerPanel.add(classTypeBox);
+        //available trainers box
+        List<String> trainers = dbManager.getAllTrainers();
+        trainers.add(0, "Trainer--");
+        JComboBox<String> trainerBox = new JComboBox<>(trainers.toArray(new String[trainers.size()]));
+        centerPanel.add(trainerBox);
+        //Duration Box
+        String[] durationOptions = {"Duration--", "30 min", "1 Hour", "1.5 Hours", "2 Hours", " 2+ Hours"};
+        JComboBox<String> durationBox = new JComboBox<>(durationOptions);
+        centerPanel.add(durationBox);
+        //Time of day box
+        String[] timeOfDayOptions = {"Time of Day--", "Early Morning", "Morning", "Afternoon", "Evening", "Night", "The Witching Hour"};
+        JComboBox<String> timeOfDayBox = new JComboBox<>(timeOfDayOptions);
+        centerPanel.add(timeOfDayBox);
+
+        JButton button = new JButton("Apply");
         panel.add(button, BorderLayout.PAGE_END);
         panel.setBackground(BACKGROUND_COLOR);
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
