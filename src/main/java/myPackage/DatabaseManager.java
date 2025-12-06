@@ -11,7 +11,6 @@ import java.util.List;
  */
 public class DatabaseManager {
     private static final String DB_URL = "jdbc:sqlite:notsobearyfat.db";
-    private static final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private Connection connection;
 
     /**
@@ -146,8 +145,8 @@ public class DatabaseManager {
             "trainer_username TEXT NOT NULL, " +
             "class_type TEXT NOT NULL, " +
             "description TEXT, " +
-            "start_time TEXT NOT NULL, " +
-            "end_time TEXT NOT NULL, " +
+            "start_time TIMESTAMP NOT NULL, " +
+            "end_time TIMESTAMP NOT NULL, " +
             "max_participants INTEGER NOT NULL, " +
             "cost REAL NOT NULL" +
             ")";
@@ -492,8 +491,8 @@ public class DatabaseManager {
             pstmt.setString(1, trainerUsername);
             pstmt.setString(2, classType);
             pstmt.setString(3, description);
-            pstmt.setString(4, startTime.format(dtf));
-            pstmt.setString(5, endTime.format(dtf));
+            pstmt.setTimestamp(4, Timestamp.valueOf(startTime));
+            pstmt.setTimestamp(5, Timestamp.valueOf(endTime));
             pstmt.setInt(6, maxParticipants);
             pstmt.setDouble(7, cost);
             pstmt.executeUpdate();
@@ -521,8 +520,8 @@ public class DatabaseManager {
                     rs.getString("trainer_username"),
                     rs.getString("class_type"),
                     rs.getString("description"),
-                    LocalDateTime.parse(rs.getString("start_time"), dtf),
-                    LocalDateTime.parse(rs.getString("end_time"), dtf),
+                    rs.getTimestamp("start_time").toLocalDateTime(),
+                    rs.getTimestamp("end_time").toLocalDateTime(),
                     rs.getInt("max_participants"),
                     rs.getDouble("cost")
                 );
@@ -552,8 +551,8 @@ public class DatabaseManager {
                         rs.getString("trainer_username"),
                         rs.getString("class_type"),
                         rs.getString("description"),
-                        LocalDateTime.parse(rs.getString("start_time"), dtf),
-                        LocalDateTime.parse(rs.getString("end_time"), dtf),
+                        rs.getTimestamp("start_time").toLocalDateTime(),
+                        rs.getTimestamp("end_time").toLocalDateTime(),
                         rs.getInt("max_participants"),
                         rs.getDouble("cost")
                 );
@@ -588,8 +587,8 @@ public class DatabaseManager {
             PreparedStatement pstmt = connection.prepareStatement(sql);
             pstmt.setString(1, classType);
             pstmt.setString(2, description);
-            pstmt.setString(3, startTime.format(dtf));
-            pstmt.setString(4, endTime.format(dtf));
+            pstmt.setTimestamp(3, Timestamp.valueOf(startTime));
+            pstmt.setTimestamp(4, Timestamp.valueOf(endTime));
             pstmt.setInt(5, maxParticipants);
             pstmt.setDouble(6, cost);
             pstmt.setInt(7, id);
@@ -740,8 +739,8 @@ public class DatabaseManager {
                     rs.getString("trainer_username"),
                     rs.getString("class_type"),
                     rs.getString("description"),
-                    LocalDateTime.parse(rs.getString("start_time"), dtf),
-                    LocalDateTime.parse(rs.getString("end_time"), dtf),
+                    rs.getTimestamp("start_time").toLocalDateTime(),
+                    rs.getTimestamp("end_time").toLocalDateTime(),
                     rs.getInt("max_participants"),
                     rs.getDouble("cost")
                 );
