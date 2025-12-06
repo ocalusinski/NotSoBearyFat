@@ -105,6 +105,10 @@ public class DashboardUI extends JFrame {
         // Friends Tab (placeholder)
         JPanel friendsTab = createFriendsTab();
         tabbedPane.addTab("Friends", friendsTab);
+
+        // Goals Tab
+        JPanel goalsTab = createGoalsTab();
+        tabbedPane.addTab("Goals", goalsTab);
         
         // Classes Tab (placeholder)
         JPanel classesTab = createClassesTab();
@@ -199,6 +203,30 @@ public class DashboardUI extends JFrame {
         friendsPanel.add(placeholderLabel, BorderLayout.CENTER);
         
         return friendsPanel;
+    }
+
+    private JPanel createGoalsTab() {
+        JPanel goalsPanel = new JPanel(new BorderLayout());
+        goalsPanel.setBackground(BACKGROUND_COLOR);
+        goalsPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel placeholderLabel = new JLabel(
+                "<html><div style='text-align: center;'>" +
+                        "<h2>Goals</h2>" +
+                        "<p>This feature will be implemented in the future.</p>" +
+                        "<p>Here you'll be able to:</p>" +
+                        "<ul style='text-align: left; display: inline-block;'>" +
+                        "<li>Set personal fitness goals</li>" +
+                        "<li>Change or modify goals</li>" +
+                        "<li>Set and enable reminders to stay consistent</li>" +
+                        "</ul>" +
+                        "</div></html>",
+                SwingConstants.CENTER
+        );
+        placeholderLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        goalsPanel.add(placeholderLabel, BorderLayout.CENTER);
+
+        return goalsPanel;
     }
 
     private JPanel createClassesTab() {
