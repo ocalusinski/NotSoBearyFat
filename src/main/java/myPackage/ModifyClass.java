@@ -4,11 +4,14 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
-
+import com.github.lgooddatepicker.components.DatePicker;
+import com.github.lgooddatepicker.components.TimePicker;
 /**
  * Allows trainers to modify the classes they have created
  */
@@ -75,15 +78,21 @@ public final class ModifyClass {
         container.add(labeledComponent("Description", descScroll));
 
         // Start and end time spinners
-        JSpinner startSpinner = new JSpinner(new SpinnerDateModel());
-        JSpinner.DateEditor startEditor = new JSpinner.DateEditor(startSpinner, "yyyy-MM-dd HH:mm");
-        startSpinner.setEditor(startEditor);
-        container.add(labeledComponent("Start Time", startSpinner));
+        //start date & time pickers
+        TimePicker startTimePicker = new TimePicker();
+        startTimePicker.setTime(LocalTime.now());
+        DatePicker startDatePicker = new DatePicker();
+        startDatePicker.setDate(LocalDate.now());
+        container.add(labeledComponent("Start Time", startTimePicker ));
+        container.add(startDatePicker);
 
-        JSpinner endSpinner = new JSpinner(new SpinnerDateModel());
-        JSpinner.DateEditor endEditor = new JSpinner.DateEditor(endSpinner, "yyyy-MM-dd HH:mm");
-        endSpinner.setEditor(endEditor);
-        container.add(labeledComponent("End Time", endSpinner));
+        //end date & time pickers
+        TimePicker endTimePicker = new TimePicker();
+        endTimePicker.setTime(LocalTime.now().plusHours(1));
+        DatePicker endDatePicker = new DatePicker();
+        endDatePicker.setDate(LocalDate.now());
+        container.add(labeledComponent("End Time", endTimePicker ));
+        container.add(endDatePicker);
 
         // Maximum participants spinner
         JSpinner maxSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 1000, 1));
@@ -113,12 +122,12 @@ public final class ModifyClass {
 
         // Populate form with first class details initially
         fillFieldsFromClass((WorkoutClass) classSelector.getSelectedItem(), typeField, descArea,
-                startSpinner, endSpinner, maxSpinner, costField);
+                startTimePicker, startDatePicker, endTimePicker, endDatePicker, maxSpinner, costField);
 
         // When a different class is selected, update fields accordingly
         classSelector.addActionListener(e -> fillFieldsFromClass(
                 (WorkoutClass) classSelector.getSelectedItem(), typeField, descArea,
-                startSpinner, endSpinner, maxSpinner, costField));
+                startTimePicker, startDatePicker, endTimePicker, startDatePicker, maxSpinner, costField));
 
         // Cancel closes the window
         cancelButton.addActionListener(e -> frame.dispose());
@@ -151,10 +160,8 @@ public final class ModifyClass {
                 return;
             }
             // Get start and end times
-            Date startDate = (Date) startSpinner.getValue();
-            Date endDate = (Date) endSpinner.getValue();
-            LocalDateTime startLdt = LocalDateTime.ofInstant(startDate.toInstant(), ZoneId.systemDefault());
-            LocalDateTime endLdt = LocalDateTime.ofInstant(endDate.toInstant(), ZoneId.systemDefault());
+            LocalDateTime startLdt = LocalDateTime.of(startDatePicker.getDate(), startTimePicker.getTime());
+            LocalDateTime endLdt = LocalDateTime.of(startDatePicker.getDate(), startTimePicker.getTime());
             if (endLdt.isBefore(startLdt)) {
                 JOptionPane.showMessageDialog(frame, "End time must be after start time.",
                         "Invalid Time", JOptionPane.WARNING_MESSAGE);
@@ -240,8 +247,10 @@ public final class ModifyClass {
     private static void fillFieldsFromClass(WorkoutClass wc,
                                             JTextField typeField,
                                             JTextArea descArea,
-                                            JSpinner startSpinner,
-                                            JSpinner endSpinner,
+                                            TimePicker startTimePicker,
+                                            DatePicker startDatePicker,
+                                            TimePicker endTimePicker,
+                                            DatePicker endDatePicker,
                                             JSpinner maxSpinner,
                                             JTextField costField) {
         if (wc == null) {
@@ -253,8 +262,7 @@ public final class ModifyClass {
         try {
             LocalDateTime startLdt = wc.getStartTime();
             LocalDateTime endLdt = wc.getEndTime();
-            startSpinner.setValue(Date.from(startLdt.atZone(ZoneId.systemDefault()).toInstant()));
-            endSpinner.setValue(Date.from(endLdt.atZone(ZoneId.systemDefault()).toInstant()));
+
         } catch (Exception ignore) {
             // Fallback to current spinner values if parsing fails
         }

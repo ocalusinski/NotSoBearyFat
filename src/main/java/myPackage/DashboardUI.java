@@ -885,6 +885,6 @@ public class DashboardUI extends JFrame {
 
     public static void main(String[] args) {
         // Test main - in production, DashboardUI is called from LoginPage with actual first name
-        SwingUtilities.invokeLater(() -> new DashboardUI("Lademi"));
+        SwingUtilities.invokeLater(() -> new DashboardUI("hippowenc"));
     }
 }
