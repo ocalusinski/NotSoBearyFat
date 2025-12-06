@@ -1,19 +1,23 @@
 package myPackage;
+import java.time.LocalDateTime;
 public class WorkoutClass {
+
     private int id;
     private String trainerUsername;
-    private String classType;
+    private ClassType classType;
     private String description;
-    private String startTime;
-    private String endTime;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
+    private int duration;
     private int maxParticipants;
     private double cost;
 
+
     public WorkoutClass(int id, String trainerUsername, String classType, String description,
-                        String startTime, String endTime, int maxParticipants, double cost) {
+                        LocalDateTime startTime, LocalDateTime endTime, int maxParticipants, double cost) {
         this.id = id;
         this.trainerUsername = trainerUsername;
-        this.classType = classType;
+        this.classType = ClassType.fromString(classType);
         this.description = description;
         this.startTime = startTime;
         this.endTime = endTime;
@@ -31,18 +35,18 @@ public class WorkoutClass {
     }
 
     public String getClassType() {
-        return classType;
+        return classType.getType();
     }
 
     public String getDescription() {
         return description;
     }
 
-    public String getStartTime() {
+    public LocalDateTime getStartTime() {
         return startTime;
     }
 
-    public String getEndTime() {
+    public LocalDateTime getEndTime() {
         return endTime;
     }
 
@@ -64,18 +68,18 @@ public class WorkoutClass {
     }
 
     public void setClassType(String classType) {
-        this.classType = classType;
+        this.classType = ClassType.fromString(classType);
     }
 
     public void setDescription(String description) {
         this.description = description;
     }
 
-    public void setStartTime(String startTime) {
+    public void setStartTime(LocalDateTime startTime) {
         this.startTime = startTime;
     }
 
-    public void setEndTime(String endTime) {
+    public void setEndTime(LocalDateTime endTime) {
         this.endTime = endTime;
     }
 

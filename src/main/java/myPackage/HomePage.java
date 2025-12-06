@@ -114,7 +114,8 @@ public class HomePage {
             @Override
             public void actionPerformed(ActionEvent e){
                 frame.dispose();
-                new SignUpPage(true);
+                //admin should only be true if logging in from admin portal
+                new SignUpPage(false);
             }
         });
 

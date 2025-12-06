@@ -11,11 +11,10 @@ import static myPackage.Constants.*;
  * SignUpPage - GUI for user registration (Client and Trainer)
  */
 public class SignUpPage extends JFrame {
-    private DatabaseManager dbManager;
+    //private DatabaseManager DB_MANAGER;
     private JRadioButton clientRadio;
     
     public SignUpPage(boolean admin) {
-        dbManager = new DatabaseManager();
         setTitle("Sign Up");
         setSize(600, 750);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -268,7 +267,7 @@ public class SignUpPage extends JFrame {
                 }
 
                 // Check if username or email already exists
-                if (dbManager.usernameExists(username)) {
+                if (DB_MANAGER.usernameExists(username)) {
                     JOptionPane.showMessageDialog(SignUpPage.this, 
                         "Username already exists. Please choose a different one.", 
                         "Username Taken", 
@@ -277,7 +276,7 @@ public class SignUpPage extends JFrame {
                     return;
                 }
 
-                if (dbManager.emailExists(email)) {
+                if (DB_MANAGER.emailExists(email)) {
                     JOptionPane.showMessageDialog(SignUpPage.this, 
                         "Email already registered. Please use a different email.", 
                         "Email Taken", 
@@ -292,7 +291,7 @@ public class SignUpPage extends JFrame {
                     selectedUserType = clientRadio.isSelected() ? "Client" : "Trainer";
                 }
                 // Register user
-                boolean success = dbManager.registerUser(username, password, email, 
+                boolean success = DB_MANAGER.registerUser(username, password, email,
                                                          selectedUserType, firstName, lastName);
                 StringBuilder b = new StringBuilder();
                 b.append("Account created successfully!");
@@ -308,8 +307,8 @@ public class SignUpPage extends JFrame {
                     
                     // Automatically log the user in after successful signup
                     if(!admin) {
-                        User newUser = dbManager.loginUser(username, password);
-                        dbManager.closeConnection();
+                        User newUser = DB_MANAGER.loginUser(username, password);
+                        DB_MANAGER.closeConnection();
                         dispose();
 
 
@@ -339,12 +338,14 @@ public class SignUpPage extends JFrame {
         backButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                dbManager.closeConnection();
+                DB_MANAGER.closeConnection();
                 dispose();
                 if(!admin) {
                     HomePage.main(null);
                 }
-                SwingUtilities.invokeLater(() -> new UserManagement().main(null));
+                else {
+                    SwingUtilities.invokeLater(() -> new UserManagement().main(null));
+                }
             }
         });
 

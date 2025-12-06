@@ -1,5 +1,7 @@
 package myPackage;
 import java.sql.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,6 +11,7 @@ import java.util.List;
  */
 public class DatabaseManager {
     private static final String DB_URL = "jdbc:sqlite:notsobearyfat.db";
+    private static final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private Connection connection;
 
     /**
@@ -35,6 +38,7 @@ public class DatabaseManager {
             }
             
             createTables();
+            createOGAdmin();
             System.out.println("Database connected successfully!");
         } catch (SQLException e) {
             System.err.println("Error connecting to database: " + e.getMessage());
@@ -49,6 +53,7 @@ public class DatabaseManager {
                         busyStmt.execute("PRAGMA busy_timeout = 5000");
                     }
                     createTables();
+                    createOGAdmin();
                     System.out.println("Database recovered and reconnected successfully!");
                 } catch (SQLException e2) {
                     System.err.println("Failed to recover database: " + e2.getMessage());
@@ -166,6 +171,18 @@ public class DatabaseManager {
             System.out.println("Tables created successfully!");
         } catch (SQLException e) {
             System.err.println("Error creating tables: " + e.getMessage());
+        }
+    }
+    private void createOGAdmin() {
+        String createOGAdmin = "INSERT INTO users (username, password, email, user_type, first_name, last_name) " +
+                "values('admin', 'secretAdminPassword', 'admin@nsfb.com', 'admin', 'admin', 'admin')";
+        try {
+            Statement stmt = connection.createStatement();
+            stmt.execute(createOGAdmin);
+        } catch (SQLException e) {
+            if(e.getErrorCode() != 19) {
+                System.err.println("Error creating OG admin: " + e.getErrorCode());
+            }
         }
     }
 
@@ -467,7 +484,7 @@ public class DatabaseManager {
      * Saves a workout class created by a trainer
      */
     public boolean saveClass(String trainerUsername, String classType, String description,
-                             String startTime, String endTime, int maxParticipants, double cost) {
+                             LocalDateTime startTime, LocalDateTime endTime, int maxParticipants, double cost) {
         String sql = "INSERT INTO classes (trainer_username, class_type, description, start_time, end_time, max_participants, cost) " +
                      "VALUES (?, ?, ?, ?, ?, ?, ?)";
         try {
@@ -475,8 +492,8 @@ public class DatabaseManager {
             pstmt.setString(1, trainerUsername);
             pstmt.setString(2, classType);
             pstmt.setString(3, description);
-            pstmt.setString(4, startTime);
-            pstmt.setString(5, endTime);
+            pstmt.setString(4, startTime.format(dtf));
+            pstmt.setString(5, endTime.format(dtf));
             pstmt.setInt(6, maxParticipants);
             pstmt.setDouble(7, cost);
             pstmt.executeUpdate();
@@ -504,8 +521,8 @@ public class DatabaseManager {
                     rs.getString("trainer_username"),
                     rs.getString("class_type"),
                     rs.getString("description"),
-                    rs.getString("start_time"),
-                    rs.getString("end_time"),
+                    LocalDateTime.parse(rs.getString("start_time"), dtf),
+                    LocalDateTime.parse(rs.getString("end_time"), dtf),
                     rs.getInt("max_participants"),
                     rs.getDouble("cost")
                 );
@@ -535,8 +552,8 @@ public class DatabaseManager {
                         rs.getString("trainer_username"),
                         rs.getString("class_type"),
                         rs.getString("description"),
-                        rs.getString("start_time"),
-                        rs.getString("end_time"),
+                        LocalDateTime.parse(rs.getString("start_time"), dtf),
+                        LocalDateTime.parse(rs.getString("end_time"), dtf),
                         rs.getInt("max_participants"),
                         rs.getDouble("cost")
                 );
@@ -554,8 +571,8 @@ public class DatabaseManager {
     public boolean updateClass(int id,
                                String classType,
                                String description,
-                               String startTime,
-                               String endTime,
+                               LocalDateTime startTime,
+                               LocalDateTime endTime,
                                int maxParticipants,
                                double cost) {
         String sql = "UPDATE classes SET " +
@@ -571,8 +588,8 @@ public class DatabaseManager {
             PreparedStatement pstmt = connection.prepareStatement(sql);
             pstmt.setString(1, classType);
             pstmt.setString(2, description);
-            pstmt.setString(3, startTime);
-            pstmt.setString(4, endTime);
+            pstmt.setString(3, startTime.format(dtf));
+            pstmt.setString(4, endTime.format(dtf));
             pstmt.setInt(5, maxParticipants);
             pstmt.setDouble(6, cost);
             pstmt.setInt(7, id);
@@ -723,8 +740,8 @@ public class DatabaseManager {
                     rs.getString("trainer_username"),
                     rs.getString("class_type"),
                     rs.getString("description"),
-                    rs.getString("start_time"),
-                    rs.getString("end_time"),
+                    LocalDateTime.parse(rs.getString("start_time"), dtf),
+                    LocalDateTime.parse(rs.getString("end_time"), dtf),
                     rs.getInt("max_participants"),
                     rs.getDouble("cost")
                 );

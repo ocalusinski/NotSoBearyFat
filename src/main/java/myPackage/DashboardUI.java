@@ -113,6 +113,10 @@ public class DashboardUI extends JFrame {
         // Classes Tab (placeholder)
         JPanel classesTab = createClassesTab();
         tabbedPane.addTab("Classes", classesTab);
+
+        //historical Tab
+        JPanel historicalTab = createHistoricalTab();
+        tabbedPane.addTab("Historical", historicalTab);
         
         // Create Class Tab (only for trainers)
         if (isTrainer()) {
@@ -668,6 +672,43 @@ public class DashboardUI extends JFrame {
         gbc.gridy = 1;
         gbc.insets = new Insets(10, 20, 20, 20);
         centerPanel.add(createClassButton, gbc);
+
+        /**
+         * Modify Existing Class button
+          */
+        JButton modifyClassButton = new JButton("Modify Existing Class");
+        modifyClassButton.setBackground(BAYLOR_GREEN);
+        modifyClassButton.setForeground(Color.WHITE);
+        modifyClassButton.setOpaque(true);
+        modifyClassButton.setBorderPainted(false);
+        modifyClassButton.setFocusPainted(false);
+        modifyClassButton.setFont(new Font("Arial", Font.BOLD, 16));
+        modifyClassButton.setPreferredSize(new Dimension(200, 50));
+
+        modifyClassButton.addActionListener(e -> {
+            SwingUtilities.invokeLater(() -> {
+                // Open ModifyClass window and refresh lists after successful update
+                ModifyClass.openModifyClassPage(username, dbManager, () -> {
+                    refreshClassesList();     // Trainer “Classes” tab
+                    refreshAvailableClasses(); // Client “Available Classes” tab
+                    refreshEnrolledClasses();  // Client “My Classes” tab
+                });
+            });
+        });
+
+        // Hover effect
+        modifyClassButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                modifyClassButton.setBackground(LIGHT_GREEN);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                modifyClassButton.setBackground(BAYLOR_GREEN);
+            }
+        });
+
+        gbc.gridy = 2;
+        gbc.insets = new Insets(20, 20, 20, 20);
+        centerPanel.add(modifyClassButton, gbc);
         
         JLabel infoLabel = new JLabel(
             "<html><div style='text-align: center;'>" +
@@ -682,7 +723,7 @@ public class DashboardUI extends JFrame {
             "</div></html>"
         );
         infoLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        gbc.gridy = 2;
+        gbc.gridy = 3;
         gbc.insets = new Insets(20, 20, 20, 20);
         centerPanel.add(infoLabel, gbc);
         
@@ -714,6 +755,24 @@ public class DashboardUI extends JFrame {
         achievementsPanel.add(placeholderLabel, BorderLayout.CENTER);
         
         return achievementsPanel;
+    }
+
+    private JPanel createHistoricalTab() {
+        JPanel historicalPanel = new JPanel(new BorderLayout());
+        JPanel optionsPanel = new JPanel(new GridLayout(3, 1));
+        optionsPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        JButton daysButton = new JButton("Days");
+        JButton weeksButton = new JButton("Weeks");
+        JButton monthsButton = new JButton("Months");
+        //adding buttons yo
+        optionsPanel.add(daysButton);
+        optionsPanel.add(weeksButton);
+        optionsPanel.add(monthsButton);
+
+        //JPanel
+        historicalPanel.setBackground(BACKGROUND_COLOR);
+        historicalPanel.add(optionsPanel, BorderLayout.LINE_START);
+        return historicalPanel;
     }
     
     private boolean isTrainer() {
@@ -854,6 +913,6 @@ public class DashboardUI extends JFrame {
 
     public static void main(String[] args) {
         // Test main - in production, DashboardUI is called from LoginPage with actual first name
-        SwingUtilities.invokeLater(() -> new DashboardUI("Lademi"));
+        SwingUtilities.invokeLater(() -> new DashboardUI("hippowenc"));
     }
 }

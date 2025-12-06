@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Date;
+import static myPackage.Constants.*;
 
 
 public class AddData{
@@ -40,8 +41,7 @@ public class AddData{
             @Override
             public void actionPerformed(ActionEvent e){
                 // For standalone use, create a temporary DatabaseManager
-                DatabaseManager tempDb = new DatabaseManager();
-                AddDataPage newPage = new AddDataPage(-1, tempDb);
+                AddDataPage newPage = new AddDataPage(-1, DB_MANAGER);
                 newPage.setVisible(true);
                 frame.dispose();
             }
