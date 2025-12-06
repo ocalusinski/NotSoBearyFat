@@ -80,17 +80,13 @@ public final class ModifyClass {
         // Start and end time spinners
         //start date & time pickers
         TimePicker startTimePicker = new TimePicker();
-        startTimePicker.setTime(LocalTime.now());
         DatePicker startDatePicker = new DatePicker();
-        startDatePicker.setDate(LocalDate.now());
         container.add(labeledComponent("Start Time", startTimePicker ));
         container.add(startDatePicker);
 
         //end date & time pickers
         TimePicker endTimePicker = new TimePicker();
-        endTimePicker.setTime(LocalTime.now().plusHours(1));
         DatePicker endDatePicker = new DatePicker();
-        endDatePicker.setDate(LocalDate.now());
         container.add(labeledComponent("End Time", endTimePicker ));
         container.add(endDatePicker);
 
@@ -161,7 +157,7 @@ public final class ModifyClass {
             }
             // Get start and end times
             LocalDateTime startLdt = LocalDateTime.of(startDatePicker.getDate(), startTimePicker.getTime());
-            LocalDateTime endLdt = LocalDateTime.of(startDatePicker.getDate(), startTimePicker.getTime());
+            LocalDateTime endLdt = LocalDateTime.of(endDatePicker.getDate(), endTimePicker.getTime());
             if (endLdt.isBefore(startLdt)) {
                 JOptionPane.showMessageDialog(frame, "End time must be after start time.",
                         "Invalid Time", JOptionPane.WARNING_MESSAGE);
@@ -262,6 +258,11 @@ public final class ModifyClass {
         try {
             LocalDateTime startLdt = wc.getStartTime();
             LocalDateTime endLdt = wc.getEndTime();
+            //converts the returned LocalDateTime into LocalDates and LocalTimes respectively
+            startDatePicker.setDate(startLdt.toLocalDate());
+            startTimePicker.setTime(startLdt.toLocalTime());
+            endDatePicker.setDate(endLdt.toLocalDate());
+            endTimePicker.setTime(endLdt.toLocalTime());
 
         } catch (Exception ignore) {
             // Fallback to current spinner values if parsing fails
