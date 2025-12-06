@@ -59,6 +59,8 @@ public class WorkoutClass {
     public double getCost() {
         return cost;
     }
+
+    public long getDuration() {return duration;}
     
     //Setters
     public void setId(int id) {
@@ -92,6 +94,7 @@ public class WorkoutClass {
     public void setCost(double cost) {
         this.cost = cost;
     }
+
 
     @Override
     public String toString() {

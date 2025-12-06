@@ -531,8 +531,15 @@ public class DashboardUI extends JFrame {
         JComboBox<String> timeOfDayBox = new JComboBox<>(timeOfDayOptions);
         centerPanel.add(timeOfDayBox);
 
-        JButton button = new JButton("Apply");
-        panel.add(button, BorderLayout.PAGE_END);
+        JButton apply = new JButton("Apply");
+        apply.addActionListener(e -> {
+            String classType = (String) classTypeBox.getSelectedItem();
+            String trainer = (String) trainerBox.getSelectedItem();
+            String duration = (String) durationBox.getSelectedItem();
+            String timeOfDay = (String) timeOfDayBox.getSelectedItem();
+            //dbManager.selectValidClasses(classType, trainer, duration, timeOfDay);
+        });
+        panel.add(apply, BorderLayout.PAGE_END);
         panel.setBackground(BACKGROUND_COLOR);
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
