@@ -17,6 +17,9 @@ public class DashboardUI extends JFrame {
     private int userId;
     private String username;
     private String userType;
+    private GoalManager goalManager;
+    private JProgressBar calorieProgressBar;
+    private JLabel goalStatusLabel;
     
     // References to Classes tab components for refreshing
     private DefaultListModel<WorkoutClass> classListModel;
@@ -36,6 +39,7 @@ public class DashboardUI extends JFrame {
         this.username = username;
         this.userType = userType;
         this.dbManager = new DatabaseManager();
+        this.goalManager = new GoalManager();
         
         // Try to get user ID by username first, then by first name (for backward compatibility)
         this.userId = dbManager.getUserIdByUsername(username);
@@ -47,6 +51,7 @@ public class DashboardUI extends JFrame {
         if (this.userType == null && this.userId != -1) {
             this.userType = dbManager.getUserType(this.userId);
         }
+
         
         setTitle("Dashboard - Not So Beary Fat");
         setSize(700, 600);
@@ -180,6 +185,19 @@ public class DashboardUI extends JFrame {
         mainPanel.add(weightLabel);
         mainPanel.add(new JLabel("Sleep:"));
         mainPanel.add(sleepLabel);
+
+        // Calorie goal progress bar
+        mainPanel.add(new JLabel("Calorie Goal Progress:"));
+        calorieProgressBar = new JProgressBar(0, 100);
+        calorieProgressBar.setStringPainted(true);
+        calorieProgressBar.setValue(0);
+        calorieProgressBar.setString("No goal set");
+        mainPanel.add(calorieProgressBar);
+
+        // Statue text for how close the user is to goal
+        mainPanel.add(new JLabel("Goal Status:"));
+        goalStatusLabel = new JLabel("Set a goal in the Goals tab to start tracking.");
+        mainPanel.add(goalStatusLabel);
         
         return mainPanel;
     }
@@ -214,24 +232,165 @@ public class DashboardUI extends JFrame {
         goalsPanel.setBackground(BACKGROUND_COLOR);
         goalsPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        JLabel placeholderLabel = new JLabel(
-                "<html><div style='text-align: center;'>" +
-                        "<h2>Goals</h2>" +
-                        "<p>This feature will be implemented in the future.</p>" +
-                        "<p>Here you'll be able to:</p>" +
-                        "<ul style='text-align: left; display: inline-block;'>" +
-                        "<li>Set personal fitness goals</li>" +
-                        "<li>Change or modify goals</li>" +
-                        "<li>Set and enable reminders to stay consistent</li>" +
-                        "</ul>" +
-                        "</div></html>",
-                SwingConstants.CENTER
-        );
-        placeholderLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        goalsPanel.add(placeholderLabel, BorderLayout.CENTER);
+        // Header
+        JLabel header = new JLabel("Set Goals and Track Progress", SwingConstants.CENTER);
+        goalsPanel.add(header, BorderLayout.NORTH);
+
+        // Form
+        JPanel form = new JPanel(new GridLayout(0, 2, 10, 10));
+        form.setBackground(BACKGROUND_COLOR);
+
+        // Form fields
+        JTextField goalNameField = new JTextField();
+        JComboBox<String> objectiveField = new JComboBox<>(new String[] {
+                "Weight Loss", "Build Strength", "Endurance", "General Health"
+        });
+        JTextField caloriesField = new JTextField();
+        JTextField exerciseField = new JTextField();
+        JTextField frequencyField = new JTextField();
+        JTextField intensityField = new JTextField();
+        JTextField durationField = new JTextField();
+        JTextArea descriptionArea = new JTextArea(3, 20);
+        descriptionArea.setLineWrap(true);
+
+        // Add rows
+        form.add(new JLabel("Goal Name:"));
+        form.add(goalNameField);
+        form.add(new JLabel("Overall Objective:"));
+        form.add(objectiveField);
+        form.add(new JLabel("Daily Calorie Target:"));
+        form.add(caloriesField);
+        form.add(new JLabel("Exercise Type:"));
+        form.add(exerciseField);
+        form.add(new JLabel("Frequency:"));
+        form.add(frequencyField);
+        form.add(new JLabel("Intensity:"));
+        form.add(intensityField);
+        form.add(new JLabel("Duration:"));
+        form.add(durationField);
+        form.add(new JLabel("Description:"));
+        form.add(new JScrollPane(descriptionArea));
+
+        // Pre-fill if the goal exists
+        Goal existing = goalManager.getCurrentGoal();
+        if (existing != null) {
+            goalNameField.setText(existing.getGoalName());
+            objectiveField.setSelectedItem(existing.getFitnessObjective());
+            caloriesField.setText(existing.getCalories() != null ? existing.getCalories().toString() : "");
+            exerciseField.setText(existing.getExerciseType());
+            frequencyField.setText(existing.getFrequency());
+            intensityField.setText(existing.getIntensity());
+            durationField.setText(existing.getDuration());
+            descriptionArea.setText(existing.getDescription());
+        }
+
+        goalsPanel.add(form, BorderLayout.CENTER);
+
+        JButton saveBtn = new JButton("Save Goals");
+        saveBtn.setBackground(BAYLOR_GREEN);
+        saveBtn.setForeground(Color.BLACK);
+
+        JLabel statusLabel = new JLabel(" ", SwingConstants.LEFT);
+
+        saveBtn.addActionListener(e -> {
+            Integer calories = null;
+            if (!caloriesField.getText().trim().isEmpty()) {
+                try {
+                    calories = Integer.parseInt(caloriesField.getText().trim());
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Calories must be a number.", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            }
+
+            Goal newGoal = new Goal(
+                    goalNameField.getText().trim(),
+                    (String) objectiveField.getSelectedItem(),
+                    calories,
+                    exerciseField.getText().trim(),
+                    frequencyField.getText().trim(),
+                    intensityField.getText().trim(),
+                    durationField.getText().trim(),
+                    descriptionArea.getText().trim()
+            );
+
+            boolean ok = goalManager.saveGoals(userId, newGoal);
+
+            if (ok) {
+                statusLabel.setText("Goals saved successfully.");
+                statusLabel.setForeground(new Color(0, 128, 164));
+            }
+            else {
+                statusLabel.setText("Failed to save goals.");
+                statusLabel.setForeground(Color.RED);
+            }
+        });
+
+        JPanel bottom = new JPanel(new BorderLayout());
+        bottom.setBackground(BACKGROUND_COLOR);
+        bottom.add(statusLabel, BorderLayout.CENTER);
+        bottom.add(saveBtn, BorderLayout.EAST);
+
+        goalsPanel.add(bottom, BorderLayout.SOUTH);
 
         return goalsPanel;
     }
+
+    private void updateGoalProgress(Integer caloriesConsumed) {
+        if (calorieProgressBar == null || goalStatusLabel == null) {
+            return; // Data tab not built yet
+        }
+
+        // If you don't have GoalManager hooked up yet, this will just show "No goal set"
+        Goal goal = (goalManager != null) ? goalManager.getCurrentGoal() : null;
+
+        // No goal set at all
+        if (goal == null || goal.getCalories() == null) {
+            calorieProgressBar.setValue(0);
+            calorieProgressBar.setString("No goal set");
+            goalStatusLabel.setText("Set a goal in the Goals tab to start tracking.");
+            goalStatusLabel.setForeground(Color.DARK_GRAY);
+            return;
+        }
+
+        int target = goal.getCalories();
+        if (target <= 0) {
+            calorieProgressBar.setValue(0);
+            calorieProgressBar.setString("Invalid goal");
+            goalStatusLabel.setText("Calorie goal must be greater than 0.");
+            goalStatusLabel.setForeground(Color.RED);
+            return;
+        }
+
+        // No recent data
+        if (caloriesConsumed == null) {
+            calorieProgressBar.setValue(0);
+            calorieProgressBar.setString("0% of " + target + " kcal");
+            goalStatusLabel.setText("No recent data. Log today's calories to start tracking.");
+            goalStatusLabel.setForeground(new Color(128, 64, 0));
+            return;
+        }
+
+        // Compute % of goal reached
+        double ratio = (double) caloriesConsumed / target;
+        int percent = (int) Math.round(ratio * 100);
+        percent = Math.max(0, Math.min(percent, 200));
+
+        calorieProgressBar.setValue(Math.min(percent, 100));
+        calorieProgressBar.setString(percent + "% of " + target + " kcal");
+
+        if (percent >= 100) {
+            goalStatusLabel.setText("🎉 You reached your calorie goal today!");
+            goalStatusLabel.setForeground(new Color(0, 128, 64));
+        } else if (percent >= 75) {
+            goalStatusLabel.setText("Almost there! " + (target - caloriesConsumed) + " kcal to go.");
+            goalStatusLabel.setForeground(new Color(0, 102, 204));
+        } else {
+            goalStatusLabel.setText("You have " + (target - caloriesConsumed) + " kcal remaining.");
+            goalStatusLabel.setForeground(new Color(128, 64, 0));
+        }
+    }
+
 
     private JPanel createClassesTab() {
         // Client view: show available classes and allow registration
@@ -801,12 +960,14 @@ public class DashboardUI extends JFrame {
             burnedLabel.setText("Calories Burned: " + totalCaloriesBurned + " kcal");
             weightLabel.setText("Weight: " + String.format("%.1f", weight) + " lbs");
             sleepLabel.setText("Sleep: " + String.format("%.1f", sleepHours) + " hrs");
+            updateGoalProgress(caloriesConsumed);
         } else {
             // No data found
             caloriesLabel.setText("Calories Consumed: No data");
             burnedLabel.setText("Calories Burned: No data");
             weightLabel.setText("Weight: No data");
             sleepLabel.setText("Sleep: No data");
+            updateGoalProgress(null);
         }
     }
 
