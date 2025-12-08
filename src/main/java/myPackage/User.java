@@ -9,6 +9,8 @@ public class User {
     private String userType; // "client" or "trainer"
     private String firstName;
     private String lastName;
+    private Goal goal;
+
 
     public User(int id, String username, String email, String userType, 
                 String firstName, String lastName) {
@@ -45,6 +47,10 @@ public class User {
         return lastName;
     }
 
+    public Goal getGoal() {
+        return goal;
+    }
+
     // Setters
     public void setId(int id) {
         this.id = id;
@@ -70,6 +76,10 @@ public class User {
         this.lastName = lastName;
     }
 
+    public void setGoal(Goal goal) {
+        this.goal = goal;
+    }
+
     @Override
     public String toString() {
         return "User{" +
@@ -79,6 +89,7 @@ public class User {
                 ", userType='" + userType + '\'' +
                 ", firstName='" + firstName + '\'' +
                 ", lastName='" + lastName + '\'' +
+                ", goal=" + (goal != null ? goal.getGoalName() : "No Active Goal") +
                 '}';
     }
 }

@@ -74,41 +74,61 @@ public class CreateClass{
             final double[] cost = new double[1];
 
             JFrame classFrame = new JFrame("Create Class");
-            classFrame.setSize(600, 800);
+            classFrame.setSize(700, 850);
             // Do not exit the whole program when this window is closed
             classFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
 
             JPanel panel = new JPanel(new GridBagLayout());
             GridBagConstraints gbc = new GridBagConstraints();
-            JLabel typeLabel = new JLabel("Class Type");
-            JLabel descLabel = new JLabel("Description");
-            JLabel startLabel = new JLabel("Start Time");
-            JLabel endLabel = new JLabel("End Time");
-            JLabel maxLabel = new JLabel("Max Participants");
-            JLabel costLabel = new JLabel("Cost ($)");
-            List<String> classTypes = ClassType.getClassTypes();
-            JComboBox<String> typeField = new JComboBox<String>(classTypes.toArray(new String[classTypes.size()]));
-            //return list.toArray(new String[list.size()]);
-            JTextField descField = new JTextField(20);
+            gbc.anchor = GridBagConstraints.WEST;
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+
+            JLabel typeLabel = new JLabel("Class Type:");
+            JLabel descLabel = new JLabel("Description:");
+            JLabel startLabel = new JLabel("Start Time:");
+            JLabel endLabel = new JLabel("End Time:");
+            JLabel maxLabel = new JLabel("Max Participants:");
+            JLabel costLabel = new JLabel("Cost ($):");
+
+            // Set preferred sizes for labels to prevent text cutoff
+            typeLabel.setPreferredSize(new Dimension(150, 25));
+            descLabel.setPreferredSize(new Dimension(150, 25));
+            startLabel.setPreferredSize(new Dimension(150, 25));
+            endLabel.setPreferredSize(new Dimension(150, 25));
+            maxLabel.setPreferredSize(new Dimension(150, 25));
+            costLabel.setPreferredSize(new Dimension(150, 25));
+
+            JComboBox<String> typeField = new JComboBox<>(ClassType.getClassTypes());
+            typeField.setPreferredSize(new Dimension(200, 30));
+            JTextField descField = new JTextField(25);
+            descField.setPreferredSize(new Dimension(200, 30));
 
             //start date & time pickers
             TimePicker startTimePicker = new TimePicker();
             startTimePicker.setTime(LocalTime.now());
+            startTimePicker.setPreferredSize(new Dimension(200, 30));
             DatePicker startDatePicker = new DatePicker();
             startDatePicker.setDate(LocalDate.now());
+            startDatePicker.setPreferredSize(new Dimension(200, 30));
 
             //end date & time pickers
             TimePicker endTimePicker = new TimePicker();
             endTimePicker.setTime(LocalTime.now().plusHours(1));
+            endTimePicker.setPreferredSize(new Dimension(200, 30));
             DatePicker endDatePicker = new DatePicker();
             endDatePicker.setDate(LocalDate.now());
+            endDatePicker.setPreferredSize(new Dimension(200, 30));
 
-            JTextField maxField = new JTextField(20);
-            JTextField costField = new JTextField(20);
+            JTextField maxField = new JTextField(25);
+            maxField.setPreferredSize(new Dimension(200, 30));
+            JTextField costField = new JTextField(25);
+            costField.setPreferredSize(new Dimension(200, 30));
             JButton saveButton = new JButton("Save");
+            saveButton.setPreferredSize(new Dimension(100, 35));
             JButton cancelButton = new JButton("Cancel");
-            
+            cancelButton.setPreferredSize(new Dimension(100, 35));
+
             // Action listeners to store field values when user types
             typeField.addActionListener(new ActionListener() {
                 @Override
@@ -202,69 +222,95 @@ public class CreateClass{
 
             JPanel menuBar = new JPanel();
             menuBar.setLayout(new GridBagLayout());
-            menuBar.setPreferredSize(new Dimension(600, 300));
             GridBagConstraints g = new GridBagConstraints();
             menuBar.setBackground(new Color(255, 199, 44));
             menuBar.setOpaque(true);
-            menuBar.setPreferredSize(new Dimension(100, 50));
+            menuBar.setPreferredSize(new Dimension(700, 60));
             JLabel item = new JLabel("Create Class");
+            item.setFont(new Font(item.getFont().getName(), Font.BOLD, 18));
+            g.gridx = 0;
+            g.gridy = 0;
+            g.insets = new Insets(10, 10, 10, 10);
             menuBar.add(item, g);
 
-            gbc.gridx = 1;
+            gbc.gridx = 0;
             gbc.gridy = 0;
-            gbc.insets = new Insets(5, 5, 5, 5);
+            gbc.insets = new Insets(10, 20, 5, 10);
+            gbc.weightx = 0.0;
             panel.add(typeLabel, gbc);
+            gbc.gridx = 1;
+            gbc.insets = new Insets(10, 10, 5, 20);
+            gbc.weightx = 1.0;
+            panel.add(typeField, gbc);
+
+            gbc.gridx = 0;
             gbc.gridy = 1;
-            gbc.insets = new Insets(5, 5, 20, 5);
-            panel.add(typeField,gbc);
-            gbc.gridy = 2;
-            gbc.insets = new Insets(5, 5, 5, 5);
+            gbc.insets = new Insets(5, 20, 5, 10);
+            gbc.weightx = 0.0;
             panel.add(descLabel, gbc);
-            gbc.gridy = 3;
-            gbc.insets = new Insets(5, 5, 20, 5);
+            gbc.gridx = 1;
+            gbc.insets = new Insets(5, 10, 15, 20);
+            gbc.weightx = 1.0;
             panel.add(descField, gbc);
 
             //start date stuff
-            gbc.gridy = 4;
-            gbc.insets = new Insets(5, 5, 5, 5);
+            gbc.gridx = 0;
+            gbc.gridy = 2;
+            gbc.insets = new Insets(5, 20, 5, 10);
+            gbc.weightx = 0.0;
             panel.add(startLabel, gbc);
-            gbc.gridy = 5;
-            gbc.insets = new Insets(5, 5, 20, 5);
+            gbc.gridx = 1;
+            gbc.insets = new Insets(5, 10, 5, 20);
+            gbc.weightx = 1.0;
             panel.add(startTimePicker, gbc);
-            gbc.gridy = 6;
-            gbc.insets = new Insets(5, 5, 20, 5);
+            gbc.gridy = 3;
+            gbc.insets = new Insets(5, 10, 15, 20);
             panel.add(startDatePicker, gbc);
 
             //end date stuff
-            gbc.gridy = 7;
-            gbc.insets = new Insets(5, 5, 5, 5);
+            gbc.gridx = 0;
+            gbc.gridy = 4;
+            gbc.insets = new Insets(5, 20, 5, 10);
+            gbc.weightx = 0.0;
             panel.add(endLabel, gbc);
-            gbc.gridy = 8;
-            gbc.insets = new Insets(5, 5, 20, 5);
+            gbc.gridx = 1;
+            gbc.insets = new Insets(5, 10, 5, 20);
+            gbc.weightx = 1.0;
             panel.add(endTimePicker, gbc);
-            gbc.gridy = 9;
-            gbc.insets = new Insets(5, 5, 20, 5);
+            gbc.gridy = 5;
+            gbc.insets = new Insets(5, 10, 15, 20);
             panel.add(endDatePicker, gbc);
 
             //everything else
-            gbc.gridy = 10;
-            gbc.insets = new Insets(5, 5, 5, 5);
-            panel.add(maxLabel, gbc);
-            gbc.gridy = 11;
-            gbc.insets = new Insets(5, 5, 20, 5);
-            panel.add(maxField, gbc);
-            gbc.gridy = 12;
-            gbc.insets = new Insets(5, 5, 5, 5);
-            panel.add(costLabel, gbc);
-            gbc.gridy = 13;
-            gbc.insets = new Insets(5, 5, 1, 5);
-            panel.add(costField, gbc);
-            gbc.insets = new Insets(10, 10, 10, 10);
             gbc.gridx = 0;
-            gbc.gridy = 16;
+            gbc.gridy = 6;
+            gbc.insets = new Insets(5, 20, 5, 10);
+            gbc.weightx = 0.0;
+            panel.add(maxLabel, gbc);
+            gbc.gridx = 1;
+            gbc.insets = new Insets(5, 10, 15, 20);
+            gbc.weightx = 1.0;
+            panel.add(maxField, gbc);
+            gbc.gridx = 0;
+            gbc.gridy = 7;
+            gbc.insets = new Insets(5, 20, 5, 10);
+            gbc.weightx = 0.0;
+            panel.add(costLabel, gbc);
+            gbc.gridx = 1;
+            gbc.insets = new Insets(5, 10, 20, 20);
+            gbc.weightx = 1.0;
+            panel.add(costField, gbc);
+
+            // Buttons
+            gbc.gridx = 0;
+            gbc.gridy = 8;
+            gbc.insets = new Insets(20, 20, 20, 10);
+            gbc.weightx = 0.5;
+            gbc.anchor = GridBagConstraints.CENTER;
             panel.add(cancelButton, gbc);
-            gbc.gridx = 2;
-            gbc.gridy = 16;
+            gbc.gridx = 1;
+            gbc.insets = new Insets(20, 10, 20, 20);
+            gbc.weightx = 0.5;
             panel.add(saveButton, gbc);
             panel.setBackground(new Color(0, 71, 56));
 

@@ -161,15 +161,41 @@ public class DatabaseManager {
             "FOREIGN KEY (user_id) REFERENCES users(id)" +
             ")";
 
+        String createFriendsTable =
+            "CREATE TABLE IF NOT EXISTS friends (" +
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+            "requester_id INTEGER NOT NULL, " +
+            "receiver_id INTEGER NOT NULL, " +
+            "status TEXT NOT NULL DEFAULT 'pending', " +
+            "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+            "FOREIGN KEY (requester_id) REFERENCES users(id), " +
+            "FOREIGN KEY (receiver_id) REFERENCES users(id), " +
+            "UNIQUE(requester_id, receiver_id)" +
+            ")";
+
+        String createLoginStreaksTable =
+            "CREATE TABLE IF NOT EXISTS login_streaks (" +
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+            "user_id INTEGER NOT NULL, " +
+            "login_date TEXT NOT NULL, " +
+            "FOREIGN KEY (user_id) REFERENCES users(id), " +
+            "UNIQUE(user_id, login_date)" +
+            ")";
+
         try {
             Statement stmt = connection.createStatement();
             stmt.execute(createUsersTable);
             stmt.execute(createDataTable);
             stmt.execute(createClassesTable);
             stmt.execute(createClassEnrollmentsTable);
+            stmt.execute(createFriendsTable);
+            stmt.execute(createLoginStreaksTable);
             System.out.println("Tables created successfully!");
+            System.out.println("Friends table created/verified.");
+            System.out.println("Login streaks table created/verified.");
         } catch (SQLException e) {
             System.err.println("Error creating tables: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     private void createOGAdmin() {
@@ -846,6 +872,407 @@ public class DatabaseManager {
             System.err.println("Error getting trainers: " + e.getMessage());
         }
         return trainers;
+    }
+
+    /**
+     * Gets historical user data for a specific user, optionally filtered by number of days
+     * @param userId The user ID
+     * @param days Number of days to retrieve (0 or negative for all data)
+     * @return List of arrays containing [date, caloriesConsumed, weight, sleepHours, totalCaloriesBurned]
+     */
+    public java.util.List<Object[]> getHistoricalUserData(int userId, int days) {
+        java.util.List<Object[]> data = new java.util.ArrayList<>();
+        String sql;
+
+        if (days > 0) {
+            sql = "SELECT date, calories_consumed, weight, sleep_hours, total_calories_burned " +
+                  "FROM user_data WHERE user_id = ? AND date >= date('now', '-' || ? || ' days') " +
+                  "ORDER BY date ASC";
+        } else {
+            sql = "SELECT date, calories_consumed, weight, sleep_hours, total_calories_burned " +
+                  "FROM user_data WHERE user_id = ? ORDER BY date ASC";
+        }
+
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            if (days > 0) {
+                pstmt.setInt(2, days);
+            }
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                Object[] row = new Object[]{
+                    rs.getString("date"),
+                    rs.getInt("calories_consumed"),
+                    rs.getDouble("weight"),
+                    rs.getDouble("sleep_hours"),
+                    rs.getInt("total_calories_burned")
+                };
+                data.add(row);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting historical user data: " + e.getMessage());
+        }
+        return data;
+    }
+
+    /**
+     * Searches for users by username (partial match)
+     * @param searchTerm The username or partial username to search for
+     * @param excludeUserId User ID to exclude from results (typically the current user)
+     * @return List of User objects matching the search
+     */
+    public java.util.List<User> searchUsersByUsername(String searchTerm, int excludeUserId) {
+        java.util.List<User> users = new java.util.ArrayList<>();
+        String sql = "SELECT id, username, email, user_type, first_name, last_name " +
+                     "FROM users WHERE username LIKE ? AND id != ? " +
+                     "ORDER BY username LIMIT 20";
+
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setString(1, "%" + searchTerm + "%");
+            pstmt.setInt(2, excludeUserId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                User user = new User(
+                    rs.getInt("id"),
+                    rs.getString("username"),
+                    rs.getString("email"),
+                    rs.getString("user_type"),
+                    rs.getString("first_name"),
+                    rs.getString("last_name")
+                );
+                users.add(user);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error searching users: " + e.getMessage());
+        }
+        return users;
+    }
+
+    /**
+     * Sends a friend request from one user to another
+     * @param requesterId The user sending the request
+     * @param receiverId The user receiving the request
+     * @return true if successful, false if request already exists or error occurred
+     */
+    public boolean sendFriendRequest(int requesterId, int receiverId) {
+        if (requesterId == receiverId) {
+            return false; // Can't friend yourself
+        }
+
+        // Check if request already exists
+        String checkSql = "SELECT id FROM friends WHERE " +
+                         "(requester_id = ? AND receiver_id = ?) OR " +
+                         "(requester_id = ? AND receiver_id = ?)";
+        try {
+            PreparedStatement checkStmt = connection.prepareStatement(checkSql);
+            checkStmt.setInt(1, requesterId);
+            checkStmt.setInt(2, receiverId);
+            checkStmt.setInt(3, receiverId);
+            checkStmt.setInt(4, requesterId);
+            ResultSet rs = checkStmt.executeQuery();
+            if (rs.next()) {
+                return false; // Request already exists
+            }
+        } catch (SQLException e) {
+            System.err.println("Error checking existing friend request: " + e.getMessage());
+            return false;
+        }
+
+        String sql = "INSERT INTO friends (requester_id, receiver_id, status) VALUES (?, ?, 'pending')";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, requesterId);
+            pstmt.setInt(2, receiverId);
+            pstmt.executeUpdate();
+            return true;
+        } catch (SQLException e) {
+            System.err.println("Error sending friend request: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Accepts a friend request
+     * @param requesterId The user who sent the request
+     * @param receiverId The user accepting the request
+     * @return true if successful, false otherwise
+     */
+    public boolean acceptFriendRequest(int requesterId, int receiverId) {
+        String sql = "UPDATE friends SET status = 'accepted' " +
+                     "WHERE requester_id = ? AND receiver_id = ? AND status = 'pending'";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, requesterId);
+            pstmt.setInt(2, receiverId);
+            int rowsUpdated = pstmt.executeUpdate();
+            return rowsUpdated > 0;
+        } catch (SQLException e) {
+            System.err.println("Error accepting friend request: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Rejects or cancels a friend request
+     * @param requesterId The user who sent the request
+     * @param receiverId The user rejecting/canceling the request
+     * @return true if successful, false otherwise
+     */
+    public boolean rejectFriendRequest(int requesterId, int receiverId) {
+        String sql = "DELETE FROM friends " +
+                     "WHERE requester_id = ? AND receiver_id = ? AND status = 'pending'";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, requesterId);
+            pstmt.setInt(2, receiverId);
+            int rowsUpdated = pstmt.executeUpdate();
+            return rowsUpdated > 0;
+        } catch (SQLException e) {
+            System.err.println("Error rejecting friend request: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Gets pending friend requests received by a user
+     * @param userId The user ID
+     * @return List of User objects who have sent pending requests
+     */
+    public java.util.List<User> getPendingFriendRequests(int userId) {
+        java.util.List<User> users = new java.util.ArrayList<>();
+        String sql = "SELECT u.id, u.username, u.email, u.user_type, u.first_name, u.last_name " +
+                     "FROM friends f " +
+                     "JOIN users u ON f.requester_id = u.id " +
+                     "WHERE f.receiver_id = ? AND f.status = 'pending'";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                User user = new User(
+                    rs.getInt("id"),
+                    rs.getString("username"),
+                    rs.getString("email"),
+                    rs.getString("user_type"),
+                    rs.getString("first_name"),
+                    rs.getString("last_name")
+                );
+                users.add(user);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting pending friend requests: " + e.getMessage());
+        }
+        return users;
+    }
+
+    /**
+     * Gets pending friend requests sent by a user
+     * @param userId The user ID
+     * @return List of User objects who have received pending requests
+     */
+    public java.util.List<User> getSentFriendRequests(int userId) {
+        java.util.List<User> users = new java.util.ArrayList<>();
+        String sql = "SELECT u.id, u.username, u.email, u.user_type, u.first_name, u.last_name " +
+                     "FROM friends f " +
+                     "JOIN users u ON f.receiver_id = u.id " +
+                     "WHERE f.requester_id = ? AND f.status = 'pending'";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                User user = new User(
+                    rs.getInt("id"),
+                    rs.getString("username"),
+                    rs.getString("email"),
+                    rs.getString("user_type"),
+                    rs.getString("first_name"),
+                    rs.getString("last_name")
+                );
+                users.add(user);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting sent friend requests: " + e.getMessage());
+        }
+        return users;
+    }
+
+    /**
+     * Gets all accepted friends of a user
+     * @param userId The user ID
+     * @return List of User objects who are friends
+     */
+    public java.util.List<User> getFriends(int userId) {
+        java.util.List<User> friends = new java.util.ArrayList<>();
+        String sql = "SELECT u.id, u.username, u.email, u.user_type, u.first_name, u.last_name " +
+                     "FROM friends f " +
+                     "JOIN users u ON (CASE WHEN f.requester_id = ? THEN f.receiver_id ELSE f.requester_id END) = u.id " +
+                     "WHERE (f.requester_id = ? OR f.receiver_id = ?) AND f.status = 'accepted'";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            pstmt.setInt(2, userId);
+            pstmt.setInt(3, userId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                User user = new User(
+                    rs.getInt("id"),
+                    rs.getString("username"),
+                    rs.getString("email"),
+                    rs.getString("user_type"),
+                    rs.getString("first_name"),
+                    rs.getString("last_name")
+                );
+                friends.add(user);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting friends: " + e.getMessage());
+        }
+        return friends;
+    }
+
+    /**
+     * Gets classes that a friend is enrolled in
+     * @param friendId The friend's user ID
+     * @return List of WorkoutClass objects the friend is enrolled in
+     */
+    public java.util.List<WorkoutClass> getFriendEnrolledClasses(int friendId) {
+        return getUserEnrolledClasses(friendId);
+    }
+
+    /**
+     * Records a login for a user (only once per day)
+     * @param userId The user ID
+     * @return true if login was recorded, false if already logged in today
+     */
+    public boolean recordLogin(int userId) {
+        String today = java.time.LocalDate.now().toString();
+        String sql = "INSERT OR IGNORE INTO login_streaks (user_id, login_date) VALUES (?, ?)";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            pstmt.setString(2, today);
+            int rowsAffected = pstmt.executeUpdate();
+            return rowsAffected > 0; // Returns true if a new login was recorded
+        } catch (SQLException e) {
+            System.err.println("Error recording login: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Gets the current login streak for a user
+     * @param userId The user ID
+     * @return Current streak count (consecutive days)
+     */
+    public int getCurrentStreak(int userId) {
+        String sql = "SELECT login_date FROM login_streaks " +
+                     "WHERE user_id = ? " +
+                     "ORDER BY login_date DESC";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+
+            java.time.LocalDate today = java.time.LocalDate.now();
+            int streak = 0;
+            java.time.LocalDate expectedDate = today;
+
+            while (rs.next()) {
+                String dateStr = rs.getString("login_date");
+                java.time.LocalDate loginDate = java.time.LocalDate.parse(dateStr);
+
+                if (loginDate.equals(expectedDate)) {
+                    streak++;
+                    expectedDate = expectedDate.minusDays(1);
+                } else if (loginDate.isBefore(expectedDate)) {
+                    // Gap in streak, stop counting
+                    break;
+                }
+                // If loginDate is after expectedDate, skip it (shouldn't happen with DESC order)
+            }
+
+            return streak;
+        } catch (SQLException e) {
+            System.err.println("Error getting current streak: " + e.getMessage());
+            return 0;
+        } catch (Exception e) {
+            System.err.println("Error parsing dates: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Gets the longest login streak for a user
+     * @param userId The user ID
+     * @return Longest streak count
+     */
+    public int getLongestStreak(int userId) {
+        String sql = "SELECT login_date FROM login_streaks " +
+                     "WHERE user_id = ? " +
+                     "ORDER BY login_date ASC";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+
+            int longestStreak = 0;
+            int currentStreak = 0;
+            java.time.LocalDate previousDate = null;
+
+            while (rs.next()) {
+                String dateStr = rs.getString("login_date");
+                java.time.LocalDate loginDate = java.time.LocalDate.parse(dateStr);
+
+                if (previousDate == null) {
+                    currentStreak = 1;
+                } else {
+                    long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(previousDate, loginDate);
+                    if (daysBetween == 1) {
+                        // Consecutive day
+                        currentStreak++;
+                    } else {
+                        // Gap found, reset streak
+                        longestStreak = Math.max(longestStreak, currentStreak);
+                        currentStreak = 1;
+                    }
+                }
+
+                previousDate = loginDate;
+            }
+
+            // Check final streak
+            longestStreak = Math.max(longestStreak, currentStreak);
+            return longestStreak;
+        } catch (SQLException e) {
+            System.err.println("Error getting longest streak: " + e.getMessage());
+            return 0;
+        } catch (Exception e) {
+            System.err.println("Error parsing dates: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Gets total number of login days for a user
+     * @param userId The user ID
+     * @return Total login days
+     */
+    public int getTotalLoginDays(int userId) {
+        String sql = "SELECT COUNT(*) FROM login_streaks WHERE user_id = ?";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting total login days: " + e.getMessage());
+        }
+        return 0;
     }
 }
 

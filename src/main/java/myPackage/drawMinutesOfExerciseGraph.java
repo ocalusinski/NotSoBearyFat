@@ -9,7 +9,11 @@ import java.awt.*;
 
 public class drawMinutesOfExerciseGraph extends JPanel {
     public drawMinutesOfExerciseGraph() {
-
+        this(-1, null, 0);
+    }
+    
+    public drawMinutesOfExerciseGraph(int userId, DatabaseManager dbManager, int days) {
+        // TODO: Connect to workout data table when available
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
         dataset.addValue(60, "Minutes", "12-01-2025");
         dataset.addValue(75, "Minutes", "12-02-2025");
@@ -23,9 +27,9 @@ public class drawMinutesOfExerciseGraph extends JPanel {
         );
 
         ChartPanel chartPanel = new ChartPanel(chart);
-        chartPanel.setPreferredSize(new java.awt.Dimension(320, 150));
+        chartPanel.setPreferredSize(new java.awt.Dimension(500, 350));
 
         this.setLayout(new BorderLayout());
-        this.add(chartPanel, BorderLayout.SOUTH);
+        this.add(chartPanel, BorderLayout.CENTER);
     }
 }
