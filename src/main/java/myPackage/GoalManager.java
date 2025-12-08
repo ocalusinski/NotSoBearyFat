@@ -4,23 +4,30 @@ public class GoalManager {
     private Goal currentGoal;
 
     public boolean saveGoals(int userId, Goal goalDetails) {
-        if (goalDetails == null) {
+        if (userId == -1 || goalDetails == null) {
             System.err.println("Unable to save goals: goalDetails is null.");
             return false;
         }
 
-        // In a real system, we'd store in a database. For now:
-        this.currentGoal = goalDetails;
+        if (currentGoal == null) {
+            currentGoal = goalDetails;
+            System.out.println("Created new goal for userId=" + userId);
+        }
+        else {
+            currentGoal.updateFrom(goalDetails);
+            System.out.println("Updated existing goal for userID=" + userId);
+        }
 
-        System.out.println("Saved goal for userId " + userId);
-        System.out.println("Objective: " + goalDetails.getFitnessObjective());
-        System.out.println("Calories: " + goalDetails.getCalories());
-
+        System.out.println("Goal saved. Objective: " + goalDetails.getFitnessObjective() + ", Calories: " + goalDetails.getCalories());
         return true;
     }
 
 
     public Goal getCurrentGoal() {
         return currentGoal;
+    }
+
+    public void setCurrentGoal(Goal goal) {
+        this.currentGoal = goal;
     }
 }

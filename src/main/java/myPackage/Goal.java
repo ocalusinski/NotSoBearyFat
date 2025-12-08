@@ -101,4 +101,11 @@ public class Goal {
         this.duration = other.duration;
         this.description = other.description;
     }
+
+    public String toString() {
+        if (goalName != null && !goalName.isEmpty()) {
+            return goalName + " (" + (fitnessObjective != null ? fitnessObjective : "Goal") + ")";
+        }
+        return "Goal (" + (fitnessObjective != null ? fitnessObjective: "No objective") + ")";
+    }
 }
