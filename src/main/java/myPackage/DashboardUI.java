@@ -48,6 +48,22 @@ public class DashboardUI extends JFrame {
             this.userType = dbManager.getUserType(this.userId);
         }
         
+        // Record login for streak tracking
+        if (this.userId != -1) {
+            boolean newLogin = dbManager.recordLogin(this.userId);
+            if (newLogin) {
+                int currentStreak = dbManager.getCurrentStreak(this.userId);
+                // Show streak notification for milestones
+                if (currentStreak > 0 && (currentStreak % 7 == 0 || currentStreak == 1)) {
+                    String message = "Login streak: " + currentStreak + " day" + (currentStreak > 1 ? "s" : "") + "!";
+                    if (currentStreak >= 7) {
+                        message += " 🎉 Keep it up!";
+                    }
+                    // Will show this in the streak tab instead of popup
+                }
+            }
+        }
+        
         setTitle("Dashboard - Not So Beary Fat");
         setSize(1200, 800);
         setLocationRelativeTo(null);
@@ -55,15 +71,29 @@ public class DashboardUI extends JFrame {
         setLayout(new BorderLayout());
         getContentPane().setBackground(BACKGROUND_COLOR);
 
-        // Header with logout button
+        // Header with logout button and streak
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(BAYLOR_GREEN);
         headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 10, 15, 10));
 
-        JLabel header = new JLabel("Welcome back, " + username + "!", SwingConstants.CENTER);
+        // Left side: Welcome message and streak
+        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        leftPanel.setBackground(BAYLOR_GREEN);
+        leftPanel.setOpaque(true);
+        
+        JLabel header = new JLabel("Welcome back, " + username + "!");
         header.setForeground(Color.WHITE);
         header.setFont(new Font("Arial", Font.BOLD, 18));
-        headerPanel.add(header, BorderLayout.CENTER);
+        leftPanel.add(header);
+        
+        // Streak display
+        int currentStreak = userId != -1 ? dbManager.getCurrentStreak(userId) : 0;
+        JLabel streakLabel = new JLabel("🔥 " + currentStreak + " day streak");
+        streakLabel.setForeground(new Color(255, 199, 44)); // Baylor gold
+        streakLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        leftPanel.add(streakLabel);
+        
+        headerPanel.add(leftPanel, BorderLayout.CENTER);
         
         // Logout button
         JButton logoutButton = new JButton("Logout");
@@ -120,9 +150,9 @@ public class DashboardUI extends JFrame {
             tabbedPane.addTab("Create Class", createClassTab);
         }
         
-        // Achievements Tab (placeholder)
-        JPanel achievementsTab = createAchievementsTab();
-        tabbedPane.addTab("Achievements", achievementsTab);
+        // Login Streak Tab (replaces Achievements)
+        JPanel streakTab = createStreakTab();
+        tabbedPane.addTab("Login Streak", streakTab);
         
         // Add listener to refresh Classes tab when it becomes visible
         tabbedPane.addChangeListener(new ChangeListener() {
@@ -1130,29 +1160,161 @@ public class DashboardUI extends JFrame {
         return createClassPanel;
     }
 
-    private JPanel createAchievementsTab() {
-        JPanel achievementsPanel = new JPanel(new BorderLayout());
-        achievementsPanel.setBackground(BACKGROUND_COLOR);
-        achievementsPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+    private JPanel createStreakTab() {
+        JPanel streakPanel = new JPanel(new BorderLayout());
+        streakPanel.setBackground(BACKGROUND_COLOR);
+        streakPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         
-        JLabel placeholderLabel = new JLabel(
-            "<html><div style='text-align: center;'>" +
-            "<h2>Achievements</h2>" +
-            "<p>This feature will be implemented in the future.</p>" +
-            "<p>Here you'll be able to:</p>" +
-            "<ul style='text-align: left; display: inline-block;'>" +
-            "<li>View your earned achievements</li>" +
-            "<li>Track progress toward goals</li>" +
-            "<li>See achievement badges</li>" +
-            "<li>Compare with friends</li>" +
-            "</ul>" +
-            "</div></html>",
-            SwingConstants.CENTER
-        );
-        placeholderLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        achievementsPanel.add(placeholderLabel, BorderLayout.CENTER);
+        // Main content panel
+        JPanel mainContent = new JPanel(new GridBagLayout());
+        mainContent.setBackground(BACKGROUND_COLOR);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(15, 20, 15, 20);
         
-        return achievementsPanel;
+        // Title
+        JLabel titleLabel = new JLabel("🔥 Login Streak 🔥");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 28));
+        titleLabel.setForeground(BAYLOR_GREEN);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
+        mainContent.add(titleLabel, gbc);
+        
+        // Get streak data
+        int currentStreak = userId != -1 ? dbManager.getCurrentStreak(userId) : 0;
+        int longestStreak = userId != -1 ? dbManager.getLongestStreak(userId) : 0;
+        int totalLogins = userId != -1 ? dbManager.getTotalLoginDays(userId) : 0;
+        
+        // Current Streak Display
+        JPanel currentStreakPanel = new JPanel(new BorderLayout());
+        currentStreakPanel.setBackground(new Color(255, 199, 44));
+        currentStreakPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BAYLOR_GREEN, 3),
+            BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
+        
+        JLabel currentStreakLabel = new JLabel("Current Streak", SwingConstants.CENTER);
+        currentStreakLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        currentStreakLabel.setForeground(BAYLOR_GREEN);
+        currentStreakPanel.add(currentStreakLabel, BorderLayout.NORTH);
+        
+        JLabel currentStreakValue = new JLabel(String.valueOf(currentStreak), SwingConstants.CENTER);
+        currentStreakValue.setFont(new Font("Arial", Font.BOLD, 48));
+        currentStreakValue.setForeground(BAYLOR_GREEN);
+        currentStreakPanel.add(currentStreakValue, BorderLayout.CENTER);
+        
+        JLabel daysLabel = new JLabel("day" + (currentStreak != 1 ? "s" : ""), SwingConstants.CENTER);
+        daysLabel.setFont(new Font("Arial", Font.PLAIN, 16));
+        daysLabel.setForeground(BAYLOR_GREEN);
+        currentStreakPanel.add(daysLabel, BorderLayout.SOUTH);
+        
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        mainContent.add(currentStreakPanel, gbc);
+        
+        // Stats panel
+        JPanel statsPanel = new JPanel(new GridLayout(1, 2, 20, 0));
+        statsPanel.setBackground(BACKGROUND_COLOR);
+        
+        // Longest Streak
+        JPanel longestStreakPanel = new JPanel(new BorderLayout());
+        longestStreakPanel.setBackground(BACKGROUND_COLOR);
+        longestStreakPanel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(BAYLOR_GREEN, 2),
+            "Longest Streak"
+        ));
+        
+        JLabel longestStreakValue = new JLabel(String.valueOf(longestStreak), SwingConstants.CENTER);
+        longestStreakValue.setFont(new Font("Arial", Font.BOLD, 36));
+        longestStreakValue.setForeground(BAYLOR_GREEN);
+        longestStreakPanel.add(longestStreakValue, BorderLayout.CENTER);
+        
+        // Total Logins
+        JPanel totalLoginsPanel = new JPanel(new BorderLayout());
+        totalLoginsPanel.setBackground(BACKGROUND_COLOR);
+        totalLoginsPanel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(BAYLOR_GREEN, 2),
+            "Total Login Days"
+        ));
+        
+        JLabel totalLoginsValue = new JLabel(String.valueOf(totalLogins), SwingConstants.CENTER);
+        totalLoginsValue.setFont(new Font("Arial", Font.BOLD, 36));
+        totalLoginsValue.setForeground(BAYLOR_GREEN);
+        totalLoginsPanel.add(totalLoginsValue, BorderLayout.CENTER);
+        
+        statsPanel.add(longestStreakPanel);
+        statsPanel.add(totalLoginsPanel);
+        
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weightx = 1.0;
+        gbc.weighty = 0.5;
+        mainContent.add(statsPanel, gbc);
+        
+        // Rewards/Milestones section
+        JPanel rewardsPanel = new JPanel(new BorderLayout());
+        rewardsPanel.setBackground(BACKGROUND_COLOR);
+        rewardsPanel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(BAYLOR_GREEN, 2),
+            "Streak Milestones & Rewards"
+        ));
+        
+        JTextArea rewardsText = new JTextArea();
+        rewardsText.setEditable(false);
+        rewardsText.setFont(new Font("Arial", Font.PLAIN, 14));
+        rewardsText.setBackground(BACKGROUND_COLOR);
+        rewardsText.setForeground(BAYLOR_GREEN);
+        rewardsText.setLineWrap(true);
+        rewardsText.setWrapStyleWord(true);
+        
+        StringBuilder rewards = new StringBuilder();
+        rewards.append("🎯 Streak Milestones:\n\n");
+        rewards.append("• 1 day: Welcome! You're on your way!\n");
+        rewards.append("• 7 days: Week Warrior! 🏆\n");
+        rewards.append("• 14 days: Two Week Champion! 🥇\n");
+        rewards.append("• 30 days: Monthly Master! 🎖️\n");
+        rewards.append("• 60 days: Two Month Legend! 👑\n");
+        rewards.append("• 100 days: Centurion! 💯\n\n");
+        rewards.append("💡 Tip: Log in every day to maintain your streak!\n");
+        rewards.append("Your streak resets if you miss a day.");
+        
+        // Check if user has reached any milestones
+        if (currentStreak >= 100) {
+            rewards.append("\n\n🎉 CONGRATULATIONS! You've reached 100 days!");
+        } else if (currentStreak >= 60) {
+            rewards.append("\n\n🌟 Amazing! You're a Two Month Legend!");
+        } else if (currentStreak >= 30) {
+            rewards.append("\n\n⭐ Great job! You're a Monthly Master!");
+        } else if (currentStreak >= 14) {
+            rewards.append("\n\n✨ Well done! You're a Two Week Champion!");
+        } else if (currentStreak >= 7) {
+            rewards.append("\n\n👍 Keep it up! You're a Week Warrior!");
+        } else if (currentStreak > 0) {
+            rewards.append("\n\n🚀 You're building your streak! Keep logging in daily!");
+        }
+        
+        rewardsText.setText(rewards.toString());
+        JScrollPane rewardsScroll = new JScrollPane(rewardsText);
+        rewardsScroll.setBorder(null);
+        rewardsPanel.add(rewardsScroll, BorderLayout.CENTER);
+        
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weightx = 1.0;
+        gbc.weighty = 0.5;
+        mainContent.add(rewardsPanel, gbc);
+        
+        streakPanel.add(mainContent, BorderLayout.CENTER);
+        
+        return streakPanel;
     }
 
     private JPanel createHistoricalTab() {

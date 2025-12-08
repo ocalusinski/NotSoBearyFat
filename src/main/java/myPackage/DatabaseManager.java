@@ -174,6 +174,15 @@ public class DatabaseManager {
             "UNIQUE(requester_id, receiver_id)" +
             ")";
 
+        String createLoginStreaksTable =
+            "CREATE TABLE IF NOT EXISTS login_streaks (" +
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+            "user_id INTEGER NOT NULL, " +
+            "login_date TEXT NOT NULL, " +
+            "FOREIGN KEY (user_id) REFERENCES users(id), " +
+            "UNIQUE(user_id, login_date)" +
+            ")";
+
         try {
             Statement stmt = connection.createStatement();
             stmt.execute(createUsersTable);
@@ -181,8 +190,10 @@ public class DatabaseManager {
             stmt.execute(createClassesTable);
             stmt.execute(createClassEnrollmentsTable);
             stmt.execute(createFriendsTable);
+            stmt.execute(createLoginStreaksTable);
             System.out.println("Tables created successfully!");
             System.out.println("Friends table created/verified.");
+            System.out.println("Login streaks table created/verified.");
         } catch (SQLException e) {
             System.err.println("Error creating tables: " + e.getMessage());
             e.printStackTrace();
@@ -1034,6 +1045,139 @@ public class DatabaseManager {
      */
     public java.util.List<WorkoutClass> getFriendEnrolledClasses(int friendId) {
         return getUserEnrolledClasses(friendId);
+    }
+
+    /**
+     * Records a login for a user (only once per day)
+     * @param userId The user ID
+     * @return true if login was recorded, false if already logged in today
+     */
+    public boolean recordLogin(int userId) {
+        String today = java.time.LocalDate.now().toString();
+        String sql = "INSERT OR IGNORE INTO login_streaks (user_id, login_date) VALUES (?, ?)";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            pstmt.setString(2, today);
+            int rowsAffected = pstmt.executeUpdate();
+            return rowsAffected > 0; // Returns true if a new login was recorded
+        } catch (SQLException e) {
+            System.err.println("Error recording login: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Gets the current login streak for a user
+     * @param userId The user ID
+     * @return Current streak count (consecutive days)
+     */
+    public int getCurrentStreak(int userId) {
+        String sql = "SELECT login_date FROM login_streaks " +
+                     "WHERE user_id = ? " +
+                     "ORDER BY login_date DESC";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            java.time.LocalDate today = java.time.LocalDate.now();
+            int streak = 0;
+            java.time.LocalDate expectedDate = today;
+            
+            while (rs.next()) {
+                String dateStr = rs.getString("login_date");
+                java.time.LocalDate loginDate = java.time.LocalDate.parse(dateStr);
+                
+                if (loginDate.equals(expectedDate)) {
+                    streak++;
+                    expectedDate = expectedDate.minusDays(1);
+                } else if (loginDate.isBefore(expectedDate)) {
+                    // Gap in streak, stop counting
+                    break;
+                }
+                // If loginDate is after expectedDate, skip it (shouldn't happen with DESC order)
+            }
+            
+            return streak;
+        } catch (SQLException e) {
+            System.err.println("Error getting current streak: " + e.getMessage());
+            return 0;
+        } catch (Exception e) {
+            System.err.println("Error parsing dates: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Gets the longest login streak for a user
+     * @param userId The user ID
+     * @return Longest streak count
+     */
+    public int getLongestStreak(int userId) {
+        String sql = "SELECT login_date FROM login_streaks " +
+                     "WHERE user_id = ? " +
+                     "ORDER BY login_date ASC";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            int longestStreak = 0;
+            int currentStreak = 0;
+            java.time.LocalDate previousDate = null;
+            
+            while (rs.next()) {
+                String dateStr = rs.getString("login_date");
+                java.time.LocalDate loginDate = java.time.LocalDate.parse(dateStr);
+                
+                if (previousDate == null) {
+                    currentStreak = 1;
+                } else {
+                    long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(previousDate, loginDate);
+                    if (daysBetween == 1) {
+                        // Consecutive day
+                        currentStreak++;
+                    } else {
+                        // Gap found, reset streak
+                        longestStreak = Math.max(longestStreak, currentStreak);
+                        currentStreak = 1;
+                    }
+                }
+                
+                previousDate = loginDate;
+            }
+            
+            // Check final streak
+            longestStreak = Math.max(longestStreak, currentStreak);
+            return longestStreak;
+        } catch (SQLException e) {
+            System.err.println("Error getting longest streak: " + e.getMessage());
+            return 0;
+        } catch (Exception e) {
+            System.err.println("Error parsing dates: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Gets total number of login days for a user
+     * @param userId The user ID
+     * @return Total login days
+     */
+    public int getTotalLoginDays(int userId) {
+        String sql = "SELECT COUNT(*) FROM login_streaks WHERE user_id = ?";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting total login days: " + e.getMessage());
+        }
+        return 0;
     }
 }
 
