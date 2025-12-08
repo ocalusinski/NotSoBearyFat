@@ -183,26 +183,437 @@ public class DashboardUI extends JFrame {
     private JPanel createFriendsTab() {
         JPanel friendsPanel = new JPanel(new BorderLayout());
         friendsPanel.setBackground(BACKGROUND_COLOR);
-        friendsPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        friendsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
-        JLabel placeholderLabel = new JLabel(
-            "<html><div style='text-align: center;'>" +
-            "<h2>Friends</h2>" +
-            "<p>This feature will be implemented in the future.</p>" +
-            "<p>Here you'll be able to:</p>" +
-            "<ul style='text-align: left; display: inline-block;'>" +
-            "<li>View your friends list</li>" +
-            "<li>Add new friends</li>" +
-            "<li>See friends' progress</li>" +
-            "<li>Compare achievements</li>" +
-            "</ul>" +
-            "</div></html>",
-            SwingConstants.CENTER
-        );
-        placeholderLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        friendsPanel.add(placeholderLabel, BorderLayout.CENTER);
+        // Create main content panel with search and lists
+        JPanel mainContent = new JPanel(new BorderLayout());
+        mainContent.setBackground(BACKGROUND_COLOR);
+        
+        // Top panel: Search for users
+        JPanel searchPanel = new JPanel(new BorderLayout());
+        searchPanel.setBackground(BACKGROUND_COLOR);
+        searchPanel.setBorder(BorderFactory.createTitledBorder("Search for Users"));
+        
+        JPanel searchInputPanel = new JPanel(new BorderLayout());
+        searchInputPanel.setBackground(BACKGROUND_COLOR);
+        JTextField searchField = new JTextField(20);
+        searchField.setFont(new Font("Arial", Font.PLAIN, 14));
+        JButton searchButton = new JButton("Search");
+        searchButton.setBackground(BAYLOR_GREEN);
+        searchButton.setForeground(Color.WHITE);
+        searchButton.setOpaque(true);
+        searchButton.setBorderPainted(false);
+        searchButton.setFocusPainted(false);
+        searchButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                searchButton.setBackground(LIGHT_GREEN);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                searchButton.setBackground(BAYLOR_GREEN);
+            }
+        });
+        
+        searchInputPanel.add(searchField, BorderLayout.CENTER);
+        searchInputPanel.add(searchButton, BorderLayout.EAST);
+        searchPanel.add(searchInputPanel, BorderLayout.CENTER);
+        
+        // Search results list with send request button
+        JPanel searchResultsPanel = new JPanel(new BorderLayout());
+        searchResultsPanel.setBackground(BACKGROUND_COLOR);
+        
+        DefaultListModel<User> searchResultsModel = new DefaultListModel<>();
+        JList<User> searchResultsList = new JList<>(searchResultsModel);
+        searchResultsList.setCellRenderer(new UserListCellRenderer());
+        JScrollPane searchScroll = new JScrollPane(searchResultsList);
+        searchScroll.setPreferredSize(new Dimension(0, 120));
+        searchResultsPanel.add(searchScroll, BorderLayout.CENTER);
+        
+        JButton sendRequestButton = new JButton("Send Friend Request");
+        sendRequestButton.setBackground(BAYLOR_GREEN);
+        sendRequestButton.setForeground(Color.WHITE);
+        sendRequestButton.setOpaque(true);
+        sendRequestButton.setBorderPainted(false);
+        sendRequestButton.setFocusPainted(false);
+        sendRequestButton.setEnabled(false);
+        sendRequestButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                if (sendRequestButton.isEnabled()) {
+                    sendRequestButton.setBackground(LIGHT_GREEN);
+                }
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                sendRequestButton.setBackground(BAYLOR_GREEN);
+            }
+        });
+        
+        sendRequestButton.addActionListener(e -> {
+            User selected = searchResultsList.getSelectedValue();
+            if (selected != null) {
+                if (dbManager.sendFriendRequest(userId, selected.getId())) {
+                    JOptionPane.showMessageDialog(friendsPanel,
+                        "Friend request sent to " + selected.getUsername() + "!",
+                        "Request Sent",
+                        JOptionPane.INFORMATION_MESSAGE);
+                    // Refresh outgoing requests
+                    refreshAllFriendData();
+                } else {
+                    JOptionPane.showMessageDialog(friendsPanel,
+                        "Failed to send friend request. You may already have a pending request with this user.",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        
+        searchResultsList.addListSelectionListener(e -> {
+            sendRequestButton.setEnabled(searchResultsList.getSelectedValue() != null);
+        });
+        
+        searchResultsPanel.add(sendRequestButton, BorderLayout.SOUTH);
+        searchPanel.add(searchResultsPanel, BorderLayout.SOUTH);
+        
+        // Search button action
+        searchButton.addActionListener(e -> {
+            String searchTerm = searchField.getText().trim();
+            if (!searchTerm.isEmpty()) {
+                searchResultsModel.clear();
+                List<User> results = dbManager.searchUsersByUsername(searchTerm, userId);
+                for (User user : results) {
+                    searchResultsModel.addElement(user);
+                }
+                if (results.isEmpty()) {
+                    JOptionPane.showMessageDialog(friendsPanel,
+                        "No users found matching: " + searchTerm,
+                        "No Results",
+                        JOptionPane.INFORMATION_MESSAGE);
+                }
+            }
+        });
+        
+        // Allow Enter key to search
+        searchField.addActionListener(e -> searchButton.doClick());
+        
+        // Center panel: Tabbed pane for friend requests and friends list
+        JTabbedPane friendsTabbedPane = new JTabbedPane();
+        friendsTabbedPane.setBackground(BACKGROUND_COLOR);
+        friendsTabbedPane.setForeground(BAYLOR_GREEN);
+        
+        // Pending requests tab
+        JPanel requestsPanel = createFriendRequestsPanel();
+        friendsTabbedPane.addTab("Friend Requests", requestsPanel);
+        
+        // Friends list tab
+        JPanel friendsListPanel = createFriendsListPanel();
+        friendsTabbedPane.addTab("My Friends", friendsListPanel);
+        
+        // Refresh when switching tabs
+        friendsTabbedPane.addChangeListener(e -> {
+            int selectedIndex = friendsTabbedPane.getSelectedIndex();
+            if (selectedIndex == 0) {
+                // Refresh requests
+                refreshAllFriendData();
+            } else if (selectedIndex == 1) {
+                // Refresh friends list
+                refreshAllFriendData();
+            }
+        });
+        
+        mainContent.add(searchPanel, BorderLayout.NORTH);
+        mainContent.add(friendsTabbedPane, BorderLayout.CENTER);
+        
+        friendsPanel.add(mainContent, BorderLayout.CENTER);
         
         return friendsPanel;
+    }
+    
+    private JPanel createFriendRequestsPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(BACKGROUND_COLOR);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        // Split into incoming and outgoing requests
+        JPanel splitPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+        splitPanel.setBackground(BACKGROUND_COLOR);
+        
+        // Incoming requests
+        JPanel incomingPanel = new JPanel(new BorderLayout());
+        incomingPanel.setBackground(BACKGROUND_COLOR);
+        incomingPanel.setBorder(BorderFactory.createTitledBorder("Incoming Requests"));
+        
+        DefaultListModel<User> incomingModel = new DefaultListModel<>();
+        JList<User> incomingList = new JList<>(incomingModel);
+        incomingList.setCellRenderer(new UserListCellRenderer());
+        JScrollPane incomingScroll = new JScrollPane(incomingList);
+        incomingPanel.add(incomingScroll, BorderLayout.CENTER);
+        
+        JPanel incomingButtons = new JPanel(new FlowLayout());
+        incomingButtons.setBackground(BACKGROUND_COLOR);
+        JButton acceptButton = new JButton("Accept");
+        acceptButton.setBackground(BAYLOR_GREEN);
+        acceptButton.setForeground(Color.WHITE);
+        acceptButton.setOpaque(true);
+        acceptButton.setBorderPainted(false);
+        acceptButton.setFocusPainted(false);
+        acceptButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                acceptButton.setBackground(LIGHT_GREEN);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                acceptButton.setBackground(BAYLOR_GREEN);
+            }
+        });
+        
+        JButton rejectButton = new JButton("Reject");
+        rejectButton.setBackground(new Color(200, 0, 0));
+        rejectButton.setForeground(Color.WHITE);
+        rejectButton.setOpaque(true);
+        rejectButton.setBorderPainted(false);
+        rejectButton.setFocusPainted(false);
+        rejectButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                rejectButton.setBackground(new Color(220, 0, 0));
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                rejectButton.setBackground(new Color(200, 0, 0));
+            }
+        });
+        
+        acceptButton.addActionListener(e -> {
+            User selected = incomingList.getSelectedValue();
+            if (selected != null) {
+                if (dbManager.acceptFriendRequest(selected.getId(), userId)) {
+                    JOptionPane.showMessageDialog(panel,
+                        "Friend request accepted!",
+                        "Success",
+                        JOptionPane.INFORMATION_MESSAGE);
+                    refreshAllFriendData();
+                } else {
+                    JOptionPane.showMessageDialog(panel,
+                        "Failed to accept friend request.",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        
+        rejectButton.addActionListener(e -> {
+            User selected = incomingList.getSelectedValue();
+            if (selected != null) {
+                if (dbManager.rejectFriendRequest(selected.getId(), userId)) {
+                    refreshAllFriendData();
+                } else {
+                    JOptionPane.showMessageDialog(panel,
+                        "Failed to reject friend request.",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        
+        incomingButtons.add(acceptButton);
+        incomingButtons.add(rejectButton);
+        incomingPanel.add(incomingButtons, BorderLayout.SOUTH);
+        
+        // Outgoing requests
+        JPanel outgoingPanel = new JPanel(new BorderLayout());
+        outgoingPanel.setBackground(BACKGROUND_COLOR);
+        outgoingPanel.setBorder(BorderFactory.createTitledBorder("Outgoing Requests"));
+        
+        DefaultListModel<User> outgoingModel = new DefaultListModel<>();
+        JList<User> outgoingList = new JList<>(outgoingModel);
+        outgoingList.setCellRenderer(new UserListCellRenderer());
+        JScrollPane outgoingScroll = new JScrollPane(outgoingList);
+        outgoingPanel.add(outgoingScroll, BorderLayout.CENTER);
+        
+        JPanel outgoingButtons = new JPanel(new FlowLayout());
+        outgoingButtons.setBackground(BACKGROUND_COLOR);
+        JButton cancelButton = new JButton("Cancel Request");
+        cancelButton.setBackground(new Color(200, 0, 0));
+        cancelButton.setForeground(Color.WHITE);
+        cancelButton.setOpaque(true);
+        cancelButton.setBorderPainted(false);
+        cancelButton.setFocusPainted(false);
+        cancelButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                cancelButton.setBackground(new Color(220, 0, 0));
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                cancelButton.setBackground(new Color(200, 0, 0));
+            }
+        });
+        
+        cancelButton.addActionListener(e -> {
+            User selected = outgoingList.getSelectedValue();
+            if (selected != null) {
+                if (dbManager.rejectFriendRequest(userId, selected.getId())) {
+                    refreshAllFriendData();
+                } else {
+                    JOptionPane.showMessageDialog(panel,
+                        "Failed to cancel friend request.",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        
+        outgoingButtons.add(cancelButton);
+        outgoingPanel.add(outgoingButtons, BorderLayout.SOUTH);
+        
+        splitPanel.add(incomingPanel);
+        splitPanel.add(outgoingPanel);
+        panel.add(splitPanel, BorderLayout.CENTER);
+        
+        // Store references for refreshing
+        incomingRequestsModelRef = incomingModel;
+        outgoingRequestsModelRef = outgoingModel;
+        
+        // Initial load
+        refreshAllFriendData();
+        
+        return panel;
+    }
+    
+    private JPanel createFriendsListPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(BACKGROUND_COLOR);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        // Split into friends list and classes view
+        JPanel splitPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+        splitPanel.setBackground(BACKGROUND_COLOR);
+        
+        // Friends list
+        JPanel friendsListPanel = new JPanel(new BorderLayout());
+        friendsListPanel.setBackground(BACKGROUND_COLOR);
+        friendsListPanel.setBorder(BorderFactory.createTitledBorder("Friends"));
+        
+        DefaultListModel<User> friendsModel = new DefaultListModel<>();
+        JList<User> friendsList = new JList<>(friendsModel);
+        friendsList.setCellRenderer(new UserListCellRenderer());
+        JScrollPane friendsScroll = new JScrollPane(friendsList);
+        friendsListPanel.add(friendsScroll, BorderLayout.CENTER);
+        
+        // Friend's classes view
+        JPanel classesPanel = new JPanel(new BorderLayout());
+        classesPanel.setBackground(BACKGROUND_COLOR);
+        classesPanel.setBorder(BorderFactory.createTitledBorder("Friend's Enrolled Classes"));
+        
+        DefaultListModel<WorkoutClass> friendClassesModel = new DefaultListModel<>();
+        JList<WorkoutClass> friendClassesList = new JList<>(friendClassesModel);
+        friendClassesList.setCellRenderer(new FriendClassListCellRenderer());
+        JScrollPane classesScroll = new JScrollPane(friendClassesList);
+        classesPanel.add(classesScroll, BorderLayout.CENTER);
+        
+        // When a friend is selected, show their classes
+        friendsList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                friendClassesModel.clear();
+                User selected = friendsList.getSelectedValue();
+                if (selected != null) {
+                    List<WorkoutClass> classes = dbManager.getFriendEnrolledClasses(selected.getId());
+                    if (classes.isEmpty()) {
+                        // Add a placeholder
+                        friendClassesModel.addElement(null);
+                    } else {
+                        for (WorkoutClass wc : classes) {
+                            friendClassesModel.addElement(wc);
+                        }
+                    }
+                } else {
+                    friendClassesModel.clear();
+                }
+            }
+        });
+        
+        splitPanel.add(friendsListPanel);
+        splitPanel.add(classesPanel);
+        panel.add(splitPanel, BorderLayout.CENTER);
+        
+        // Store reference for refreshing
+        friendsModelRef = friendsModel;
+        
+        // Initial load
+        refreshAllFriendData();
+        
+        return panel;
+    }
+    
+    
+    // Store references to models for refreshing
+    private DefaultListModel<User> friendsModelRef;
+    private DefaultListModel<User> incomingRequestsModelRef;
+    private DefaultListModel<User> outgoingRequestsModelRef;
+    
+    private void refreshAllFriendData() {
+        // Refresh friend requests
+        if (incomingRequestsModelRef != null) {
+            incomingRequestsModelRef.clear();
+            List<User> incoming = dbManager.getPendingFriendRequests(userId);
+            for (User user : incoming) {
+                incomingRequestsModelRef.addElement(user);
+            }
+        }
+        
+        if (outgoingRequestsModelRef != null) {
+            outgoingRequestsModelRef.clear();
+            List<User> outgoing = dbManager.getSentFriendRequests(userId);
+            for (User user : outgoing) {
+                outgoingRequestsModelRef.addElement(user);
+            }
+        }
+        
+        // Refresh friends list
+        if (friendsModelRef != null) {
+            friendsModelRef.clear();
+            List<User> friends = dbManager.getFriends(userId);
+            for (User friend : friends) {
+                friendsModelRef.addElement(friend);
+            }
+        }
+    }
+    
+    // Custom cell renderer for user list
+    private class UserListCellRenderer extends DefaultListCellRenderer {
+        @Override
+        public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                     boolean isSelected, boolean cellHasFocus) {
+            super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            if (value instanceof User) {
+                User user = (User) value;
+                String displayName = user.getUsername();
+                if (user.getFirstName() != null && !user.getFirstName().isEmpty()) {
+                    displayName = user.getFirstName();
+                    if (user.getLastName() != null && !user.getLastName().isEmpty()) {
+                        displayName += " " + user.getLastName();
+                    }
+                    displayName += " (" + user.getUsername() + ")";
+                }
+                setText(displayName);
+            }
+            return this;
+        }
+    }
+    
+    // Custom cell renderer for friend's classes list (handles null)
+    private class FriendClassListCellRenderer extends DefaultListCellRenderer {
+        @Override
+        public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                     boolean isSelected, boolean cellHasFocus) {
+            super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            if (value == null) {
+                setText("No classes enrolled");
+                setForeground(Color.GRAY);
+            } else if (value instanceof WorkoutClass) {
+                WorkoutClass wc = (WorkoutClass) value;
+                int currentEnrolled = dbManager.getCurrentEnrollmentCount(wc.getId());
+                int spotsAvailable = wc.getMaxParticipants() - currentEnrolled;
+                String text = wc.getClassType() + " - " + wc.getStartTime() + 
+                             " ($" + String.format("%.2f", wc.getCost()) + ")";
+                setText(text);
+                setForeground(Color.BLACK);
+            }
+            return this;
+        }
     }
 
     private JPanel createClassesTab() {
