@@ -30,7 +30,6 @@ public class SelfPacedPlanManager {
     }
 
     public boolean hasMissingRequiredFields(SelfPacedPlan plan, List<String> missingFields) {
-        // be safe if caller passed null
         if (missingFields != null) {
             missingFields.clear();
         }
