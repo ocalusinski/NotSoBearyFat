@@ -9,7 +9,11 @@ import java.awt.*;
 
 public class drawWorkoutTypeGraph extends JPanel {
     public drawWorkoutTypeGraph() {
-
+        this(-1, null, 0);
+    }
+    
+    public drawWorkoutTypeGraph(int userId, DatabaseManager dbManager, int days) {
+        // TODO: Connect to workout data table when available
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
         dataset.addValue(3, "Count", "Walking");
         dataset.addValue(1, "Count", "Running");
@@ -25,10 +29,10 @@ public class drawWorkoutTypeGraph extends JPanel {
         );
 
         ChartPanel chartPanel = new ChartPanel(chart);
-        chartPanel.setPreferredSize(new java.awt.Dimension(375, 150));
+        chartPanel.setPreferredSize(new java.awt.Dimension(600, 300));
 
         this.setLayout(new BorderLayout());
-        this.add(chartPanel, BorderLayout.NORTH);
+        this.add(chartPanel, BorderLayout.CENTER);
     }
 
 }

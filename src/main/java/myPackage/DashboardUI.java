@@ -49,7 +49,7 @@ public class DashboardUI extends JFrame {
         }
         
         setTitle("Dashboard - Not So Beary Fat");
-        setSize(700, 600);
+        setSize(1200, 800);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
@@ -606,6 +606,9 @@ public class DashboardUI extends JFrame {
         JPanel centerPanel = new JPanel(new GridBagLayout());
         centerPanel.setBackground(BACKGROUND_COLOR);
         GridBagConstraints gbc = new GridBagConstraints();
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.weightx = 0.0;
         
         JLabel titleLabel = new JLabel("Create New Class");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
@@ -613,6 +616,8 @@ public class DashboardUI extends JFrame {
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.insets = new Insets(20, 20, 30, 20);
+        gbc.weightx = 0.0;
+        gbc.fill = GridBagConstraints.NONE;
         centerPanel.add(titleLabel, gbc);
         
         JButton createClassButton = new JButton("Create Class");
@@ -622,7 +627,7 @@ public class DashboardUI extends JFrame {
         createClassButton.setBorderPainted(false);
         createClassButton.setFocusPainted(false);
         createClassButton.setFont(new Font("Arial", Font.BOLD, 16));
-        createClassButton.setPreferredSize(new Dimension(200, 50));
+        createClassButton.setPreferredSize(new Dimension(250, 50));
         createClassButton.addActionListener(e -> {
             // Open CreateClass window, passing the current trainer's username
             // and reusing the existing DatabaseManager connection
@@ -643,6 +648,8 @@ public class DashboardUI extends JFrame {
         
         gbc.gridy = 1;
         gbc.insets = new Insets(10, 20, 20, 20);
+        gbc.weightx = 0.0;
+        gbc.fill = GridBagConstraints.NONE;
         centerPanel.add(createClassButton, gbc);
 
         /**
@@ -655,7 +662,7 @@ public class DashboardUI extends JFrame {
         modifyClassButton.setBorderPainted(false);
         modifyClassButton.setFocusPainted(false);
         modifyClassButton.setFont(new Font("Arial", Font.BOLD, 16));
-        modifyClassButton.setPreferredSize(new Dimension(200, 50));
+        modifyClassButton.setPreferredSize(new Dimension(250, 50));
 
         modifyClassButton.addActionListener(e -> {
             SwingUtilities.invokeLater(() -> {
@@ -680,24 +687,32 @@ public class DashboardUI extends JFrame {
 
         gbc.gridy = 2;
         gbc.insets = new Insets(20, 20, 20, 20);
+        gbc.weightx = 0.0;
+        gbc.fill = GridBagConstraints.NONE;
         centerPanel.add(modifyClassButton, gbc);
         
-        JLabel infoLabel = new JLabel(
-            "<html><div style='text-align: center;'>" +
-            "<p>Click the button above to create a new fitness class.</p>" +
-            "<p>You'll be able to set:</p>" +
-            "<ul style='text-align: left; display: inline-block;'>" +
-            "<li>Class type and description</li>" +
-            "<li>Start and end times</li>" +
-            "<li>Maximum participants</li>" +
-            "<li>Cost</li>" +
-            "</ul>" +
-            "</div></html>"
+        JTextArea infoTextArea = new JTextArea(
+            "Click the button above to create a new fitness class.\n\n" +
+            "You'll be able to set:\n" +
+            "• Class type and description\n" +
+            "• Start and end times\n" +
+            "• Maximum participants\n" +
+            "• Cost"
         );
-        infoLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        infoTextArea.setEditable(false);
+        infoTextArea.setFont(new Font("Arial", Font.PLAIN, 14));
+        infoTextArea.setBackground(BACKGROUND_COLOR);
+        infoTextArea.setForeground(BAYLOR_GREEN);
+        infoTextArea.setLineWrap(true);
+        infoTextArea.setWrapStyleWord(true);
+        infoTextArea.setAlignmentX(Component.CENTER_ALIGNMENT);
+        infoTextArea.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        
         gbc.gridy = 3;
-        gbc.insets = new Insets(20, 20, 20, 20);
-        centerPanel.add(infoLabel, gbc);
+        gbc.insets = new Insets(20, 40, 20, 40);
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        centerPanel.add(infoTextArea, gbc);
         
         createClassPanel.add(centerPanel, BorderLayout.CENTER);
         
@@ -731,20 +746,115 @@ public class DashboardUI extends JFrame {
 
     private JPanel createHistoricalTab() {
         JPanel historicalPanel = new JPanel(new BorderLayout());
-        JPanel optionsPanel = new JPanel(new GridLayout(3, 1));
-        optionsPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        JButton daysButton = new JButton("Days");
-        JButton weeksButton = new JButton("Weeks");
-        JButton monthsButton = new JButton("Months");
-        //adding buttons yo
-        optionsPanel.add(daysButton);
-        optionsPanel.add(weeksButton);
-        optionsPanel.add(monthsButton);
-
-        //JPanel
         historicalPanel.setBackground(BACKGROUND_COLOR);
-        historicalPanel.add(optionsPanel, BorderLayout.LINE_START);
+        
+        // Create a tabbed pane for different graph pages
+        JTabbedPane graphTabbedPane = new JTabbedPane();
+        graphTabbedPane.setBackground(BACKGROUND_COLOR);
+        graphTabbedPane.setForeground(BAYLOR_GREEN);
+        
+        // First page: Main data graphs (calories, weight, sleep, total calories burnt)
+        JPanel mainGraphsPanel = createMainGraphsPanel();
+        graphTabbedPane.addTab("Health Data", mainGraphsPanel);
+        
+        // Second page: Workout graphs
+        JPanel workoutGraphsPanel = createWorkoutGraphsPanel();
+        graphTabbedPane.addTab("Workout Data", workoutGraphsPanel);
+        
+        historicalPanel.add(graphTabbedPane, BorderLayout.CENTER);
+        
         return historicalPanel;
+    }
+    
+    private JPanel createMainGraphsPanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(BACKGROUND_COLOR);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+        
+        // Create graphs with user data
+        int days = 0; // 0 means all data, can be changed based on time filter buttons
+        drawCaloriesConsumedGraph calorieGraph = new drawCaloriesConsumedGraph(userId, dbManager, days);
+        drawWeightGraph weightGraph = new drawWeightGraph(userId, dbManager, days);
+        drawSleepGraph sleepGraph = new drawSleepGraph(userId, dbManager, days);
+        drawTotalCaloriesBurntGraph burntGraph = new drawTotalCaloriesBurntGraph(userId, dbManager, days);
+        
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        panel.add(calorieGraph, gbc);
+        
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        panel.add(burntGraph, gbc);
+        
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        panel.add(weightGraph, gbc);
+        
+        gbc.gridx = 1;
+        gbc.gridy = 1;
+        panel.add(sleepGraph, gbc);
+        
+        // Wrap in scroll pane
+        JScrollPane scrollPane = new JScrollPane(panel);
+        scrollPane.setBorder(null);
+        scrollPane.setBackground(BACKGROUND_COLOR);
+        scrollPane.getViewport().setBackground(BACKGROUND_COLOR);
+        
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.add(scrollPane, BorderLayout.CENTER);
+        wrapper.setBackground(BACKGROUND_COLOR);
+        
+        return wrapper;
+    }
+    
+    private JPanel createWorkoutGraphsPanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(BACKGROUND_COLOR);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+        
+        int days = 0; // 0 means all data
+        drawWorkoutTypeGraph workoutTypeGraph = new drawWorkoutTypeGraph(userId, dbManager, days);
+        drawMinutesOfExerciseGraph minutesGraph = new drawMinutesOfExerciseGraph(userId, dbManager, days);
+        drawActiveCaloriesBurntGraph activeCaloriesGraph = new drawActiveCaloriesBurntGraph(userId, dbManager, days);
+        
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        gbc.insets = new Insets(10, 10, 20, 10);
+        panel.add(workoutTypeGraph, gbc);
+        
+        gbc.gridwidth = 1;
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.insets = new Insets(10, 10, 10, 10);
+        panel.add(minutesGraph, gbc);
+        
+        gbc.gridx = 1;
+        gbc.insets = new Insets(10, 10, 10, 10);
+        panel.add(activeCaloriesGraph, gbc);
+        
+        // Wrap in scroll pane
+        JScrollPane scrollPane = new JScrollPane(panel);
+        scrollPane.setBorder(null);
+        scrollPane.setBackground(BACKGROUND_COLOR);
+        scrollPane.getViewport().setBackground(BACKGROUND_COLOR);
+        
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.add(scrollPane, BorderLayout.CENTER);
+        wrapper.setBackground(BACKGROUND_COLOR);
+        
+        return wrapper;
     }
     
     private boolean isTrainer() {

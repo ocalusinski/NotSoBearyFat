@@ -752,5 +752,47 @@ public class DatabaseManager {
         }
         return classes;
     }
+
+    /**
+     * Gets historical user data for a specific user, optionally filtered by number of days
+     * @param userId The user ID
+     * @param days Number of days to retrieve (0 or negative for all data)
+     * @return List of arrays containing [date, caloriesConsumed, weight, sleepHours, totalCaloriesBurned]
+     */
+    public java.util.List<Object[]> getHistoricalUserData(int userId, int days) {
+        java.util.List<Object[]> data = new java.util.ArrayList<>();
+        String sql;
+        
+        if (days > 0) {
+            sql = "SELECT date, calories_consumed, weight, sleep_hours, total_calories_burned " +
+                  "FROM user_data WHERE user_id = ? AND date >= date('now', '-' || ? || ' days') " +
+                  "ORDER BY date ASC";
+        } else {
+            sql = "SELECT date, calories_consumed, weight, sleep_hours, total_calories_burned " +
+                  "FROM user_data WHERE user_id = ? ORDER BY date ASC";
+        }
+        
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            if (days > 0) {
+                pstmt.setInt(2, days);
+            }
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                Object[] row = new Object[]{
+                    rs.getString("date"),
+                    rs.getInt("calories_consumed"),
+                    rs.getDouble("weight"),
+                    rs.getDouble("sleep_hours"),
+                    rs.getInt("total_calories_burned")
+                };
+                data.add(row);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting historical user data: " + e.getMessage());
+        }
+        return data;
+    }
 }
 
