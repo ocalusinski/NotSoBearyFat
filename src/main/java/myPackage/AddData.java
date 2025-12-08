@@ -427,8 +427,11 @@ public class AddData{
         JFrame frame = new JFrame();
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(new Color(0, 100, 80));
 
         JLabel label = new JLabel("One or more fields are missing input");
+        label.setForeground(Color.WHITE);
+
         JButton okayButton = new JButton("Okay");
 
         GridBagConstraints gbc = new GridBagConstraints();
