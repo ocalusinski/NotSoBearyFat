@@ -99,7 +99,8 @@ public class CreateClass{
             maxLabel.setPreferredSize(new Dimension(150, 25));
             costLabel.setPreferredSize(new Dimension(150, 25));
 
-            JComboBox<String> typeField = new JComboBox<>(ClassType.getClassTypes());
+            List<String> classTypes = ClassType.getClassTypes();
+            JComboBox<String> typeField = new JComboBox<String>(classTypes.toArray(new String[classTypes.size()]));
             typeField.setPreferredSize(new Dimension(200, 30));
             JTextField descField = new JTextField(25);
             descField.setPreferredSize(new Dimension(200, 30));
