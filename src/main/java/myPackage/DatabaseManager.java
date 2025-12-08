@@ -511,37 +511,86 @@ public class DatabaseManager {
         java.util.List<WorkoutClass> classes = new java.util.ArrayList<>();
         String switchVal;
         StringBuilder sb = new StringBuilder();
-        sb.append("SELECT * FROM classes WHERE ");
-        //class type
-        sb.append("class_type = " + csp.getClassType().getType());
-        //trainer username
-        sb.append(" AND trainer_username = " + csp.getTrainerUsername());
-        //duration
-        sb.append(" AND CAST(start_time AS TIME) \n" +
-                "      BETWEEN ");
-        switchVal = csp.getDuration();
-        switch(switchVal){
-            case "The Witching Hour":
-                sb.append("00:00:00 AND 03:99:59");
-                break;
-            case "Early Morning":
-                sb.append("04:00:00 AND 07:99:59");
-                break;
-            case "Morning":
-                sb.append("08:00:00 AND 11:99:59");
-                break;
-            case "Afternoon":
-                sb.append("12:00:00 AND 15:99:59");
-                break;
-            case "Evening":
-                sb.append("16:00:00 AND 19:99:59");
-            case "Night":
-                sb.append("20:00:00 AND 23:99:59");
-                break;
+        sb.append("SELECT * FROM classes");
+
+        //if statement guards entire statement in case of default search attributes
+        if(!csp.getClassType().getType().equals("Class Type--") || !csp.getTrainerUsername().equals("Trainer--")
+        || !csp.getTimeOfDay().equals("Time of Day--") || !csp.getDuration().equals("Duration--")) {
+            sb.append(" WHERE ");
+            //class type
+            switchVal = csp.getClassType().getType();
+            if (!switchVal.equals("Class Type--")) {
+                sb.append("class_type = '" + csp.getClassType().getType() + "' AND");
+            }
+            //trainer username
+            switchVal = csp.getTrainerUsername();
+            if (!switchVal.equals("Trainer--")) {
+                sb.append(" trainer_username = '" + csp.getTrainerUsername() + "' AND");
+            }
+
+            //time of day
+            switchVal = csp.getTimeOfDay();
+            if (!switchVal.equals("Time of Day--")) {
+                sb.append(" time(start_time / 1000, 'unixepoch', 'localtime') BETWEEN ");
+                switch (switchVal) {
+
+                    case "The Witching Hour":
+                        sb.append("'00:00:00' AND '03:59:59'");
+                        break;
+
+                    case "Early Morning":
+                        sb.append("'04:00:00' AND '07:59:59'");
+                        break;
+
+                    case "Morning":
+                        sb.append("'08:00:00' AND '11:59:59'");
+                        break;
+
+                    case "Afternoon":
+                        sb.append("'12:00:00' AND '15:59:59'");
+                        break;
+
+                    case "Evening":
+                        sb.append("'16:00:00' AND '19:59:59'");
+                        break;
+
+                    case "Night":
+                        sb.append("'20:00:00' AND '23:59:59'");
+                        break;
+
+                    default:
+                        throw new IllegalArgumentException("Unknown timeOfDay: " + switchVal);
+                }
+
+
+                sb.append(" AND");
+            }
+            //duration
+            switchVal = csp.getDuration();
+            if (!switchVal.equals("Duration--")) {
+                sb.append(" ABS(start_time - end_time)");
+                switch (switchVal) {
+                    case "30 min":
+                        sb.append(" < 1800000");
+                        break;
+                    case "1 Hour":
+                        sb.append(" between 1800000 and 3600000");
+                        break;
+                    case "1.5 Hours":
+                        sb.append(" between 3600001 AND 5400000");
+                        break;
+                    case "2 Hours":
+                        sb.append(" between 5400001 AND 7200000");
+                        break;
+                    case "2+ Hours":
+                        sb.append(" > 7200000");
+                }
+                sb.append(" AND");
+            }
+            sb.delete(sb.length() - 4, sb.length());
         }
-
-                //"SELECT * FROM classes ORDER BY start_time ASC";
-
+        //end of search query
+        sb.append(" ORDER BY start_time ASC");
         String sql = sb.toString();
 
         try {
@@ -785,13 +834,13 @@ public class DatabaseManager {
         return classes;
     }
     public List<String> getAllTrainers() {
-        String sql = "SELECT username FROM users WHERE user_type = 'Trainer'";
+        String sql = "SELECT first_name FROM users WHERE user_type = 'Trainer'";
         List<String> trainers = new java.util.ArrayList<>();
         try{
             Statement stmt = connection.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
             while (rs.next()) {
-                trainers.add(rs.getString("username"));
+                trainers.add(rs.getString("first_name"));
             }
         }catch(SQLException e){
             System.err.println("Error getting trainers: " + e.getMessage());

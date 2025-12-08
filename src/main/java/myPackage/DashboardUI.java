@@ -17,7 +17,7 @@ public class DashboardUI extends JFrame {
     private int userId;
     private String username;
     private String userType;
-    private ClassSearchParams csp;
+    private ClassSearchParams csp = new ClassSearchParams();
     
     // References to Classes tab components for refreshing
     private DefaultListModel<WorkoutClass> classListModel;
@@ -510,12 +510,10 @@ public class DashboardUI extends JFrame {
     private JPanel createClassesSearchPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         JPanel centerPanel = new JPanel(new GridLayout(2,2));
-        String buttonNames[] = {"Class Type", "Instructor Name", "Duration", "Time of Day"};
 
         //initializing buttons
         //class type box
         List<String> classTypes = ClassType.getClassTypes();
-        classTypes.add(0, "Class Type--");
         JComboBox<String> classTypeBox = new JComboBox<>(classTypes.toArray(new String[classTypes.size()]));
         centerPanel.add(classTypeBox);
         //available trainers box
@@ -524,7 +522,7 @@ public class DashboardUI extends JFrame {
         JComboBox<String> trainerBox = new JComboBox<>(trainers.toArray(new String[trainers.size()]));
         centerPanel.add(trainerBox);
         //Duration Box
-        String[] durationOptions = {"Duration--", "30 min", "1 Hour", "1.5 Hours", "2 Hours", " 2+ Hours"};
+        String[] durationOptions = {"Duration--", "30 min", "1 Hour", "1.5 Hours", "2 Hours", "2+ Hours"};
         JComboBox<String> durationBox = new JComboBox<>(durationOptions);
         centerPanel.add(durationBox);
         //Time of day box

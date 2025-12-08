@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public enum ClassType {
+    CLASS_TYPE("Class Type--"),
     HIIT("HIIT"),
     CARDIO("Cardio"),
     WEIGHT_TRAINING("Weight Training"),
@@ -37,6 +38,5 @@ public enum ClassType {
             list.add(b.type);
         }
         return list;
-        //return list.toArray(new String[list.size()]);
     }
 }
