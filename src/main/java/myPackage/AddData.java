@@ -91,6 +91,7 @@ public class AddData{
                     parseDateField(dateField, date, formatter, formatter2, formatter3, formatter4);
                 }
             });
+
             calIntake.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
@@ -103,6 +104,13 @@ public class AddData{
                     }
                 }
             });
+
+            calIntake.addFocusListener(new java .awt.event.FocusAdapter() {
+                public void focusLost(java.awt.event.FocusEvent evt) {
+                    validIntegerField(calIntake, cal);
+                }
+            });
+
             weightField.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
@@ -116,6 +124,13 @@ public class AddData{
                     }
                 }
             });
+
+            weightField.addFocusListener(new java .awt.event.FocusAdapter() {
+                public void focusLost(java.awt.event.FocusEvent evt) {
+                    validDoubleField(weightField, weight);
+                }
+            });
+
             sleepField.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
@@ -129,6 +144,13 @@ public class AddData{
                     }
                 }
             });
+
+            sleepField.addFocusListener(new java .awt.event.FocusAdapter() {
+                public void focusLost(java.awt.event.FocusEvent evt) {
+                    validDoubleField(sleepField, sleep);
+                }
+            });
+
             totCalBurn.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
@@ -139,6 +161,12 @@ public class AddData{
                     else{
                         tempMessage(totCalBurn, "Invalid input, must be an integer");
                     }
+                }
+            });
+
+            totCalBurn.addFocusListener(new java .awt.event.FocusAdapter() {
+                public void focusLost(java.awt.event.FocusEvent evt) {
+                    validIntegerField(totCalBurn, totalCal);
                 }
             });
 
@@ -276,13 +304,13 @@ public class AddData{
     }
     
     private static void tempMessage(JTextField field, String message){
+        field.setText(message);
         field.setForeground(Color.RED);
-        // Don't overwrite the text, just change color
-        // The error will be shown via the red color
 
         new javax.swing.Timer(2000, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                field.setText("");
                 field.setForeground(Color.BLACK);
             }
         }) {{
@@ -290,6 +318,7 @@ public class AddData{
             start();
         }};
     }
+
     private static void areYouSure(String message, JFrame prevFrame,
                                    LocalDate date, int cal, double sleep, double weight, int totalCal,
                                    int userId, DatabaseManager dbManager, Runnable refreshCallback){
@@ -398,8 +427,11 @@ public class AddData{
         JFrame frame = new JFrame();
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(new Color(0, 100, 80));
 
         JLabel label = new JLabel("One or more fields are missing input");
+        label.setForeground(Color.WHITE);
+
         JButton okayButton = new JButton("Okay");
 
         GridBagConstraints gbc = new GridBagConstraints();
@@ -423,5 +455,49 @@ public class AddData{
         frame.setVisible(true);
         frame.setLocationRelativeTo(null);
         frame.toFront();
+    }
+
+    private static boolean validIntegerField(JTextField textField, int[] input){
+        String text = textField.getText().trim();
+        if (text.isEmpty()) {
+            textField.setForeground(Color.BLACK);
+            return false;
+        }
+
+        try{
+            int val =  Integer.parseInt(text);
+            if(val < 0){
+                tempMessage(textField, "Must be a positive integer");
+                return false;
+            }
+            textField.setForeground(Color.BLACK);
+            input[0] = val;
+            return true;
+        }catch (NumberFormatException ex){
+            tempMessage(textField, "Invalid integer format");
+            return false;
+        }
+    }
+
+    private static boolean validDoubleField(JTextField textField, double[] input){
+        String text = textField.getText().trim();
+        if (text.isEmpty()) {
+            textField.setForeground(Color.BLACK);
+            return false;
+        }
+
+        try{
+            double val =  Integer.parseInt(text);
+            if(val < 0){
+                tempMessage(textField, "Must be a positive integer");
+                return false;
+            }
+            textField.setForeground(Color.BLACK);
+            input[0] = val;
+            return true;
+        }catch (NumberFormatException ex){
+            tempMessage(textField, "Invalid integer format");
+            return false;
+        }
     }
 }
