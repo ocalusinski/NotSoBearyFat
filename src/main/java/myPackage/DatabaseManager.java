@@ -1248,29 +1248,36 @@ public class DatabaseManager {
     /**
      * Insert or update a goal for a user.
      */
-    // Save or update a goal for a user.
-    // Returns true on success, false on error.
+
     public boolean saveGoal(int userId, Goal goal) {
         if (goal == null) {
-            System.err.println("Error saving goal: goal is null");
+            System.err.println("Cannot save null goal.");
             return false;
         }
 
-        // New goal → INSERT
-        if (goal.getId() == null) {
-            String sql = "INSERT INTO goals " +
-                    "(user_id, goal_name, fitness_objective, calories, " +
-                    "exercise_type, frequency, intensity, duration, description) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        // INSERT path (new goal: id is null or <= 0)
+        if (goal.getId() == null || goal.getId() <= 0) {
+            String insertSql =
+                    "INSERT INTO goals (" +
+                            " user_id, " +
+                            " goal_name, " +
+                            " fitness_objective, " +
+                            " calories, " +
+                            " exercise_type, " +
+                            " frequency, " +
+                            " intensity, " +
+                            " duration, " +
+                            " description" +
+                            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-            try (PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            try (PreparedStatement ps = connection.prepareStatement(insertSql)) {
                 ps.setInt(1, userId);
                 ps.setString(2, goal.getGoalName());
                 ps.setString(3, goal.getFitnessObjective());
                 if (goal.getCalories() != null) {
                     ps.setInt(4, goal.getCalories());
                 } else {
-                    ps.setNull(4, Types.INTEGER);
+                    ps.setNull(4, java.sql.Types.INTEGER);
                 }
                 ps.setString(5, goal.getExerciseType());
                 ps.setString(6, goal.getFrequency());
@@ -1278,33 +1285,39 @@ public class DatabaseManager {
                 ps.setString(8, goal.getDuration());
                 ps.setString(9, goal.getDescription());
 
-                int rows = ps.executeUpdate();
-                if (rows > 0) {
-                    try (ResultSet keys = ps.getGeneratedKeys()) {
-                        if (keys.next()) {
-                            goal.setId(keys.getInt(1));  // store DB id back into the object
-                        }
-                    }
-                    System.out.println("Inserted new goal for user " + userId);
-                    return true;
-                }
+                ps.executeUpdate();
             } catch (SQLException e) {
                 System.err.println("Error saving goal (INSERT): " + e.getMessage());
                 return false;
             }
+
+            try (Statement stmt = connection.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT last_insert_rowid()")) {
+                if (rs.next()) {
+                    int newId = rs.getInt(1);
+                    goal.setId(newId);
+                    System.out.println("Inserted new goal with id " + newId + " for user " + userId);
+                }
+            } catch (SQLException e) {
+                System.err.println("Error retrieving new goal id: " + e.getMessage());
+            }
+
+            return true;
         }
 
-        // Existing goal → UPDATE
-        String updateSql = "UPDATE goals SET " +
-                "goal_name = ?, " +
-                "fitness_objective = ?, " +
-                "calories = ?, " +
-                "exercise_type = ?, " +
-                "frequency = ?, " +
-                "intensity = ?, " +
-                "duration = ?, " +
-                "description = ? " +
-                "WHERE id = ? AND user_id = ?";
+        // UPDATE path (existing goal: id already set)
+        String updateSql =
+                "UPDATE goals SET " +
+                        " goal_name = ?, " +
+                        " fitness_objective = ?, " +
+                        " calories = ?, " +
+                        " exercise_type = ?, " +
+                        " frequency = ?, " +
+                        " intensity = ?, " +
+                        " duration = ?, " +
+                        " description = ?, " +
+                        " updated_at = CURRENT_TIMESTAMP " +
+                        "WHERE id = ? AND user_id = ?";
 
         try (PreparedStatement ps = connection.prepareStatement(updateSql)) {
             ps.setString(1, goal.getGoalName());
@@ -1312,29 +1325,29 @@ public class DatabaseManager {
             if (goal.getCalories() != null) {
                 ps.setInt(3, goal.getCalories());
             } else {
-                ps.setNull(3, Types.INTEGER);
+                ps.setNull(3, java.sql.Types.INTEGER);
             }
             ps.setString(4, goal.getExerciseType());
             ps.setString(5, goal.getFrequency());
             ps.setString(6, goal.getIntensity());
             ps.setString(7, goal.getDuration());
             ps.setString(8, goal.getDescription());
-            ps.setInt(9, goal.getId());   // SAFE NOW: id is not null here
+            ps.setInt(9, goal.getId());
             ps.setInt(10, userId);
 
             int rows = ps.executeUpdate();
-            if (rows > 0) {
-                System.out.println("Updated existing goal id=" + goal.getId() + " for user " + userId);
-                return true;
+            if (rows == 0) {
+                System.err.println("No goal row updated; check id/user_id.");
             } else {
-                System.err.println("No rows updated for goal id=" + goal.getId());
-                return false;
+                System.out.println("Updated goal id " + goal.getId() + " for user " + userId);
             }
+            return rows > 0;
         } catch (SQLException e) {
             System.err.println("Error saving goal (UPDATE): " + e.getMessage());
             return false;
         }
     }
+
 
     /**
      * Delete a goal for a user.
@@ -1416,9 +1429,6 @@ public class DatabaseManager {
     /**
      * Insert or update a self-paced plan.
      */
-    // Save or update a self-paced plan.
-// trainerId: current trainer's user id
-// Returns true on success, false on error.
     public boolean saveSelfPacedPlan(int trainerId, SelfPacedPlan plan) {
         if (connection == null) {
             System.err.println("Error saving self-paced plan: connection is null");
@@ -1427,7 +1437,7 @@ public class DatabaseManager {
 
         try {
             if (plan.getId() > 0) {
-                // ----- UPDATE EXISTING PLAN -----
+                // UPDATE Existing Plan
                 String updateSql =
                         "UPDATE self_paced_plans SET " +
                                 "title = ?, " +
@@ -1453,7 +1463,7 @@ public class DatabaseManager {
                     return rows > 0;
                 }
             } else {
-                // ----- INSERT NEW PLAN -----
+                // INSERT New Plan
                 String insertSql =
                         "INSERT INTO self_paced_plans (" +
                                 "trainer_id, title, description, fitness_level, " +
