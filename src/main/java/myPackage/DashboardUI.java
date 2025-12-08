@@ -53,22 +53,52 @@ public class DashboardUI extends JFrame {
         }
 
         
+        // Record login for streak tracking
+        if (this.userId != -1) {
+            boolean newLogin = dbManager.recordLogin(this.userId);
+            if (newLogin) {
+                int currentStreak = dbManager.getCurrentStreak(this.userId);
+                // Show streak notification for milestones
+                if (currentStreak > 0 && (currentStreak % 7 == 0 || currentStreak == 1)) {
+                    String message = "Login streak: " + currentStreak + " day" + (currentStreak > 1 ? "s" : "") + "!";
+                    if (currentStreak >= 7) {
+                        message += " 🎉 Keep it up!";
+                    }
+                    // Will show this in the streak tab instead of popup
+                }
+            }
+        }
+        
         setTitle("Dashboard - Not So Beary Fat");
-        setSize(700, 600);
+        setSize(1200, 800);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
         getContentPane().setBackground(BACKGROUND_COLOR);
 
-        // Header with logout button
+        // Header with logout button and streak
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(BAYLOR_GREEN);
         headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 10, 15, 10));
 
-        JLabel header = new JLabel("Welcome back, " + username + "!", SwingConstants.CENTER);
+        // Left side: Welcome message and streak
+        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        leftPanel.setBackground(BAYLOR_GREEN);
+        leftPanel.setOpaque(true);
+        
+        JLabel header = new JLabel("Welcome back, " + username + "!");
         header.setForeground(Color.WHITE);
         header.setFont(new Font("Arial", Font.BOLD, 18));
-        headerPanel.add(header, BorderLayout.CENTER);
+        leftPanel.add(header);
+        
+        // Streak display
+        int currentStreak = userId != -1 ? dbManager.getCurrentStreak(userId) : 0;
+        JLabel streakLabel = new JLabel("🔥 " + currentStreak + " day streak");
+        streakLabel.setForeground(new Color(255, 199, 44)); // Baylor gold
+        streakLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        leftPanel.add(streakLabel);
+        
+        headerPanel.add(leftPanel, BorderLayout.CENTER);
         
         // Logout button
         JButton logoutButton = new JButton("Logout");
@@ -129,9 +159,9 @@ public class DashboardUI extends JFrame {
             tabbedPane.addTab("Create Class", createClassTab);
         }
         
-        // Achievements Tab (placeholder)
-        JPanel achievementsTab = createAchievementsTab();
-        tabbedPane.addTab("Achievements", achievementsTab);
+        // Login Streak Tab (replaces Achievements)
+        JPanel streakTab = createStreakTab();
+        tabbedPane.addTab("Login Streak", streakTab);
         
         // Add listener to refresh Classes tab when it becomes visible
         tabbedPane.addChangeListener(new ChangeListener() {
@@ -205,26 +235,437 @@ public class DashboardUI extends JFrame {
     private JPanel createFriendsTab() {
         JPanel friendsPanel = new JPanel(new BorderLayout());
         friendsPanel.setBackground(BACKGROUND_COLOR);
-        friendsPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        friendsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
-        JLabel placeholderLabel = new JLabel(
-            "<html><div style='text-align: center;'>" +
-            "<h2>Friends</h2>" +
-            "<p>This feature will be implemented in the future.</p>" +
-            "<p>Here you'll be able to:</p>" +
-            "<ul style='text-align: left; display: inline-block;'>" +
-            "<li>View your friends list</li>" +
-            "<li>Add new friends</li>" +
-            "<li>See friends' progress</li>" +
-            "<li>Compare achievements</li>" +
-            "</ul>" +
-            "</div></html>",
-            SwingConstants.CENTER
-        );
-        placeholderLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        friendsPanel.add(placeholderLabel, BorderLayout.CENTER);
+        // Create main content panel with search and lists
+        JPanel mainContent = new JPanel(new BorderLayout());
+        mainContent.setBackground(BACKGROUND_COLOR);
+        
+        // Top panel: Search for users
+        JPanel searchPanel = new JPanel(new BorderLayout());
+        searchPanel.setBackground(BACKGROUND_COLOR);
+        searchPanel.setBorder(BorderFactory.createTitledBorder("Search for Users"));
+        
+        JPanel searchInputPanel = new JPanel(new BorderLayout());
+        searchInputPanel.setBackground(BACKGROUND_COLOR);
+        JTextField searchField = new JTextField(20);
+        searchField.setFont(new Font("Arial", Font.PLAIN, 14));
+        JButton searchButton = new JButton("Search");
+        searchButton.setBackground(BAYLOR_GREEN);
+        searchButton.setForeground(Color.WHITE);
+        searchButton.setOpaque(true);
+        searchButton.setBorderPainted(false);
+        searchButton.setFocusPainted(false);
+        searchButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                searchButton.setBackground(LIGHT_GREEN);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                searchButton.setBackground(BAYLOR_GREEN);
+            }
+        });
+        
+        searchInputPanel.add(searchField, BorderLayout.CENTER);
+        searchInputPanel.add(searchButton, BorderLayout.EAST);
+        searchPanel.add(searchInputPanel, BorderLayout.CENTER);
+        
+        // Search results list with send request button
+        JPanel searchResultsPanel = new JPanel(new BorderLayout());
+        searchResultsPanel.setBackground(BACKGROUND_COLOR);
+        
+        DefaultListModel<User> searchResultsModel = new DefaultListModel<>();
+        JList<User> searchResultsList = new JList<>(searchResultsModel);
+        searchResultsList.setCellRenderer(new UserListCellRenderer());
+        JScrollPane searchScroll = new JScrollPane(searchResultsList);
+        searchScroll.setPreferredSize(new Dimension(0, 120));
+        searchResultsPanel.add(searchScroll, BorderLayout.CENTER);
+        
+        JButton sendRequestButton = new JButton("Send Friend Request");
+        sendRequestButton.setBackground(BAYLOR_GREEN);
+        sendRequestButton.setForeground(Color.WHITE);
+        sendRequestButton.setOpaque(true);
+        sendRequestButton.setBorderPainted(false);
+        sendRequestButton.setFocusPainted(false);
+        sendRequestButton.setEnabled(false);
+        sendRequestButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                if (sendRequestButton.isEnabled()) {
+                    sendRequestButton.setBackground(LIGHT_GREEN);
+                }
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                sendRequestButton.setBackground(BAYLOR_GREEN);
+            }
+        });
+        
+        sendRequestButton.addActionListener(e -> {
+            User selected = searchResultsList.getSelectedValue();
+            if (selected != null) {
+                if (dbManager.sendFriendRequest(userId, selected.getId())) {
+                    JOptionPane.showMessageDialog(friendsPanel,
+                        "Friend request sent to " + selected.getUsername() + "!",
+                        "Request Sent",
+                        JOptionPane.INFORMATION_MESSAGE);
+                    // Refresh outgoing requests
+                    refreshAllFriendData();
+                } else {
+                    JOptionPane.showMessageDialog(friendsPanel,
+                        "Failed to send friend request. You may already have a pending request with this user.",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        
+        searchResultsList.addListSelectionListener(e -> {
+            sendRequestButton.setEnabled(searchResultsList.getSelectedValue() != null);
+        });
+        
+        searchResultsPanel.add(sendRequestButton, BorderLayout.SOUTH);
+        searchPanel.add(searchResultsPanel, BorderLayout.SOUTH);
+        
+        // Search button action
+        searchButton.addActionListener(e -> {
+            String searchTerm = searchField.getText().trim();
+            if (!searchTerm.isEmpty()) {
+                searchResultsModel.clear();
+                List<User> results = dbManager.searchUsersByUsername(searchTerm, userId);
+                for (User user : results) {
+                    searchResultsModel.addElement(user);
+                }
+                if (results.isEmpty()) {
+                    JOptionPane.showMessageDialog(friendsPanel,
+                        "No users found matching: " + searchTerm,
+                        "No Results",
+                        JOptionPane.INFORMATION_MESSAGE);
+                }
+            }
+        });
+        
+        // Allow Enter key to search
+        searchField.addActionListener(e -> searchButton.doClick());
+        
+        // Center panel: Tabbed pane for friend requests and friends list
+        JTabbedPane friendsTabbedPane = new JTabbedPane();
+        friendsTabbedPane.setBackground(BACKGROUND_COLOR);
+        friendsTabbedPane.setForeground(BAYLOR_GREEN);
+        
+        // Pending requests tab
+        JPanel requestsPanel = createFriendRequestsPanel();
+        friendsTabbedPane.addTab("Friend Requests", requestsPanel);
+        
+        // Friends list tab
+        JPanel friendsListPanel = createFriendsListPanel();
+        friendsTabbedPane.addTab("My Friends", friendsListPanel);
+        
+        // Refresh when switching tabs
+        friendsTabbedPane.addChangeListener(e -> {
+            int selectedIndex = friendsTabbedPane.getSelectedIndex();
+            if (selectedIndex == 0) {
+                // Refresh requests
+                refreshAllFriendData();
+            } else if (selectedIndex == 1) {
+                // Refresh friends list
+                refreshAllFriendData();
+            }
+        });
+        
+        mainContent.add(searchPanel, BorderLayout.NORTH);
+        mainContent.add(friendsTabbedPane, BorderLayout.CENTER);
+        
+        friendsPanel.add(mainContent, BorderLayout.CENTER);
         
         return friendsPanel;
+    }
+    
+    private JPanel createFriendRequestsPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(BACKGROUND_COLOR);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        // Split into incoming and outgoing requests
+        JPanel splitPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+        splitPanel.setBackground(BACKGROUND_COLOR);
+        
+        // Incoming requests
+        JPanel incomingPanel = new JPanel(new BorderLayout());
+        incomingPanel.setBackground(BACKGROUND_COLOR);
+        incomingPanel.setBorder(BorderFactory.createTitledBorder("Incoming Requests"));
+        
+        DefaultListModel<User> incomingModel = new DefaultListModel<>();
+        JList<User> incomingList = new JList<>(incomingModel);
+        incomingList.setCellRenderer(new UserListCellRenderer());
+        JScrollPane incomingScroll = new JScrollPane(incomingList);
+        incomingPanel.add(incomingScroll, BorderLayout.CENTER);
+        
+        JPanel incomingButtons = new JPanel(new FlowLayout());
+        incomingButtons.setBackground(BACKGROUND_COLOR);
+        JButton acceptButton = new JButton("Accept");
+        acceptButton.setBackground(BAYLOR_GREEN);
+        acceptButton.setForeground(Color.WHITE);
+        acceptButton.setOpaque(true);
+        acceptButton.setBorderPainted(false);
+        acceptButton.setFocusPainted(false);
+        acceptButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                acceptButton.setBackground(LIGHT_GREEN);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                acceptButton.setBackground(BAYLOR_GREEN);
+            }
+        });
+        
+        JButton rejectButton = new JButton("Reject");
+        rejectButton.setBackground(new Color(200, 0, 0));
+        rejectButton.setForeground(Color.WHITE);
+        rejectButton.setOpaque(true);
+        rejectButton.setBorderPainted(false);
+        rejectButton.setFocusPainted(false);
+        rejectButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                rejectButton.setBackground(new Color(220, 0, 0));
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                rejectButton.setBackground(new Color(200, 0, 0));
+            }
+        });
+        
+        acceptButton.addActionListener(e -> {
+            User selected = incomingList.getSelectedValue();
+            if (selected != null) {
+                if (dbManager.acceptFriendRequest(selected.getId(), userId)) {
+                    JOptionPane.showMessageDialog(panel,
+                        "Friend request accepted!",
+                        "Success",
+                        JOptionPane.INFORMATION_MESSAGE);
+                    refreshAllFriendData();
+                } else {
+                    JOptionPane.showMessageDialog(panel,
+                        "Failed to accept friend request.",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        
+        rejectButton.addActionListener(e -> {
+            User selected = incomingList.getSelectedValue();
+            if (selected != null) {
+                if (dbManager.rejectFriendRequest(selected.getId(), userId)) {
+                    refreshAllFriendData();
+                } else {
+                    JOptionPane.showMessageDialog(panel,
+                        "Failed to reject friend request.",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        
+        incomingButtons.add(acceptButton);
+        incomingButtons.add(rejectButton);
+        incomingPanel.add(incomingButtons, BorderLayout.SOUTH);
+        
+        // Outgoing requests
+        JPanel outgoingPanel = new JPanel(new BorderLayout());
+        outgoingPanel.setBackground(BACKGROUND_COLOR);
+        outgoingPanel.setBorder(BorderFactory.createTitledBorder("Outgoing Requests"));
+        
+        DefaultListModel<User> outgoingModel = new DefaultListModel<>();
+        JList<User> outgoingList = new JList<>(outgoingModel);
+        outgoingList.setCellRenderer(new UserListCellRenderer());
+        JScrollPane outgoingScroll = new JScrollPane(outgoingList);
+        outgoingPanel.add(outgoingScroll, BorderLayout.CENTER);
+        
+        JPanel outgoingButtons = new JPanel(new FlowLayout());
+        outgoingButtons.setBackground(BACKGROUND_COLOR);
+        JButton cancelButton = new JButton("Cancel Request");
+        cancelButton.setBackground(new Color(200, 0, 0));
+        cancelButton.setForeground(Color.WHITE);
+        cancelButton.setOpaque(true);
+        cancelButton.setBorderPainted(false);
+        cancelButton.setFocusPainted(false);
+        cancelButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                cancelButton.setBackground(new Color(220, 0, 0));
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                cancelButton.setBackground(new Color(200, 0, 0));
+            }
+        });
+        
+        cancelButton.addActionListener(e -> {
+            User selected = outgoingList.getSelectedValue();
+            if (selected != null) {
+                if (dbManager.rejectFriendRequest(userId, selected.getId())) {
+                    refreshAllFriendData();
+                } else {
+                    JOptionPane.showMessageDialog(panel,
+                        "Failed to cancel friend request.",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        
+        outgoingButtons.add(cancelButton);
+        outgoingPanel.add(outgoingButtons, BorderLayout.SOUTH);
+        
+        splitPanel.add(incomingPanel);
+        splitPanel.add(outgoingPanel);
+        panel.add(splitPanel, BorderLayout.CENTER);
+        
+        // Store references for refreshing
+        incomingRequestsModelRef = incomingModel;
+        outgoingRequestsModelRef = outgoingModel;
+        
+        // Initial load
+        refreshAllFriendData();
+        
+        return panel;
+    }
+    
+    private JPanel createFriendsListPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(BACKGROUND_COLOR);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        // Split into friends list and classes view
+        JPanel splitPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+        splitPanel.setBackground(BACKGROUND_COLOR);
+        
+        // Friends list
+        JPanel friendsListPanel = new JPanel(new BorderLayout());
+        friendsListPanel.setBackground(BACKGROUND_COLOR);
+        friendsListPanel.setBorder(BorderFactory.createTitledBorder("Friends"));
+        
+        DefaultListModel<User> friendsModel = new DefaultListModel<>();
+        JList<User> friendsList = new JList<>(friendsModel);
+        friendsList.setCellRenderer(new UserListCellRenderer());
+        JScrollPane friendsScroll = new JScrollPane(friendsList);
+        friendsListPanel.add(friendsScroll, BorderLayout.CENTER);
+        
+        // Friend's classes view
+        JPanel classesPanel = new JPanel(new BorderLayout());
+        classesPanel.setBackground(BACKGROUND_COLOR);
+        classesPanel.setBorder(BorderFactory.createTitledBorder("Friend's Enrolled Classes"));
+        
+        DefaultListModel<WorkoutClass> friendClassesModel = new DefaultListModel<>();
+        JList<WorkoutClass> friendClassesList = new JList<>(friendClassesModel);
+        friendClassesList.setCellRenderer(new FriendClassListCellRenderer());
+        JScrollPane classesScroll = new JScrollPane(friendClassesList);
+        classesPanel.add(classesScroll, BorderLayout.CENTER);
+        
+        // When a friend is selected, show their classes
+        friendsList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                friendClassesModel.clear();
+                User selected = friendsList.getSelectedValue();
+                if (selected != null) {
+                    List<WorkoutClass> classes = dbManager.getFriendEnrolledClasses(selected.getId());
+                    if (classes.isEmpty()) {
+                        // Add a placeholder
+                        friendClassesModel.addElement(null);
+                    } else {
+                        for (WorkoutClass wc : classes) {
+                            friendClassesModel.addElement(wc);
+                        }
+                    }
+                } else {
+                    friendClassesModel.clear();
+                }
+            }
+        });
+        
+        splitPanel.add(friendsListPanel);
+        splitPanel.add(classesPanel);
+        panel.add(splitPanel, BorderLayout.CENTER);
+        
+        // Store reference for refreshing
+        friendsModelRef = friendsModel;
+        
+        // Initial load
+        refreshAllFriendData();
+        
+        return panel;
+    }
+    
+    
+    // Store references to models for refreshing
+    private DefaultListModel<User> friendsModelRef;
+    private DefaultListModel<User> incomingRequestsModelRef;
+    private DefaultListModel<User> outgoingRequestsModelRef;
+    
+    private void refreshAllFriendData() {
+        // Refresh friend requests
+        if (incomingRequestsModelRef != null) {
+            incomingRequestsModelRef.clear();
+            List<User> incoming = dbManager.getPendingFriendRequests(userId);
+            for (User user : incoming) {
+                incomingRequestsModelRef.addElement(user);
+            }
+        }
+        
+        if (outgoingRequestsModelRef != null) {
+            outgoingRequestsModelRef.clear();
+            List<User> outgoing = dbManager.getSentFriendRequests(userId);
+            for (User user : outgoing) {
+                outgoingRequestsModelRef.addElement(user);
+            }
+        }
+        
+        // Refresh friends list
+        if (friendsModelRef != null) {
+            friendsModelRef.clear();
+            List<User> friends = dbManager.getFriends(userId);
+            for (User friend : friends) {
+                friendsModelRef.addElement(friend);
+            }
+        }
+    }
+    
+    // Custom cell renderer for user list
+    private class UserListCellRenderer extends DefaultListCellRenderer {
+        @Override
+        public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                     boolean isSelected, boolean cellHasFocus) {
+            super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            if (value instanceof User) {
+                User user = (User) value;
+                String displayName = user.getUsername();
+                if (user.getFirstName() != null && !user.getFirstName().isEmpty()) {
+                    displayName = user.getFirstName();
+                    if (user.getLastName() != null && !user.getLastName().isEmpty()) {
+                        displayName += " " + user.getLastName();
+                    }
+                    displayName += " (" + user.getUsername() + ")";
+                }
+                setText(displayName);
+            }
+            return this;
+        }
+    }
+    
+    // Custom cell renderer for friend's classes list (handles null)
+    private class FriendClassListCellRenderer extends DefaultListCellRenderer {
+        @Override
+        public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                     boolean isSelected, boolean cellHasFocus) {
+            super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            if (value == null) {
+                setText("No classes enrolled");
+                setForeground(Color.GRAY);
+            } else if (value instanceof WorkoutClass) {
+                WorkoutClass wc = (WorkoutClass) value;
+                int currentEnrolled = dbManager.getCurrentEnrollmentCount(wc.getId());
+                int spotsAvailable = wc.getMaxParticipants() - currentEnrolled;
+                String text = wc.getClassType() + " - " + wc.getStartTime() + 
+                             " ($" + String.format("%.2f", wc.getCost()) + ")";
+                setText(text);
+                setForeground(Color.BLACK);
+            }
+            return this;
+        }
     }
 
     private JPanel createGoalsTab() {
@@ -793,6 +1234,9 @@ public class DashboardUI extends JFrame {
         JPanel centerPanel = new JPanel(new GridBagLayout());
         centerPanel.setBackground(BACKGROUND_COLOR);
         GridBagConstraints gbc = new GridBagConstraints();
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.weightx = 0.0;
         
         JLabel titleLabel = new JLabel("Create New Class");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
@@ -800,6 +1244,8 @@ public class DashboardUI extends JFrame {
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.insets = new Insets(20, 20, 30, 20);
+        gbc.weightx = 0.0;
+        gbc.fill = GridBagConstraints.NONE;
         centerPanel.add(titleLabel, gbc);
         
         JButton createClassButton = new JButton("Create Class");
@@ -809,7 +1255,7 @@ public class DashboardUI extends JFrame {
         createClassButton.setBorderPainted(false);
         createClassButton.setFocusPainted(false);
         createClassButton.setFont(new Font("Arial", Font.BOLD, 16));
-        createClassButton.setPreferredSize(new Dimension(200, 50));
+        createClassButton.setPreferredSize(new Dimension(250, 50));
         createClassButton.addActionListener(e -> {
             // Open CreateClass window, passing the current trainer's username
             // and reusing the existing DatabaseManager connection
@@ -830,6 +1276,8 @@ public class DashboardUI extends JFrame {
         
         gbc.gridy = 1;
         gbc.insets = new Insets(10, 20, 20, 20);
+        gbc.weightx = 0.0;
+        gbc.fill = GridBagConstraints.NONE;
         centerPanel.add(createClassButton, gbc);
 
         /**
@@ -842,7 +1290,7 @@ public class DashboardUI extends JFrame {
         modifyClassButton.setBorderPainted(false);
         modifyClassButton.setFocusPainted(false);
         modifyClassButton.setFont(new Font("Arial", Font.BOLD, 16));
-        modifyClassButton.setPreferredSize(new Dimension(200, 50));
+        modifyClassButton.setPreferredSize(new Dimension(250, 50));
 
         modifyClassButton.addActionListener(e -> {
             SwingUtilities.invokeLater(() -> {
@@ -867,71 +1315,306 @@ public class DashboardUI extends JFrame {
 
         gbc.gridy = 2;
         gbc.insets = new Insets(20, 20, 20, 20);
+        gbc.weightx = 0.0;
+        gbc.fill = GridBagConstraints.NONE;
         centerPanel.add(modifyClassButton, gbc);
         
-        JLabel infoLabel = new JLabel(
-            "<html><div style='text-align: center;'>" +
-            "<p>Click the button above to create a new fitness class.</p>" +
-            "<p>You'll be able to set:</p>" +
-            "<ul style='text-align: left; display: inline-block;'>" +
-            "<li>Class type and description</li>" +
-            "<li>Start and end times</li>" +
-            "<li>Maximum participants</li>" +
-            "<li>Cost</li>" +
-            "</ul>" +
-            "</div></html>"
+        JTextArea infoTextArea = new JTextArea(
+            "Click the button above to create a new fitness class.\n\n" +
+            "You'll be able to set:\n" +
+            "• Class type and description\n" +
+            "• Start and end times\n" +
+            "• Maximum participants\n" +
+            "• Cost"
         );
-        infoLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        infoTextArea.setEditable(false);
+        infoTextArea.setFont(new Font("Arial", Font.PLAIN, 14));
+        infoTextArea.setBackground(BACKGROUND_COLOR);
+        infoTextArea.setForeground(BAYLOR_GREEN);
+        infoTextArea.setLineWrap(true);
+        infoTextArea.setWrapStyleWord(true);
+        infoTextArea.setAlignmentX(Component.CENTER_ALIGNMENT);
+        infoTextArea.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        
         gbc.gridy = 3;
-        gbc.insets = new Insets(20, 20, 20, 20);
-        centerPanel.add(infoLabel, gbc);
+        gbc.insets = new Insets(20, 40, 20, 40);
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        centerPanel.add(infoTextArea, gbc);
         
         createClassPanel.add(centerPanel, BorderLayout.CENTER);
         
         return createClassPanel;
     }
 
-    private JPanel createAchievementsTab() {
-        JPanel achievementsPanel = new JPanel(new BorderLayout());
-        achievementsPanel.setBackground(BACKGROUND_COLOR);
-        achievementsPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+    private JPanel createStreakTab() {
+        JPanel streakPanel = new JPanel(new BorderLayout());
+        streakPanel.setBackground(BACKGROUND_COLOR);
+        streakPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         
-        JLabel placeholderLabel = new JLabel(
-            "<html><div style='text-align: center;'>" +
-            "<h2>Achievements</h2>" +
-            "<p>This feature will be implemented in the future.</p>" +
-            "<p>Here you'll be able to:</p>" +
-            "<ul style='text-align: left; display: inline-block;'>" +
-            "<li>View your earned achievements</li>" +
-            "<li>Track progress toward goals</li>" +
-            "<li>See achievement badges</li>" +
-            "<li>Compare with friends</li>" +
-            "</ul>" +
-            "</div></html>",
-            SwingConstants.CENTER
-        );
-        placeholderLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        achievementsPanel.add(placeholderLabel, BorderLayout.CENTER);
+        // Main content panel
+        JPanel mainContent = new JPanel(new GridBagLayout());
+        mainContent.setBackground(BACKGROUND_COLOR);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(15, 20, 15, 20);
         
-        return achievementsPanel;
+        // Title
+        JLabel titleLabel = new JLabel("🔥 Login Streak 🔥");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 28));
+        titleLabel.setForeground(BAYLOR_GREEN);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
+        mainContent.add(titleLabel, gbc);
+        
+        // Get streak data
+        int currentStreak = userId != -1 ? dbManager.getCurrentStreak(userId) : 0;
+        int longestStreak = userId != -1 ? dbManager.getLongestStreak(userId) : 0;
+        int totalLogins = userId != -1 ? dbManager.getTotalLoginDays(userId) : 0;
+        
+        // Current Streak Display
+        JPanel currentStreakPanel = new JPanel(new BorderLayout());
+        currentStreakPanel.setBackground(new Color(255, 199, 44));
+        currentStreakPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BAYLOR_GREEN, 3),
+            BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
+        
+        JLabel currentStreakLabel = new JLabel("Current Streak", SwingConstants.CENTER);
+        currentStreakLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        currentStreakLabel.setForeground(BAYLOR_GREEN);
+        currentStreakPanel.add(currentStreakLabel, BorderLayout.NORTH);
+        
+        JLabel currentStreakValue = new JLabel(String.valueOf(currentStreak), SwingConstants.CENTER);
+        currentStreakValue.setFont(new Font("Arial", Font.BOLD, 48));
+        currentStreakValue.setForeground(BAYLOR_GREEN);
+        currentStreakPanel.add(currentStreakValue, BorderLayout.CENTER);
+        
+        JLabel daysLabel = new JLabel("day" + (currentStreak != 1 ? "s" : ""), SwingConstants.CENTER);
+        daysLabel.setFont(new Font("Arial", Font.PLAIN, 16));
+        daysLabel.setForeground(BAYLOR_GREEN);
+        currentStreakPanel.add(daysLabel, BorderLayout.SOUTH);
+        
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        mainContent.add(currentStreakPanel, gbc);
+        
+        // Stats panel
+        JPanel statsPanel = new JPanel(new GridLayout(1, 2, 20, 0));
+        statsPanel.setBackground(BACKGROUND_COLOR);
+        
+        // Longest Streak
+        JPanel longestStreakPanel = new JPanel(new BorderLayout());
+        longestStreakPanel.setBackground(BACKGROUND_COLOR);
+        longestStreakPanel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(BAYLOR_GREEN, 2),
+            "Longest Streak"
+        ));
+        
+        JLabel longestStreakValue = new JLabel(String.valueOf(longestStreak), SwingConstants.CENTER);
+        longestStreakValue.setFont(new Font("Arial", Font.BOLD, 36));
+        longestStreakValue.setForeground(BAYLOR_GREEN);
+        longestStreakPanel.add(longestStreakValue, BorderLayout.CENTER);
+        
+        // Total Logins
+        JPanel totalLoginsPanel = new JPanel(new BorderLayout());
+        totalLoginsPanel.setBackground(BACKGROUND_COLOR);
+        totalLoginsPanel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(BAYLOR_GREEN, 2),
+            "Total Login Days"
+        ));
+        
+        JLabel totalLoginsValue = new JLabel(String.valueOf(totalLogins), SwingConstants.CENTER);
+        totalLoginsValue.setFont(new Font("Arial", Font.BOLD, 36));
+        totalLoginsValue.setForeground(BAYLOR_GREEN);
+        totalLoginsPanel.add(totalLoginsValue, BorderLayout.CENTER);
+        
+        statsPanel.add(longestStreakPanel);
+        statsPanel.add(totalLoginsPanel);
+        
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weightx = 1.0;
+        gbc.weighty = 0.5;
+        mainContent.add(statsPanel, gbc);
+        
+        // Rewards/Milestones section
+        JPanel rewardsPanel = new JPanel(new BorderLayout());
+        rewardsPanel.setBackground(BACKGROUND_COLOR);
+        rewardsPanel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(BAYLOR_GREEN, 2),
+            "Streak Milestones & Rewards"
+        ));
+        
+        JTextArea rewardsText = new JTextArea();
+        rewardsText.setEditable(false);
+        rewardsText.setFont(new Font("Arial", Font.PLAIN, 14));
+        rewardsText.setBackground(BACKGROUND_COLOR);
+        rewardsText.setForeground(BAYLOR_GREEN);
+        rewardsText.setLineWrap(true);
+        rewardsText.setWrapStyleWord(true);
+        
+        StringBuilder rewards = new StringBuilder();
+        rewards.append("🎯 Streak Milestones:\n\n");
+        rewards.append("• 1 day: Welcome! You're on your way!\n");
+        rewards.append("• 7 days: Week Warrior! 🏆\n");
+        rewards.append("• 14 days: Two Week Champion! 🥇\n");
+        rewards.append("• 30 days: Monthly Master! 🎖️\n");
+        rewards.append("• 60 days: Two Month Legend! 👑\n");
+        rewards.append("• 100 days: Centurion! 💯\n\n");
+        rewards.append("💡 Tip: Log in every day to maintain your streak!\n");
+        rewards.append("Your streak resets if you miss a day.");
+        
+        // Check if user has reached any milestones
+        if (currentStreak >= 100) {
+            rewards.append("\n\n🎉 CONGRATULATIONS! You've reached 100 days!");
+        } else if (currentStreak >= 60) {
+            rewards.append("\n\n🌟 Amazing! You're a Two Month Legend!");
+        } else if (currentStreak >= 30) {
+            rewards.append("\n\n⭐ Great job! You're a Monthly Master!");
+        } else if (currentStreak >= 14) {
+            rewards.append("\n\n✨ Well done! You're a Two Week Champion!");
+        } else if (currentStreak >= 7) {
+            rewards.append("\n\n👍 Keep it up! You're a Week Warrior!");
+        } else if (currentStreak > 0) {
+            rewards.append("\n\n🚀 You're building your streak! Keep logging in daily!");
+        }
+        
+        rewardsText.setText(rewards.toString());
+        JScrollPane rewardsScroll = new JScrollPane(rewardsText);
+        rewardsScroll.setBorder(null);
+        rewardsPanel.add(rewardsScroll, BorderLayout.CENTER);
+        
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weightx = 1.0;
+        gbc.weighty = 0.5;
+        mainContent.add(rewardsPanel, gbc);
+        
+        streakPanel.add(mainContent, BorderLayout.CENTER);
+        
+        return streakPanel;
     }
 
     private JPanel createHistoricalTab() {
         JPanel historicalPanel = new JPanel(new BorderLayout());
-        JPanel optionsPanel = new JPanel(new GridLayout(3, 1));
-        optionsPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        JButton daysButton = new JButton("Days");
-        JButton weeksButton = new JButton("Weeks");
-        JButton monthsButton = new JButton("Months");
-        //adding buttons yo
-        optionsPanel.add(daysButton);
-        optionsPanel.add(weeksButton);
-        optionsPanel.add(monthsButton);
-
-        //JPanel
         historicalPanel.setBackground(BACKGROUND_COLOR);
-        historicalPanel.add(optionsPanel, BorderLayout.LINE_START);
+        
+        // Create a tabbed pane for different graph pages
+        JTabbedPane graphTabbedPane = new JTabbedPane();
+        graphTabbedPane.setBackground(BACKGROUND_COLOR);
+        graphTabbedPane.setForeground(BAYLOR_GREEN);
+        
+        // First page: Main data graphs (calories, weight, sleep, total calories burnt)
+        JPanel mainGraphsPanel = createMainGraphsPanel();
+        graphTabbedPane.addTab("Health Data", mainGraphsPanel);
+        
+        // Second page: Workout graphs
+        JPanel workoutGraphsPanel = createWorkoutGraphsPanel();
+        graphTabbedPane.addTab("Workout Data", workoutGraphsPanel);
+        
+        historicalPanel.add(graphTabbedPane, BorderLayout.CENTER);
+        
         return historicalPanel;
+    }
+    
+    private JPanel createMainGraphsPanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(BACKGROUND_COLOR);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+        
+        // Create graphs with user data
+        int days = 0; // 0 means all data, can be changed based on time filter buttons
+        drawCaloriesConsumedGraph calorieGraph = new drawCaloriesConsumedGraph(userId, dbManager, days);
+        drawWeightGraph weightGraph = new drawWeightGraph(userId, dbManager, days);
+        drawSleepGraph sleepGraph = new drawSleepGraph(userId, dbManager, days);
+        drawTotalCaloriesBurntGraph burntGraph = new drawTotalCaloriesBurntGraph(userId, dbManager, days);
+        
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        panel.add(calorieGraph, gbc);
+        
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        panel.add(burntGraph, gbc);
+        
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        panel.add(weightGraph, gbc);
+        
+        gbc.gridx = 1;
+        gbc.gridy = 1;
+        panel.add(sleepGraph, gbc);
+        
+        // Wrap in scroll pane
+        JScrollPane scrollPane = new JScrollPane(panel);
+        scrollPane.setBorder(null);
+        scrollPane.setBackground(BACKGROUND_COLOR);
+        scrollPane.getViewport().setBackground(BACKGROUND_COLOR);
+        
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.add(scrollPane, BorderLayout.CENTER);
+        wrapper.setBackground(BACKGROUND_COLOR);
+        
+        return wrapper;
+    }
+    
+    private JPanel createWorkoutGraphsPanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(BACKGROUND_COLOR);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+        
+        int days = 0; // 0 means all data
+        drawWorkoutTypeGraph workoutTypeGraph = new drawWorkoutTypeGraph(userId, dbManager, days);
+        drawMinutesOfExerciseGraph minutesGraph = new drawMinutesOfExerciseGraph(userId, dbManager, days);
+        drawActiveCaloriesBurntGraph activeCaloriesGraph = new drawActiveCaloriesBurntGraph(userId, dbManager, days);
+        
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        gbc.insets = new Insets(10, 10, 20, 10);
+        panel.add(workoutTypeGraph, gbc);
+        
+        gbc.gridwidth = 1;
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.insets = new Insets(10, 10, 10, 10);
+        panel.add(minutesGraph, gbc);
+        
+        gbc.gridx = 1;
+        gbc.insets = new Insets(10, 10, 10, 10);
+        panel.add(activeCaloriesGraph, gbc);
+        
+        // Wrap in scroll pane
+        JScrollPane scrollPane = new JScrollPane(panel);
+        scrollPane.setBorder(null);
+        scrollPane.setBackground(BACKGROUND_COLOR);
+        scrollPane.getViewport().setBackground(BACKGROUND_COLOR);
+        
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.add(scrollPane, BorderLayout.CENTER);
+        wrapper.setBackground(BACKGROUND_COLOR);
+        
+        return wrapper;
     }
     
     private boolean isTrainer() {
