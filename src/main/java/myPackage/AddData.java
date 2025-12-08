@@ -11,6 +11,11 @@ import static myPackage.Constants.*;
 
 
 public class AddData{
+    static JTextField dateField = new JTextField(20);
+    static JTextField calIntake = new JTextField(20);
+    static JTextField weightField = new JTextField(20);
+    static JTextField sleepField = new JTextField(20);
+    static JTextField totCalBurn = new JTextField(20);
     // Static method to open AddDataPage directly (for use from DashboardUI)
     // refreshCallback can be null - if provided, it will be called after successful save
     public static void openAddDataPage(int userId, DatabaseManager dbManager, Runnable refreshCallback) {
@@ -23,36 +28,6 @@ public class AddData{
     // Overload without refresh callback for backward compatibility
     public static void openAddDataPage(int userId, DatabaseManager dbManager) {
         openAddDataPage(userId, dbManager, null);
-    }
-
-    private static void CreateAndShowGUI(){
-        JFrame frame = new JFrame("Add Data");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-        frame.setSize(600, 800);
-        frame.setVisible(true);
-
-        JButton addDataButton = new JButton("Add Data");
-        addDataButton.setBackground(new Color(186, 140, 167));
-        addDataButton.setForeground(new Color(186, 140, 167));
-        addDataButton.setOpaque(true);
-        addDataButton.setPreferredSize(new Dimension(100, 50));
-        addDataButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e){
-                // For standalone use, create a temporary DatabaseManager
-                AddDataPage newPage = new AddDataPage(-1, DB_MANAGER);
-                newPage.setVisible(true);
-                frame.dispose();
-            }
-        });
-
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.add(addDataButton, new GridBagConstraints());
-        panel.setBackground(new Color(227, 172, 204));
-        frame.getContentPane().add(panel);
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
     }
 
     static class AddDataPage extends JFrame{
@@ -77,7 +52,7 @@ public class AddData{
             final int[] totalCal = new int[1];
 
             JFrame dataFrame = new JFrame("Add Data");
-            dataFrame.setSize(600, 800);
+            dataFrame.setSize(1200, 800);
             // Don't exit the whole program when closing this window
             dataFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
@@ -90,11 +65,6 @@ public class AddData{
             JLabel sleepLabel = new JLabel("Sleep (hrs)");
             JLabel totCalLabel = new JLabel("Total Calories Burned (kcal)");
             JLabel optional = new JLabel("(Optional)");
-            JTextField dateField = new JTextField(20);
-            JTextField calIntake = new JTextField(20);
-            JTextField weightField = new JTextField(20);
-            JTextField sleepField = new JTextField(20);
-            JTextField totCalBurn = new JTextField(20);
             JButton saveButton = new JButton("Save");
             JButton cancelButton = new JButton("Cancel");
 
@@ -206,16 +176,14 @@ public class AddData{
                     } catch (NumberFormatException ex) {
                         // Will be handled below
                     }
-                    
-                    if (cal[0] == 0) {
-                        JOptionPane.showMessageDialog(dataFrame,
-                            "Please enter calories consumed.",
-                            "Missing Calories",
-                            JOptionPane.WARNING_MESSAGE);
-                        return;
+
+                    boolean fieldsFull = checkFields();
+                    if(!fieldsFull){
+                        fieldsNotFull();
                     }
-                    
-                    areYouSure("Save", dataFrame, date[0], cal[0], sleep[0], weight[0], totalCal[0], userId, dbManager, refreshCallback);
+                    else {
+                        areYouSure("Save", dataFrame, date[0], cal[0], sleep[0], weight[0], totalCal[0], userId, dbManager, refreshCallback);
+                    }
                 }
             });
 
@@ -224,10 +192,11 @@ public class AddData{
             menuBar.setLayout(new GridBagLayout());
             menuBar.setPreferredSize(new Dimension(600, 300));
             GridBagConstraints g = new GridBagConstraints();
-            menuBar.setBackground(new Color(186, 140, 167));
+            menuBar.setBackground(new Color(0, 71, 56));
             menuBar.setOpaque(true);
             menuBar.setPreferredSize(new Dimension(100, 50));
             JLabel item = new JLabel("Add Data");
+            item.setForeground(Color.WHITE);
             menuBar.add(item, g);
 
             gbc.gridx = 1;
@@ -271,7 +240,7 @@ public class AddData{
             gbc.gridx = 2;
             gbc.gridy = 15;
             panel.add(saveButton, gbc);
-            panel.setBackground(new Color(227, 172, 204));
+            panel.setBackground(new Color(240, 255, 250));
 
             dataFrame.add(menuBar, BorderLayout.NORTH);
             dataFrame.getContentPane().add(panel);
@@ -327,14 +296,15 @@ public class AddData{
         JFrame frame = new JFrame(message);
         // Don't exit the whole program when closing this window
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        frame.getContentPane().setBackground(new Color(227, 172, 204));
+        frame.getContentPane().setBackground(new Color(0, 100, 80));
 
         JButton yesButton = new JButton("Yes");
         JButton noButton = new JButton("No");
         JLabel label = new JLabel("Are you sure?");
+        label.setForeground(Color.WHITE);
         JPanel panel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
-        panel.setBackground(new Color(227, 172, 204));
+        panel.setBackground(new Color(0, 100, 80));
         gbc.gridx = 1;
         gbc.gridy = 0;
         gbc.insets = new Insets(5, 5, 20, 5);
@@ -404,8 +374,54 @@ public class AddData{
         frame.setLocationRelativeTo(null);
     }
 
+    //checks to make sure all fields have data inputed
+    private static boolean checkFields(){
+        boolean fieldsFull = true;
+        if(dateField.getText().isEmpty()){
+            fieldsFull = false;
+        }
+        else if(calIntake.getText().isEmpty()){
+            fieldsFull = false;
+        }
+        else if(weightField.getText().isEmpty()){
+            fieldsFull = false;
+        }
+        else if(sleepField.getText().isEmpty()){
+            fieldsFull = false;
+        }
 
-    public static void main(String[] args){
-        CreateAndShowGUI();
+        return fieldsFull;
+    }
+
+    //popup to signify fields are not full
+    private static void fieldsNotFull(){
+        JFrame frame = new JFrame();
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        JPanel panel = new JPanel(new GridBagLayout());
+
+        JLabel label = new JLabel("One or more fields are missing input");
+        JButton okayButton = new JButton("Okay");
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        panel.add(label, gbc);
+        gbc.gridy = 1;
+        panel.add(okayButton, gbc);
+
+        okayButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+                frame.dispose();
+            }
+        });
+
+        frame.getContentPane().add(panel);
+        frame.setSize(300, 200);
+        frame.getRootPane().setBackground(new Color(0, 100, 80));
+        frame.setVisible(true);
+        frame.setLocationRelativeTo(null);
+        frame.toFront();
     }
 }
