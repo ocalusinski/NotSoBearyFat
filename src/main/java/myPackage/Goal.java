@@ -1,6 +1,7 @@
 package myPackage;
 
 public class Goal {
+    private Integer id;
     private String goalName;
     private String fitnessObjective;
     private Integer calories;
@@ -23,6 +24,13 @@ public class Goal {
 
     public Goal() {
         this("Unnamed Goal", "Weight Loss", 500, "Cardio", "3/week", "Moderate", "3 months", "Blank description");
+    }
+
+    public Integer getId() {
+        return id;
+    }
+    public void setId(Integer id) {
+        this.id = id;
     }
 
     public String getGoalName() {
