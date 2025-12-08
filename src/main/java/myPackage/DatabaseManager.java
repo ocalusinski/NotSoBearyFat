@@ -182,8 +182,10 @@ public class DatabaseManager {
             stmt.execute(createClassEnrollmentsTable);
             stmt.execute(createFriendsTable);
             System.out.println("Tables created successfully!");
+            System.out.println("Friends table created/verified.");
         } catch (SQLException e) {
             System.err.println("Error creating tables: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     private void createOGAdmin() {
