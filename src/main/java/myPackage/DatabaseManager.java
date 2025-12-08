@@ -507,9 +507,42 @@ public class DatabaseManager {
     /**
      * Returns all classes created by any trainer
      */
-    public java.util.List<WorkoutClass> getAllClasses() {
+    public java.util.List<WorkoutClass> getAllClasses(ClassSearchParams csp) {
         java.util.List<WorkoutClass> classes = new java.util.ArrayList<>();
-        String sql = "SELECT * FROM classes ORDER BY start_time ASC";
+        String switchVal;
+        StringBuilder sb = new StringBuilder();
+        sb.append("SELECT * FROM classes WHERE ");
+        //class type
+        sb.append("class_type = " + csp.getClassType().getType());
+        //trainer username
+        sb.append(" AND trainer_username = " + csp.getTrainerUsername());
+        //duration
+        sb.append(" AND CAST(start_time AS TIME) \n" +
+                "      BETWEEN ");
+        switchVal = csp.getDuration();
+        switch(switchVal){
+            case "The Witching Hour":
+                sb.append("00:00:00 AND 03:99:59");
+                break;
+            case "Early Morning":
+                sb.append("04:00:00 AND 07:99:59");
+                break;
+            case "Morning":
+                sb.append("08:00:00 AND 11:99:59");
+                break;
+            case "Afternoon":
+                sb.append("12:00:00 AND 15:99:59");
+                break;
+            case "Evening":
+                sb.append("16:00:00 AND 19:99:59");
+            case "Night":
+                sb.append("20:00:00 AND 23:99:59");
+                break;
+        }
+
+                //"SELECT * FROM classes ORDER BY start_time ASC";
+
+        String sql = sb.toString();
 
         try {
             PreparedStatement pstmt = connection.prepareStatement(sql);

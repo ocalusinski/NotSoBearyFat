@@ -17,7 +17,7 @@ public enum ClassType {
         this.type = name;
     }
 
-    // Provide a public getter method to retrieve the string valu
+    // Provide a public getter method to retrieve the string value
     public String getType() {
         return this.type;
     }

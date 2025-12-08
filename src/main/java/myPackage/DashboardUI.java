@@ -17,6 +17,7 @@ public class DashboardUI extends JFrame {
     private int userId;
     private String username;
     private String userType;
+    private ClassSearchParams csp;
     
     // References to Classes tab components for refreshing
     private DefaultListModel<WorkoutClass> classListModel;
@@ -303,7 +304,7 @@ public class DashboardUI extends JFrame {
     private void refreshClassesList() {
         if (classListModel != null && dbManager != null) {
             classListModel.clear();
-            List<WorkoutClass> classes = dbManager.getAllClasses();
+            List<WorkoutClass> classes = dbManager.getAllClasses(csp);
             for (WorkoutClass wc : classes) {
                 classListModel.addElement(wc);
             }
@@ -537,6 +538,9 @@ public class DashboardUI extends JFrame {
             String trainer = (String) trainerBox.getSelectedItem();
             String duration = (String) durationBox.getSelectedItem();
             String timeOfDay = (String) timeOfDayBox.getSelectedItem();
+
+
+            csp.assignVals(classType, trainer, duration, timeOfDay);
             //dbManager.selectValidClasses(classType, trainer, duration, timeOfDay);
         });
         panel.add(apply, BorderLayout.PAGE_END);
@@ -559,7 +563,7 @@ public class DashboardUI extends JFrame {
     private void refreshAvailableClasses() {
         if (availableClassesModel != null && dbManager != null) {
             availableClassesModel.clear();
-            List<WorkoutClass> classes = dbManager.getAllClasses();
+            List<WorkoutClass> classes = dbManager.getAllClasses(csp);
             for (WorkoutClass wc : classes) {
                 availableClassesModel.addElement(wc);
             }
