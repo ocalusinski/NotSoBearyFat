@@ -17,6 +17,29 @@ public class DashboardUI extends JFrame {
     private int userId;
     private String username;
     private String userType;
+    private GoalManager goalManager;
+    private JProgressBar calorieProgressBar;
+    private JLabel goalStatusLabel;
+    private DefaultListModel<Goal> goalListModel;
+    private JList<Goal> goalList;
+    private int selectedGoalIndex = -1;
+    private SelfPacedPlanManager selfPacedPlanManager;
+    private DefaultListModel<SelfPacedPlan> libraryPlanListModel;
+    private JList<SelfPacedPlan> libraryPlanList;
+    private int selectedPlanIndex = -1;
+    private SelfPacedPlan selectedPlan = null;
+    private DefaultListModel<SelfPacedPlan> planListModel;
+    private JList<SelfPacedPlan> planList;
+    // Goal form field
+    private JTextField goalNameField;
+    private JComboBox<String> objectiveField;
+    private JTextField caloriesField;
+    private JTextField exerciseField;
+    private JTextField frequencyField;
+    private JTextField intensityField;
+    private JTextField durationField;
+    private JTextArea descriptionArea;
+
     
     // References to Classes tab components for refreshing
     private DefaultListModel<WorkoutClass> classListModel;
@@ -36,6 +59,8 @@ public class DashboardUI extends JFrame {
         this.username = username;
         this.userType = userType;
         this.dbManager = new DatabaseManager();
+        this.goalManager = new GoalManager(dbManager);
+        this.selfPacedPlanManager = new SelfPacedPlanManager(dbManager);
         
         // Try to get user ID by username first, then by first name (for backward compatibility)
         this.userId = dbManager.getUserIdByUsername(username);
@@ -47,21 +72,12 @@ public class DashboardUI extends JFrame {
         if (this.userType == null && this.userId != -1) {
             this.userType = dbManager.getUserType(this.userId);
         }
+
         
         // Record login for streak tracking
         if (this.userId != -1) {
-            boolean newLogin = dbManager.recordLogin(this.userId);
-            if (newLogin) {
-                int currentStreak = dbManager.getCurrentStreak(this.userId);
-                // Show streak notification for milestones
-                if (currentStreak > 0 && (currentStreak % 7 == 0 || currentStreak == 1)) {
-                    String message = "Login streak: " + currentStreak + " day" + (currentStreak > 1 ? "s" : "") + "!";
-                    if (currentStreak >= 7) {
-                        message += " 🎉 Keep it up!";
-                    }
-                    // Will show this in the streak tab instead of popup
-                }
-            }
+            dbManager.recordLogin(this.userId);
+            // Streak is displayed in the header and streak tab
         }
         
         setTitle("Dashboard - Not So Beary Fat");
@@ -135,7 +151,22 @@ public class DashboardUI extends JFrame {
         // Friends Tab (placeholder)
         JPanel friendsTab = createFriendsTab();
         tabbedPane.addTab("Friends", friendsTab);
-        
+
+        // Goals Tab
+        JPanel goalsTab = createGoalsTab();
+        tabbedPane.addTab("Goals", goalsTab);
+
+        // Trainer-only tab for creating / editing self-paced plans
+        if (isTrainer()) {
+            JPanel selfPacedTab = createSelfPacedPlansTab();
+            tabbedPane.addTab("Self-Paced Plans", selfPacedTab);
+        }
+
+        // Library tab for all users
+        JPanel libraryTab = createPlanLibraryTab();
+        tabbedPane.addTab("Plan Library", libraryTab);
+
+
         // Classes Tab (placeholder)
         JPanel classesTab = createClassesTab();
         tabbedPane.addTab("Classes", classesTab);
@@ -163,6 +194,16 @@ public class DashboardUI extends JFrame {
                 if ("Classes".equals(selectedTitle) && isTrainer() && classListModel != null) {
                     refreshClassesList();
                 }
+            }
+        });
+
+        // Add listener for refreshing Plan Library
+        tabbedPane.addChangeListener(e -> {
+            int idx = tabbedPane.getSelectedIndex();
+            String title = tabbedPane.getTitleAt(idx);
+
+            if ("Plan Library".equals(title)) {
+                refreshPlanLibraryList();
             }
         });
         
@@ -206,6 +247,19 @@ public class DashboardUI extends JFrame {
         mainPanel.add(weightLabel);
         mainPanel.add(new JLabel("Sleep:"));
         mainPanel.add(sleepLabel);
+
+        // Calorie goal progress bar
+        mainPanel.add(new JLabel("Calorie Goal Progress:"));
+        calorieProgressBar = new JProgressBar(0, 100);
+        calorieProgressBar.setStringPainted(true);
+        calorieProgressBar.setValue(0);
+        calorieProgressBar.setString("No goal set");
+        mainPanel.add(calorieProgressBar);
+
+        // Statue text for how close the user is to goal
+        mainPanel.add(new JLabel("Goal Status:"));
+        goalStatusLabel = new JLabel("Set a goal in the Goals tab to start tracking.");
+        mainPanel.add(goalStatusLabel);
         
         return mainPanel;
     }
@@ -635,8 +689,6 @@ public class DashboardUI extends JFrame {
                 setForeground(Color.GRAY);
             } else if (value instanceof WorkoutClass) {
                 WorkoutClass wc = (WorkoutClass) value;
-                int currentEnrolled = dbManager.getCurrentEnrollmentCount(wc.getId());
-                int spotsAvailable = wc.getMaxParticipants() - currentEnrolled;
                 String text = wc.getClassType() + " - " + wc.getStartTime() + 
                              " ($" + String.format("%.2f", wc.getCost()) + ")";
                 setText(text);
@@ -645,6 +697,745 @@ public class DashboardUI extends JFrame {
             return this;
         }
     }
+
+    private JPanel createGoalsTab() {
+        JPanel goalsPanel = new JPanel(new BorderLayout());
+        goalsPanel.setBackground(BACKGROUND_COLOR);
+        goalsPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel headerLabel = new JLabel(
+                "<html><div style='text-align: center;'>" +
+                        "<h2>Goals</h2>" +
+                        "<p>Set personal fitness goals and track your progress.</p>" +
+                        "<p>Use the list on the left to select and update existing goals, " +
+                        "or create a new goal using the form on the right.</p>" +
+                        "</div></html>",
+                SwingConstants.CENTER
+        );
+        headerLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        goalsPanel.add(headerLabel, BorderLayout.NORTH);
+
+        // Center split
+        JPanel centerPanel = new JPanel(new GridLayout(1, 2, 20, 0));
+        centerPanel.setBackground(BACKGROUND_COLOR);
+
+        // Left: Goal list
+        goalListModel = new DefaultListModel<>();
+        goalList = new JList<>(goalListModel);
+        goalList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        // Load persisted goals
+        if (goalManager != null && userId != -1) {
+            java.util.List<Goal> goals = goalManager.loadGoals(userId);
+            for (Goal g : goals) {
+                goalListModel.addElement(g);
+            }
+        }
+
+        JScrollPane listScroll = new JScrollPane(goalList);
+        listScroll.setBorder(BorderFactory.createTitledBorder("My Goals"));
+
+        JButton newGoalButton = new JButton("New Goal");
+        newGoalButton.addActionListener(e -> {
+            goalList.clearSelection();
+            selectedGoalIndex = -1;
+            // Clear form fields
+            goalNameField.setText("");
+            objectiveField.setSelectedIndex(0);
+            caloriesField.setText("");
+            exerciseField.setText("");
+            frequencyField.setText("");
+            intensityField.setText("");
+            durationField.setText("");
+            descriptionArea.setText("");
+        });
+
+        JPanel leftPanel = new JPanel(new BorderLayout());
+        leftPanel.setBackground(BACKGROUND_COLOR);
+        leftPanel.add(listScroll, BorderLayout.CENTER);
+        leftPanel.add(newGoalButton, BorderLayout.SOUTH);
+
+        // Right: Goal form
+        JPanel formPanel = new JPanel(new GridLayout(0, 2, 10, 10));
+        formPanel.setBackground(BACKGROUND_COLOR);
+        formPanel.setBorder(BorderFactory.createTitledBorder("Goal Details"));
+
+        goalNameField = new JTextField();
+        objectiveField = new JComboBox<>(new String[]{
+                "Weight Loss", "Build Strength", "Endurance", "General Health"
+        });
+        caloriesField = new JTextField();
+        exerciseField = new JTextField();
+        frequencyField = new JTextField();
+        intensityField = new JTextField();
+        durationField = new JTextField();
+        descriptionArea = new JTextArea(3, 20);
+        descriptionArea.setLineWrap(true);
+        descriptionArea.setWrapStyleWord(true);
+
+        formPanel.add(new JLabel("Goal Name:"));
+        formPanel.add(goalNameField);
+        formPanel.add(new JLabel("Overall Objective:"));
+        formPanel.add(objectiveField);
+        formPanel.add(new JLabel("Daily Calorie Target:"));
+        formPanel.add(caloriesField);
+        formPanel.add(new JLabel("Exercise Type:"));
+        formPanel.add(exerciseField);
+        formPanel.add(new JLabel("Frequency (e.g., 3/week):"));
+        formPanel.add(frequencyField);
+        formPanel.add(new JLabel("Intensity (e.g., Moderate):"));
+        formPanel.add(intensityField);
+        formPanel.add(new JLabel("Duration (e.g., 3 months):"));
+        formPanel.add(durationField);
+        formPanel.add(new JLabel("Description:"));
+        formPanel.add(new JScrollPane(descriptionArea));
+
+        // When a goal is selected from the list, load it into the form
+        goalList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                Goal selected = goalList.getSelectedValue();
+                if (selected != null) {
+                    selectedGoalIndex = goalList.getSelectedIndex();
+                    goalNameField.setText(selected.getGoalName());
+                    if (selected.getFitnessObjective() != null) {
+                        objectiveField.setSelectedItem(selected.getFitnessObjective());
+                    }
+                    caloriesField.setText(
+                            selected.getCalories() != null ? selected.getCalories().toString() : ""
+                    );
+                    exerciseField.setText(selected.getExerciseType());
+                    frequencyField.setText(selected.getFrequency());
+                    intensityField.setText(selected.getIntensity());
+                    durationField.setText(selected.getDuration());
+                    descriptionArea.setText(selected.getDescription());
+
+                    if (goalManager != null) {
+                        goalManager.setCurrentGoal(selected);
+                        loadUserData();
+                    }
+                }
+            }
+        });
+
+        centerPanel.add(leftPanel);
+        centerPanel.add(formPanel);
+        goalsPanel.add(centerPanel, BorderLayout.CENTER);
+
+        // Bottom: Save button + status
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+        bottomPanel.setBackground(BACKGROUND_COLOR);
+
+        JLabel statusLabel = new JLabel(" ", SwingConstants.LEFT);
+        statusLabel.setFont(new Font("Arial", Font.ITALIC, 12));
+
+        JButton saveButton = new JButton("Save Goal");
+        saveButton.setBackground(BAYLOR_GREEN);
+        saveButton.setForeground(Color.WHITE);
+        saveButton.setOpaque(true);
+        saveButton.setBorderPainted(false);
+        saveButton.setFocusPainted(false);
+        saveButton.setFont(new Font("Arial", Font.BOLD, 14));
+        saveButton.setPreferredSize(new Dimension(140, 35));
+
+        saveButton.addActionListener(e -> {
+            if (userId == -1) {
+                JOptionPane.showMessageDialog(
+                        DashboardUI.this,
+                        "Unable to save goals: user not found.",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE
+                );
+                return;
+            }
+
+            Integer calories = null;
+            String caloriesText = caloriesField.getText().trim();
+            if (!caloriesText.isEmpty()) {
+                try {
+                    calories = Integer.parseInt(caloriesText);
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(
+                            DashboardUI.this,
+                            "Please enter a valid number for Daily Calorie Target.",
+                            "Input Error",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                    return;
+                }
+            }
+
+            Goal newGoal = new Goal(
+                    goalNameField.getText().trim(),
+                    (String) objectiveField.getSelectedItem(),
+                    calories,
+                    exerciseField.getText().trim(),
+                    frequencyField.getText().trim(),
+                    intensityField.getText().trim(),
+                    durationField.getText().trim(),
+                    descriptionArea.getText().trim()
+            );
+
+            // If editing an existing goal in the list
+            if (selectedGoalIndex >= 0 && selectedGoalIndex < goalListModel.size()) {
+                Goal existing = goalListModel.get(selectedGoalIndex);
+                // Keep the same ID so DB knows to update
+                newGoal.setId(existing.getId());
+                existing.updateFrom(newGoal);
+                goalListModel.set(selectedGoalIndex, existing);
+
+                if (goalManager != null) {
+                    goalManager.setCurrentGoal(existing);
+                    goalManager.saveGoals(userId, existing);
+                }
+            } else {
+                // New goal
+                goalListModel.addElement(newGoal);
+                selectedGoalIndex = goalListModel.size() - 1;
+                goalList.setSelectedIndex(selectedGoalIndex);
+                if (goalManager != null) {
+                    goalManager.setCurrentGoal(newGoal);
+                    goalManager.saveGoals(userId, newGoal);
+                }
+            }
+
+            statusLabel.setText("Goal saved successfully.");
+            statusLabel.setForeground(new Color(0, 128, 64));
+
+            loadUserData(); // update Data tab if you're showing goal-based info
+        });
+
+        // Delete Goal logic
+        JButton deleteButton = new JButton("Delete Goal");
+        deleteButton.setBackground(new Color(200, 0, 0));
+        deleteButton.setForeground(Color.WHITE);
+        deleteButton.setOpaque(true);
+        deleteButton.setBorderPainted(false);
+        deleteButton.setFocusPainted(false);
+        deleteButton.setFont(new Font("Arial", Font.BOLD, 14));
+        deleteButton.setPreferredSize(new Dimension(140, 35));
+
+        deleteButton.addActionListener(e -> {
+            Goal selected = goalList.getSelectedValue();
+            if (selected == null) {
+                JOptionPane.showMessageDialog(
+                        DashboardUI.this,
+                        "Please select a goal to delete.",
+                        "No Goal Selected",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                return;
+            }
+
+            // If goal was never saved to DB, just remove from list
+            if (selected.getId() == null) {
+                goalListModel.removeElement(selected);
+                selectedGoalIndex = -1;
+                goalNameField.setText("");
+                objectiveField.setSelectedIndex(0);
+                caloriesField.setText("");
+                exerciseField.setText("");
+                frequencyField.setText("");
+                intensityField.setText("");
+                durationField.setText("");
+                descriptionArea.setText("");
+
+                statusLabel.setText("Goal removed (not yet saved in the database).");
+                statusLabel.setForeground(new Color(200, 0, 0));
+                return;
+            }
+
+            int choice = JOptionPane.showConfirmDialog(
+                    DashboardUI.this,
+                    "Are you sure you want to delete this goal?",
+                    "Delete Goal",
+                    JOptionPane.YES_NO_OPTION
+            );
+            if (choice != JOptionPane.YES_OPTION) {
+                return;
+            }
+
+            boolean ok = dbManager.deleteGoal(selected.getId(), userId);
+            if (ok) {
+                goalListModel.removeElement(selected);
+                selectedGoalIndex = -1;
+
+                goalNameField.setText("");
+                objectiveField.setSelectedIndex(0);
+                caloriesField.setText("");
+                exerciseField.setText("");
+                frequencyField.setText("");
+                intensityField.setText("");
+                durationField.setText("");
+                descriptionArea.setText("");
+
+                statusLabel.setText("Goal deleted.");
+                statusLabel.setForeground(new Color(200, 0, 0));
+                // refresh Data tab based on current goal
+                goalManager.setCurrentGoal(null);
+                loadUserData();
+            } else {
+                JOptionPane.showMessageDialog(
+                        DashboardUI.this,
+                        "Could not delete the goal. Please try again.",
+                        "Delete Error",
+                        JOptionPane.ERROR_MESSAGE
+                );
+            }
+        });
+
+
+        bottomPanel.add(statusLabel, BorderLayout.CENTER);
+
+        JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttonsPanel.setBackground(BACKGROUND_COLOR);
+        buttonsPanel.add(deleteButton);
+        buttonsPanel.add(saveButton);
+
+        bottomPanel.add(buttonsPanel, BorderLayout.EAST);
+
+
+        goalsPanel.add(bottomPanel, BorderLayout.SOUTH);
+
+        return goalsPanel;
+    }
+
+
+
+    private void updateGoalProgress(Integer caloriesConsumed) {
+        if (calorieProgressBar == null || goalStatusLabel == null) {
+            return; // Data tab not built yet
+        }
+
+        // If you don't have GoalManager hooked up yet, this will just show "No goal set"
+        Goal goal = (goalManager != null) ? goalManager.getCurrentGoal() : null;
+
+        // No goal set at all
+        if (goal == null || goal.getCalories() == null) {
+            calorieProgressBar.setValue(0);
+            calorieProgressBar.setString("No goal set");
+            goalStatusLabel.setText("Set a goal in the Goals tab to start tracking.");
+            goalStatusLabel.setForeground(Color.DARK_GRAY);
+            return;
+        }
+
+        int target = goal.getCalories();
+        if (target <= 0) {
+            calorieProgressBar.setValue(0);
+            calorieProgressBar.setString("Invalid goal");
+            goalStatusLabel.setText("Calorie goal must be greater than 0.");
+            goalStatusLabel.setForeground(Color.RED);
+            return;
+        }
+
+        // No recent data
+        if (caloriesConsumed == null) {
+            calorieProgressBar.setValue(0);
+            calorieProgressBar.setString("0% of " + target + " kcal");
+            goalStatusLabel.setText("No recent data. Log today's calories to start tracking.");
+            goalStatusLabel.setForeground(new Color(128, 64, 0));
+            return;
+        }
+
+        // Compute % of goal reached
+        double ratio = (double) caloriesConsumed / target;
+        int percent = (int) Math.round(ratio * 100);
+        percent = Math.max(0, Math.min(percent, 200));
+
+        calorieProgressBar.setValue(Math.min(percent, 100));
+        calorieProgressBar.setString(percent + "% of " + target + " kcal");
+
+        if (percent >= 100) {
+            goalStatusLabel.setText("🎉 You reached your calorie goal today!");
+            goalStatusLabel.setForeground(new Color(0, 128, 64));
+        } else if (percent >= 75) {
+            goalStatusLabel.setText("Almost there! " + (target - caloriesConsumed) + " kcal to go.");
+            goalStatusLabel.setForeground(new Color(0, 102, 204));
+        } else {
+            goalStatusLabel.setText("You have " + (target - caloriesConsumed) + " kcal remaining.");
+            goalStatusLabel.setForeground(new Color(128, 64, 0));
+        }
+    }
+
+    private JPanel createSelfPacedPlansTab() {
+        JPanel plansPanel = new JPanel(new BorderLayout());
+        plansPanel.setBackground(BACKGROUND_COLOR);
+        plansPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        // Header
+        JLabel headerLabel = new JLabel(
+                "<html><div style='text-align: center;'>" +
+                        "<h2>Self-Paced Exercise Plans</h2>" +
+                        "<p>Trainers can create structured plans that users follow on their own.</p>" +
+                        "<p>Select a plan on the left to edit it, or create a new one on the right.</p>" +
+                        "</div></html>",
+                SwingConstants.CENTER
+        );
+        headerLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        plansPanel.add(headerLabel, BorderLayout.NORTH);
+
+        // Center: left = list, right = form
+        JPanel centerPanel = new JPanel(new GridLayout(1, 2, 20, 0));
+        centerPanel.setBackground(BACKGROUND_COLOR);
+
+        // Left: list of this trainer's plans
+        planListModel = new DefaultListModel<>();
+        planList = new JList<>(planListModel);
+        planList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        JScrollPane listScroll = new JScrollPane(planList);
+        listScroll.setBorder(BorderFactory.createTitledBorder("My Self-Paced Plans"));
+
+        JButton newPlanButton = new JButton("New Plan");
+
+        JPanel leftPanel = new JPanel(new BorderLayout());
+        leftPanel.setBackground(BACKGROUND_COLOR);
+        leftPanel.add(listScroll, BorderLayout.CENTER);
+        leftPanel.add(newPlanButton, BorderLayout.SOUTH);
+
+        // Right: plan details form
+        JPanel formPanel = new JPanel(new GridLayout(0, 2, 10, 10));
+        formPanel.setBackground(BACKGROUND_COLOR);
+        formPanel.setBorder(BorderFactory.createTitledBorder("Plan Details"));
+
+        JTextField titleField = new JTextField();
+        JTextArea descriptionArea = new JTextArea(3, 20);
+        descriptionArea.setLineWrap(true);
+        descriptionArea.setWrapStyleWord(true);
+
+        JComboBox<String> fitnessLevelField = new JComboBox<>(new String[]{
+                "Beginner", "Intermediate", "Advanced", "All Levels"
+        });
+        JTextField equipmentField = new JTextField();
+        JTextField lengthField = new JTextField();    // session length
+        JTextField frequencyField = new JTextField();
+
+        formPanel.add(new JLabel("Title:"));
+        formPanel.add(titleField);
+        formPanel.add(new JLabel("Description:"));
+        formPanel.add(new JScrollPane(descriptionArea));
+        formPanel.add(new JLabel("Fitness Level:"));
+        formPanel.add(fitnessLevelField);
+        formPanel.add(new JLabel("Equipment:"));
+        formPanel.add(equipmentField);
+        formPanel.add(new JLabel("Session Length:"));
+        formPanel.add(lengthField);
+        formPanel.add(new JLabel("Frequency:"));
+        formPanel.add(frequencyField);
+
+        // When a plan is selected, load it into the form
+        planList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                selectedPlanIndex = planList.getSelectedIndex();
+                selectedPlan = planList.getSelectedValue();
+                if (selectedPlan != null) {
+                    titleField.setText(selectedPlan.getTitle());
+                    descriptionArea.setText(selectedPlan.getDescription());
+                    fitnessLevelField.setSelectedItem(selectedPlan.getFitnessLevel());
+                    equipmentField.setText(selectedPlan.getEquipment());
+                    lengthField.setText(selectedPlan.getSessionLength());
+                    frequencyField.setText(selectedPlan.getFrequency());
+                }
+            }
+        });
+
+        // "New Plan" clears selection + form
+        newPlanButton.addActionListener(e -> {
+            planList.clearSelection();
+            selectedPlanIndex = -1;
+            selectedPlan = null;
+            titleField.setText("");
+            descriptionArea.setText("");
+            fitnessLevelField.setSelectedIndex(0);
+            equipmentField.setText("");
+            lengthField.setText("");
+            frequencyField.setText("");
+        });
+
+        centerPanel.add(leftPanel);
+        centerPanel.add(formPanel);
+        plansPanel.add(centerPanel, BorderLayout.CENTER);
+
+        // Bottom: Save button and status label
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+        bottomPanel.setBackground(BACKGROUND_COLOR);
+
+        JLabel statusLabel = new JLabel(" ", SwingConstants.LEFT);
+        statusLabel.setFont(new Font("Arial", Font.ITALIC, 12));
+
+        JButton saveButton = new JButton("Save Plan");
+        saveButton.setBackground(BAYLOR_GREEN);
+        saveButton.setForeground(Color.WHITE);
+        saveButton.setOpaque(true);
+        saveButton.setBorderPainted(false);
+        saveButton.setFocusPainted(false);
+        saveButton.setFont(new Font("Arial", Font.BOLD, 14));
+        saveButton.setPreferredSize(new Dimension(140, 35));
+
+        saveButton.addActionListener(e -> {
+            if (userId == -1) {
+                JOptionPane.showMessageDialog(
+                        DashboardUI.this,
+                        "Unable to save plan: trainer not found.",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE
+                );
+                return;
+            }
+
+            // Build plan object from form
+            SelfPacedPlan planToSave;
+            if (selectedPlan != null) {
+                // editing existing plan
+                planToSave = new SelfPacedPlan(
+                        selectedPlan.getId(),
+                        selectedPlan.getTrainerId(),
+                        titleField.getText().trim(),
+                        descriptionArea.getText().trim(),
+                        (String) fitnessLevelField.getSelectedItem(),
+                        equipmentField.getText().trim(),
+                        lengthField.getText().trim(),
+                        frequencyField.getText().trim()
+                );
+            } else {
+                // new plan
+                planToSave = new SelfPacedPlan(
+                        titleField.getText().trim(),
+                        descriptionArea.getText().trim(),
+                        (String) fitnessLevelField.getSelectedItem(),
+                        equipmentField.getText().trim(),
+                        lengthField.getText().trim(),
+                        frequencyField.getText().trim()
+                );
+            }
+
+            // Validation: missing required fields
+            java.util.List<String> missing = new java.util.ArrayList<>();
+            boolean hasMissing = selfPacedPlanManager.hasMissingRequiredFields(planToSave, missing);
+            if (hasMissing) {
+                JOptionPane.showMessageDialog(
+                        DashboardUI.this,
+                        "Please fill in the required fields: " + String.join(", ", missing),
+                        "Missing Information",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                statusLabel.setText("Missing required fields: " + String.join(", ", missing));
+                statusLabel.setForeground(Color.RED);
+                return;
+            }
+
+            // savePlan(trainerID, planDetails)
+            boolean ok = selfPacedPlanManager.savePlan(userId, planToSave);
+            if (!ok) {
+                JOptionPane.showMessageDialog(
+                        DashboardUI.this,
+                        "Unable to save your plan right now. Please try again later.",
+                        "System Error",
+                        JOptionPane.ERROR_MESSAGE
+                );
+                statusLabel.setText("Unable to save your plan right now. Please try again later.");
+                statusLabel.setForeground(Color.RED);
+                return;
+            }
+
+            // Update list model (new or edited)
+            if (selectedPlanIndex >= 0 && selectedPlanIndex < planListModel.size()) {
+                planListModel.set(selectedPlanIndex, planToSave);
+            } else {
+                planListModel.addElement(planToSave);
+                selectedPlanIndex = planListModel.size() - 1;
+                planList.setSelectedIndex(selectedPlanIndex);
+                selectedPlan = planToSave;
+            }
+
+            // Also refresh library so users can see it
+            refreshTrainerPlansList();
+            refreshPlanLibraryList();
+
+            statusLabel.setText("Plan saved and published to Plan Library.");
+            statusLabel.setForeground(new Color(0, 128, 64));
+        });
+
+        // Delete Plan logic
+        JButton deletePlanButton = new JButton("Delete Plan");
+        deletePlanButton.setBackground(new Color(200, 0, 0));
+        deletePlanButton.setForeground(Color.WHITE);
+        deletePlanButton.setOpaque(true);
+        deletePlanButton.setBorderPainted(false);
+        deletePlanButton.setFocusPainted(false);
+        deletePlanButton.setFont(new Font("Arial", Font.BOLD, 14));
+        deletePlanButton.setPreferredSize(new Dimension(140, 35));
+
+        deletePlanButton.addActionListener(e -> {
+            SelfPacedPlan selected = planList.getSelectedValue();
+            if (selected == null) {
+                JOptionPane.showMessageDialog(
+                        DashboardUI.this,
+                        "Please select a plan to delete.",
+                        "No Plan Selected",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                return;
+            }
+
+            if (selected.getId() == 0) {
+                // Not yet saved to DB: just remove from UI
+                planListModel.removeElement(selected);
+                titleField.setText("");
+                descriptionArea.setText("");
+                fitnessLevelField.setSelectedIndex(0);
+                equipmentField.setText("");
+                lengthField.setText("");
+                frequencyField.setText("");
+                statusLabel.setText("Plan removed (not yet saved in the database).");
+                statusLabel.setForeground(new Color(200, 0, 0));
+                return;
+            }
+
+            int confirm = JOptionPane.showConfirmDialog(
+                    DashboardUI.this,
+                    "Are you sure you want to delete this plan?",
+                    "Delete Plan",
+                    JOptionPane.YES_NO_OPTION
+            );
+            if (confirm != JOptionPane.YES_OPTION) {
+                return;
+            }
+
+            boolean ok = selfPacedPlanManager.deletePlan(selected.getId());
+
+            if (ok) {
+                refreshTrainerPlansList();
+                refreshPlanLibraryList();
+
+                titleField.setText("");
+                descriptionArea.setText("");
+                fitnessLevelField.setSelectedIndex(0);
+                equipmentField.setText("");
+                lengthField.setText("");
+                frequencyField.setText("");
+
+
+                statusLabel.setText("Plan deleted successfully.");
+                statusLabel.setForeground(new Color(200, 0, 0));
+            } else {
+                JOptionPane.showMessageDialog(
+                        DashboardUI.this,
+                        "Could not delete the plan.",
+                        "Delete Error",
+                        JOptionPane.ERROR_MESSAGE
+                );
+            }
+        });
+
+
+
+        JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttonsPanel.setBackground(BACKGROUND_COLOR);
+        buttonsPanel.add(deletePlanButton);
+        buttonsPanel.add(saveButton);
+
+        bottomPanel.add(statusLabel, BorderLayout.CENTER);
+        bottomPanel.add(buttonsPanel, BorderLayout.EAST);
+        plansPanel.add(bottomPanel, BorderLayout.SOUTH);
+
+        // Initial load of trainer's plans
+        refreshTrainerPlansList();
+
+        return plansPanel;
+    }
+
+
+
+
+    private void refreshTrainerPlansList() {
+        if (selfPacedPlanManager == null || planListModel == null || userId == -1) {
+            return;
+        }
+        planListModel.clear();
+        for (SelfPacedPlan p : selfPacedPlanManager.getPlansForTrainer(userId)) {
+            planListModel.addElement(p);
+        }
+    }
+
+    private JPanel createPlanLibraryTab() {
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(BACKGROUND_COLOR);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel header = new JLabel(
+                "<html><h2>Plan Library</h2>" +
+                        "<p>Browse self-paced plans created by trainers.</p></html>",
+                SwingConstants.LEFT
+        );
+        mainPanel.add(header, BorderLayout.NORTH);
+
+        // List of all plans
+        libraryPlanListModel = new DefaultListModel<>();
+        libraryPlanList = new JList<>(libraryPlanListModel);
+        libraryPlanList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        JScrollPane listScroll = new JScrollPane(libraryPlanList);
+        listScroll.setBorder(BorderFactory.createTitledBorder("Available Self-Paced Plans"));
+
+        // Details panel
+        JTextArea detailsArea = new JTextArea();
+        detailsArea.setEditable(false);
+        detailsArea.setLineWrap(true);
+        detailsArea.setWrapStyleWord(true);
+        detailsArea.setBackground(BACKGROUND_COLOR);
+        detailsArea.setFont(new Font("Arial", Font.PLAIN, 12));
+
+        JScrollPane detailsScroll = new JScrollPane(detailsArea);
+        detailsScroll.setBorder(BorderFactory.createTitledBorder("Plan Details"));
+        detailsScroll.setPreferredSize(new Dimension(0, 150));
+
+        JSplitPane splitPane = new JSplitPane(
+                JSplitPane.VERTICAL_SPLIT,
+                listScroll,
+                detailsScroll
+        );
+        splitPane.setResizeWeight(0.6);
+
+        mainPanel.add(splitPane, BorderLayout.CENTER);
+
+        // When user selects a plan, show its details
+        libraryPlanList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                SelfPacedPlan selected = libraryPlanList.getSelectedValue();
+                if (selected != null) {
+                    String text = "Title: " + selected.getTitle() + "\n\n" +
+                            "Fitness Level: " + selected.getFitnessLevel() + "\n" +
+                            "Equipment: " + selected.getEquipment() + "\n" +
+                            "Session Length: " + selected.getSessionLength() + "\n" +
+                            "Frequency: " + selected.getFrequency() + "\n\n" +
+                            "Description:\n" +
+                            (selected.getDescription() != null ? selected.getDescription() : "None");
+                    detailsArea.setText(text);
+                } else {
+                    detailsArea.setText("");
+                }
+            }
+        });
+
+        // Initial fill
+        refreshPlanLibraryList();
+
+        return mainPanel;
+    }
+
+
+
+    private void refreshPlanLibraryList() {
+        if (selfPacedPlanManager == null || libraryPlanListModel == null) {
+            return;
+        }
+        libraryPlanListModel.clear();
+        for (SelfPacedPlan p : selfPacedPlanManager.getAllPlans()) {
+            libraryPlanListModel.addElement(p);
+        }
+    }
+
+
 
     private JPanel createClassesTab() {
         // Client view: show available classes and allow registration
@@ -1456,12 +2247,14 @@ public class DashboardUI extends JFrame {
             burnedLabel.setText("Calories Burned: " + totalCaloriesBurned + " kcal");
             weightLabel.setText("Weight: " + String.format("%.1f", weight) + " lbs");
             sleepLabel.setText("Sleep: " + String.format("%.1f", sleepHours) + " hrs");
+            updateGoalProgress(caloriesConsumed);
         } else {
             // No data found
             caloriesLabel.setText("Calories Consumed: No data");
             burnedLabel.setText("Calories Burned: No data");
             weightLabel.setText("Weight: No data");
             sleepLabel.setText("Sleep: No data");
+            updateGoalProgress(null);
         }
     }
 

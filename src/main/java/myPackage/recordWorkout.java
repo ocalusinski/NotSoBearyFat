@@ -11,17 +11,19 @@ import java.util.Date;
 
 public class recordWorkout {
 
-    static String[] workoutOptions = {"Walking", "Running", "Lifting", "HIIT", "Other"};
+    static String[] workoutOptions = {"Calisthenics", "HIIT", "Lifting", "Running", "Walking", "Yoga", "Other"};
     static JTextField dateField = new JTextField(20);
     static JComboBox<String> workoutDropDown = new JComboBox<>(workoutOptions);
     static JTextField durationField = new JTextField(20);
     static JTextField caloriesBurntField = new JTextField(20);
 
+
+
     private static void createAndShowGUI(){
         JFrame frame = new JFrame("RecordWorkout");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        frame.setSize(600, 800);
+        frame.setSize(1200, 800);
         frame.setVisible(true);
 
         JPanel panel = new JPanel(new GridBagLayout());
@@ -40,6 +42,15 @@ public class recordWorkout {
         JLabel optionalLabel = new JLabel("(Optional)");
         JButton saveButton = new JButton("Save");
         JButton cancelButton = new JButton("Cancel");
+
+        DateTimeFormatter formatter1 = DateTimeFormatter.ofPattern("MM-dd-yyyy");
+        DateTimeFormatter formatter2 = DateTimeFormatter.ofPattern("M-d-yyyy"); // Allow single digit month/day
+        DateTimeFormatter formatter3 = DateTimeFormatter.ofPattern("MM/dd/yyyy"); // Allow slashes
+        DateTimeFormatter formatter4 = DateTimeFormatter.ofPattern("M/d/yyyy"); // Single digit with slashes
+
+        // Set today's date as default/placeholder
+        dateField.setText(LocalDate.now().format(formatter1));
+        date[0] = LocalDate.now();
 
         gbc.gridx = 1;
         gbc.gridy = 0;
@@ -75,21 +86,37 @@ public class recordWorkout {
         panel.add(cancelButton, gbc);
         gbc.gridx = 2;
         panel.add(saveButton, gbc);
+        panel.setBackground(new Color(240, 255, 250));
 
 
-        frame.add(panel);
+        JPanel menuBar = new JPanel();
+        menuBar.setLayout(new GridBagLayout());
+        menuBar.setPreferredSize(new Dimension(600, 300));
+        GridBagConstraints g = new GridBagConstraints();
+        menuBar.setBackground(new Color(0, 71, 56));
+        menuBar.setOpaque(true);
+        menuBar.setPreferredSize(new Dimension(100, 50));
+        JLabel item = new JLabel("Add Data");
+        item.setForeground(Color.WHITE);
+        menuBar.add(item, g);
+
+        frame.add(menuBar, BorderLayout.NORTH);
+        frame.getContentPane().add(panel);
+        frame.getContentPane().setBackground(new Color(240, 255, 250));
         frame.setVisible(true);
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM-dd-yyyy");
         dateField.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                try{
-                    date[0] = LocalDate.parse(dateField.getText(), formatter);
-                }
-                catch(DateTimeParseException ex){
-                    tempMessage(dateField, "Must be in MM-dd-yyyy form");
-                }
+                parseDateField(dateField, date, formatter, formatter2, formatter3, formatter4);
+            }
+        });
+
+        // Also parse when field loses focus
+        dateField.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusLost(java.awt.event.FocusEvent evt) {
+                parseDateField(dateField, date, formatter, formatter2, formatter3, formatter4);
             }
         });
 
@@ -100,9 +127,15 @@ public class recordWorkout {
                 if(s.matches("\\d+")){
                     exerciseMinutes[0] = Integer.parseInt(s);
                 }
-                else{
+                else {
                     tempMessage(durationField, "Invalid input, must be an integer");
                 }
+            }
+        });
+
+        durationField.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusLost(java.awt.event.FocusEvent evt) {
+                validIntegerField(durationField, exerciseMinutes);
             }
         });
 
@@ -116,6 +149,12 @@ public class recordWorkout {
                 else{
                     tempMessage(caloriesBurntField, "Invalid input, must be an integer");
                 }
+            }
+        });
+
+        caloriesBurntField.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusLost(java.awt.event.FocusEvent evt) {
+                validIntegerField(caloriesBurntField, caloriesBurnt);
             }
         });
 
@@ -159,14 +198,14 @@ public class recordWorkout {
                                    LocalDate date, String workoutType, int exerciseMinutes, int caloriesBurnt){
         JFrame frame = new JFrame(message);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        //frame.getContentPane().setBackground(new Color(227, 172, 204));
 
         JButton yesButton = new JButton("Yes");
         JButton noButton = new JButton("No");
         JLabel label = new JLabel("Are you sure?");
+        label.setForeground(Color.WHITE);
         JPanel panel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
-        //panel.setBackground(new Color(227, 172, 204));
+        panel.setBackground(new Color(0, 100, 80));
         gbc.gridx = 1;
         gbc.gridy = 0;
         gbc.insets = new Insets(5, 5, 20, 5);
@@ -221,8 +260,10 @@ public class recordWorkout {
         JFrame frame = new JFrame();
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(new Color(0, 100, 80));
 
         JLabel label = new JLabel("One or more fields are missing input");
+        label.setForeground(Color.WHITE);
         JButton okayButton = new JButton("Okay");
 
         GridBagConstraints gbc = new GridBagConstraints();
@@ -244,6 +285,53 @@ public class recordWorkout {
         frame.setSize(300, 200);
         frame.setVisible(true);
         frame.setLocationRelativeTo(null);
+    }
+
+    private static boolean parseDateField(JTextField dateField, LocalDate[] date,
+                                          DateTimeFormatter... formatters) {
+        String dateText = dateField.getText().trim();
+        if (dateText.isEmpty()) {
+            date[0] = LocalDate.now(); // Default to today
+            return true;
+        }
+
+        // Try each format
+        for (DateTimeFormatter fmt : formatters) {
+            try {
+                date[0] = LocalDate.parse(dateText, fmt);
+                dateField.setForeground(Color.BLACK);
+                return true;
+            } catch (DateTimeParseException ex) {
+                // Try next format
+            }
+        }
+
+        // If all formats failed, show error
+        dateField.setForeground(Color.RED);
+        tempMessage(dateField, "Invalid date format");
+        return false;
+    }
+
+    private static boolean validIntegerField(JTextField textField, int[] input){
+        String text = textField.getText().trim();
+        if (text.isEmpty()) {
+            textField.setForeground(Color.BLACK);
+            return false;
+        }
+
+        try{
+            int val =  Integer.parseInt(text);
+            if(val < 0){
+                tempMessage(textField, "Must be a positive integer");
+                return false;
+            }
+            textField.setForeground(Color.BLACK);
+            input[0] = val;
+            return true;
+        }catch (NumberFormatException ex){
+            tempMessage(textField, "Invalid integer format");
+            return false;
+        }
     }
 
 

@@ -183,6 +183,38 @@ public class DatabaseManager {
             "UNIQUE(user_id, login_date)" +
             ")";
 
+        String createGoalsTable =
+                "CREATE TABLE IF NOT EXISTS goals (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        "user_id INTEGER NOT NULL, " +
+                        "goal_name TEXT, " +
+                        "fitness_objective TEXT, " +
+                        "calories INTEGER, " +
+                        "exercise_type TEXT, " +
+                        "frequency TEXT, " +
+                        "intensity TEXT, " +
+                        "duration TEXT, " +
+                        "description TEXT, " +
+                        "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                        "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                        "FOREIGN KEY (user_id) REFERENCES users(id)" +
+                        ")";
+
+        String createSelfPacedPlansTable =
+                "CREATE TABLE IF NOT EXISTS self_paced_plans (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        "trainer_id INTEGER NOT NULL, " +
+                        "title TEXT NOT NULL, " +
+                        "description TEXT, " +
+                        "fitness_level TEXT, " +
+                        "equipment TEXT, " +
+                        "session_length TEXT NOT NULL, " +
+                        "frequency TEXT NOT NULL, " +
+                        "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                        "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                        "FOREIGN KEY (trainer_id) REFERENCES users(id)" +
+                        ")";
+
         try {
             Statement stmt = connection.createStatement();
             stmt.execute(createUsersTable);
@@ -191,9 +223,12 @@ public class DatabaseManager {
             stmt.execute(createClassEnrollmentsTable);
             stmt.execute(createFriendsTable);
             stmt.execute(createLoginStreaksTable);
+            stmt.execute(createGoalsTable);
+            stmt.execute(createSelfPacedPlansTable);
             System.out.println("Tables created successfully!");
             System.out.println("Friends table created/verified.");
             System.out.println("Login streaks table created/verified.");
+            System.out.println("Goals and self-paced plans tables created/verified.");
         } catch (SQLException e) {
             System.err.println("Error creating tables: " + e.getMessage());
             e.printStackTrace();
@@ -1179,5 +1214,309 @@ public class DatabaseManager {
         }
         return 0;
     }
+
+    public java.util.List<Goal> getGoalsForUser(int userId) {
+        java.util.List<Goal> goals = new java.util.ArrayList<>();
+        String sql = "SELECT id, goal_name, fitness_objective, calories, " +
+                "exercise_type, frequency, intensity, duration, description " +
+                "FROM goals WHERE user_id = ? ORDER BY created_at ASC";
+
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                Goal g = new Goal(
+                        rs.getString("goal_name"),
+                        rs.getString("fitness_objective"),
+                        rs.getObject("calories") != null ? rs.getInt("calories") : null,
+                        rs.getString("exercise_type"),
+                        rs.getString("frequency"),
+                        rs.getString("intensity"),
+                        rs.getString("duration"),
+                        rs.getString("description")
+                );
+                g.setId(rs.getInt("id"));
+                goals.add(g);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting goals: " + e.getMessage());
+        }
+        return goals;
+    }
+
+    /**
+     * Insert or update a goal for a user.
+     */
+
+    public boolean saveGoal(int userId, Goal goal) {
+        if (goal == null) {
+            System.err.println("Cannot save null goal.");
+            return false;
+        }
+
+        // INSERT path (new goal: id is null or <= 0)
+        if (goal.getId() == null || goal.getId() <= 0) {
+            String insertSql =
+                    "INSERT INTO goals (" +
+                            " user_id, " +
+                            " goal_name, " +
+                            " fitness_objective, " +
+                            " calories, " +
+                            " exercise_type, " +
+                            " frequency, " +
+                            " intensity, " +
+                            " duration, " +
+                            " description" +
+                            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+            try (PreparedStatement ps = connection.prepareStatement(insertSql)) {
+                ps.setInt(1, userId);
+                ps.setString(2, goal.getGoalName());
+                ps.setString(3, goal.getFitnessObjective());
+                if (goal.getCalories() != null) {
+                    ps.setInt(4, goal.getCalories());
+                } else {
+                    ps.setNull(4, java.sql.Types.INTEGER);
+                }
+                ps.setString(5, goal.getExerciseType());
+                ps.setString(6, goal.getFrequency());
+                ps.setString(7, goal.getIntensity());
+                ps.setString(8, goal.getDuration());
+                ps.setString(9, goal.getDescription());
+
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                System.err.println("Error saving goal (INSERT): " + e.getMessage());
+                return false;
+            }
+
+            try (Statement stmt = connection.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT last_insert_rowid()")) {
+                if (rs.next()) {
+                    int newId = rs.getInt(1);
+                    goal.setId(newId);
+                    System.out.println("Inserted new goal with id " + newId + " for user " + userId);
+                }
+            } catch (SQLException e) {
+                System.err.println("Error retrieving new goal id: " + e.getMessage());
+            }
+
+            return true;
+        }
+
+        // UPDATE path (existing goal: id already set)
+        String updateSql =
+                "UPDATE goals SET " +
+                        " goal_name = ?, " +
+                        " fitness_objective = ?, " +
+                        " calories = ?, " +
+                        " exercise_type = ?, " +
+                        " frequency = ?, " +
+                        " intensity = ?, " +
+                        " duration = ?, " +
+                        " description = ?, " +
+                        " updated_at = CURRENT_TIMESTAMP " +
+                        "WHERE id = ? AND user_id = ?";
+
+        try (PreparedStatement ps = connection.prepareStatement(updateSql)) {
+            ps.setString(1, goal.getGoalName());
+            ps.setString(2, goal.getFitnessObjective());
+            if (goal.getCalories() != null) {
+                ps.setInt(3, goal.getCalories());
+            } else {
+                ps.setNull(3, java.sql.Types.INTEGER);
+            }
+            ps.setString(4, goal.getExerciseType());
+            ps.setString(5, goal.getFrequency());
+            ps.setString(6, goal.getIntensity());
+            ps.setString(7, goal.getDuration());
+            ps.setString(8, goal.getDescription());
+            ps.setInt(9, goal.getId());
+            ps.setInt(10, userId);
+
+            int rows = ps.executeUpdate();
+            if (rows == 0) {
+                System.err.println("No goal row updated; check id/user_id.");
+            } else {
+                System.out.println("Updated goal id " + goal.getId() + " for user " + userId);
+            }
+            return rows > 0;
+        } catch (SQLException e) {
+            System.err.println("Error saving goal (UPDATE): " + e.getMessage());
+            return false;
+        }
+    }
+
+
+    /**
+     * Delete a goal for a user.
+     */
+    public boolean deleteGoal(int goalId, int userId) {
+        String sql = "DELETE FROM goals WHERE id = ? AND user_id = ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, goalId);
+            ps.setInt(2, userId);
+            int rows = ps.executeUpdate();
+            return rows > 0;
+        } catch (SQLException e) {
+            System.err.println("Error deleting goal: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get all self-paced plans created by a specific trainer.
+     */
+    public java.util.List<SelfPacedPlan> getPlansForTrainer(int trainerId) {
+        java.util.List<SelfPacedPlan> plans = new java.util.ArrayList<>();
+        String sql = "SELECT id, trainer_id, title, description, fitness_level, " +
+                "equipment, session_length, frequency " +
+                "FROM self_paced_plans WHERE trainer_id = ? ORDER BY created_at ASC";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, trainerId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                SelfPacedPlan p = new SelfPacedPlan(
+                        rs.getInt("id"),
+                        rs.getInt("trainer_id"),
+                        rs.getString("title"),
+                        rs.getString("description"),
+                        rs.getString("fitness_level"),
+                        rs.getString("equipment"),
+                        rs.getString("session_length"),
+                        rs.getString("frequency")
+                );
+                plans.add(p);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting plans for trainer: " + e.getMessage());
+        }
+        return plans;
+    }
+
+    /**
+     * Get all self-paced plans for the workout library (visible to all users).
+     */
+    public java.util.List<SelfPacedPlan> getAllSelfPacedPlans() {
+        java.util.List<SelfPacedPlan> plans = new java.util.ArrayList<>();
+        String sql = "SELECT id, trainer_id, title, description, fitness_level, " +
+                "equipment, session_length, frequency " +
+                "FROM self_paced_plans ORDER BY created_at ASC";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                SelfPacedPlan p = new SelfPacedPlan(
+                        rs.getInt("id"),
+                        rs.getInt("trainer_id"),
+                        rs.getString("title"),
+                        rs.getString("description"),
+                        rs.getString("fitness_level"),
+                        rs.getString("equipment"),
+                        rs.getString("session_length"),
+                        rs.getString("frequency")
+                );
+                plans.add(p);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting all self-paced plans: " + e.getMessage());
+        }
+        return plans;
+    }
+
+    /**
+     * Insert or update a self-paced plan.
+     */
+    public boolean saveSelfPacedPlan(int trainerId, SelfPacedPlan plan) {
+        if (connection == null) {
+            System.err.println("Error saving self-paced plan: connection is null");
+            return false;
+        }
+
+        try {
+            if (plan.getId() > 0) {
+                // UPDATE Existing Plan
+                String updateSql =
+                        "UPDATE self_paced_plans SET " +
+                                "title = ?, " +
+                                "description = ?, " +
+                                "fitness_level = ?, " +
+                                "equipment = ?, " +
+                                "session_length = ?, " +
+                                "frequency = ?, " +
+                                "updated_at = CURRENT_TIMESTAMP " +
+                                "WHERE id = ? AND trainer_id = ?";
+
+                try (PreparedStatement ps = connection.prepareStatement(updateSql)) {
+                    ps.setString(1, plan.getTitle());
+                    ps.setString(2, plan.getDescription());
+                    ps.setString(3, plan.getFitnessLevel());
+                    ps.setString(4, plan.getEquipment());
+                    ps.setString(5, plan.getSessionLength());
+                    ps.setString(6, plan.getFrequency());
+                    ps.setInt(7, plan.getId());
+                    ps.setInt(8, trainerId);
+
+                    int rows = ps.executeUpdate();
+                    return rows > 0;
+                }
+            } else {
+                // INSERT New Plan
+                String insertSql =
+                        "INSERT INTO self_paced_plans (" +
+                                "trainer_id, title, description, fitness_level, " +
+                                "equipment, session_length, frequency" +
+                                ") VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+                try (PreparedStatement ps = connection.prepareStatement(insertSql)) {
+                    ps.setInt(1, trainerId);
+                    ps.setString(2, plan.getTitle());
+                    ps.setString(3, plan.getDescription());
+                    ps.setString(4, plan.getFitnessLevel());
+                    ps.setString(5, plan.getEquipment());
+                    ps.setString(6, plan.getSessionLength());
+                    ps.setString(7, plan.getFrequency());
+
+                    ps.executeUpdate();
+                }
+
+                // Grab new id
+                try (Statement idStmt = connection.createStatement();
+                     ResultSet rs = idStmt.executeQuery("SELECT last_insert_rowid()")) {
+                    if (rs.next()) {
+                        int newId = rs.getInt(1);
+                        plan.setId(newId);   // make sure SelfPacedPlan has setId(int)
+                    }
+                }
+
+                return true;
+            }
+        } catch (SQLException e) {
+            System.err.println("Error saving self-paced plan: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Delete a self-paced plan created by a trainer.
+     */
+    public boolean deleteSelfPacedPlan(int planId) {
+        String sql = "DELETE FROM self_paced_plans WHERE id = ?";
+
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, planId);
+            int rows = ps.executeUpdate();
+            return rows > 0;
+        } catch (SQLException e) {
+            System.err.println("Error deleting self-paced plan: " + e.getMessage());
+            return false;
+        }
+    }
+
+
+
 }
 
