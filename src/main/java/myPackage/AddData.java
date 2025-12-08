@@ -44,6 +44,12 @@ public class AddData{
             this.userId = userId;
             this.dbManager = dbManager;
             this.refreshCallback = refreshCallback;
+
+            dateField.setText("");
+            calIntake.setText("");
+            weightField.setText("");
+            sleepField.setText("");
+            totCalBurn.setText("");
             
             final LocalDate[] date = new LocalDate[1];
             final int[] cal = new int[1];
