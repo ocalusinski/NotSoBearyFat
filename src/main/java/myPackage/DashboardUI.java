@@ -5,6 +5,7 @@ import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
 
 public class DashboardUI extends JFrame {
@@ -23,6 +24,16 @@ public class DashboardUI extends JFrame {
     private DefaultListModel<Goal> goalListModel;
     private JList<Goal> goalList;
     private int selectedGoalIndex = -1;
+    private SelfPacedPlanManager selfPacedPlanManager = new SelfPacedPlanManager();
+    private DefaultListModel<SelfPacedPlan> trainerPlanListModel;
+    private JList<SelfPacedPlan> trainerPlanList;
+    private DefaultListModel<SelfPacedPlan> libraryPlanListModel;
+    private JList<SelfPacedPlan> libraryPlanList;
+    private int selectedPlanIndex = -1;
+    private SelfPacedPlan selectedPlan = null;
+    private DefaultListModel<SelfPacedPlan> planListModel;
+    private JList<SelfPacedPlan> planList;
+
     
     // References to Classes tab components for refreshing
     private DefaultListModel<WorkoutClass> classListModel;
@@ -147,7 +158,18 @@ public class DashboardUI extends JFrame {
         // Goals Tab
         JPanel goalsTab = createGoalsTab();
         tabbedPane.addTab("Goals", goalsTab);
-        
+
+        // Trainer-only tab for creating / editing self-paced plans
+        if (isTrainer()) {
+            JPanel selfPacedTab = createSelfPacedPlansTab();
+            tabbedPane.addTab("Self-Paced Plans", selfPacedTab);
+        }
+
+        // Library tab for all users
+        JPanel libraryTab = createPlanLibraryTab();
+        tabbedPane.addTab("Plan Library", libraryTab);
+
+
         // Classes Tab (placeholder)
         JPanel classesTab = createClassesTab();
         tabbedPane.addTab("Classes", classesTab);
@@ -934,6 +956,304 @@ public class DashboardUI extends JFrame {
             goalStatusLabel.setForeground(new Color(128, 64, 0));
         }
     }
+
+    private JPanel createSelfPacedPlansTab() {
+        JPanel plansPanel = new JPanel(new BorderLayout());
+        plansPanel.setBackground(BACKGROUND_COLOR);
+        plansPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        // Header
+        JLabel headerLabel = new JLabel(
+                "<html><div style='text-align: center;'>" +
+                        "<h2>Self-Paced Exercise Plans</h2>" +
+                        "<p>Trainers can create structured plans that users follow on their own.</p>" +
+                        "<p>Select a plan on the left to edit it, or create a new one on the right.</p>" +
+                        "</div></html>",
+                SwingConstants.CENTER
+        );
+        headerLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        plansPanel.add(headerLabel, BorderLayout.NORTH);
+
+        // Center: left = list, right = form
+        JPanel centerPanel = new JPanel(new GridLayout(1, 2, 20, 0));
+        centerPanel.setBackground(BACKGROUND_COLOR);
+
+        // Left: list of this trainer's plans
+        planListModel = new DefaultListModel<>();
+        planList = new JList<>(planListModel);
+        planList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        JScrollPane listScroll = new JScrollPane(planList);
+        listScroll.setBorder(BorderFactory.createTitledBorder("My Self-Paced Plans"));
+
+        JButton newPlanButton = new JButton("New Plan");
+
+        JPanel leftPanel = new JPanel(new BorderLayout());
+        leftPanel.setBackground(BACKGROUND_COLOR);
+        leftPanel.add(listScroll, BorderLayout.CENTER);
+        leftPanel.add(newPlanButton, BorderLayout.SOUTH);
+
+        // Right: plan details form
+        JPanel formPanel = new JPanel(new GridLayout(0, 2, 10, 10));
+        formPanel.setBackground(BACKGROUND_COLOR);
+        formPanel.setBorder(BorderFactory.createTitledBorder("Plan Details"));
+
+        JTextField titleField = new JTextField();
+        JTextArea descriptionArea = new JTextArea(3, 20);
+        descriptionArea.setLineWrap(true);
+        descriptionArea.setWrapStyleWord(true);
+
+        JComboBox<String> fitnessLevelField = new JComboBox<>(new String[]{
+                "Beginner", "Intermediate", "Advanced", "All Levels"
+        });
+        JTextField equipmentField = new JTextField();
+        JTextField lengthField = new JTextField();    // session length
+        JTextField frequencyField = new JTextField(); // e.g., 3x/week
+
+        formPanel.add(new JLabel("Title *:"));
+        formPanel.add(titleField);
+        formPanel.add(new JLabel("Description:"));
+        formPanel.add(new JScrollPane(descriptionArea));
+        formPanel.add(new JLabel("Fitness Level:"));
+        formPanel.add(fitnessLevelField);
+        formPanel.add(new JLabel("Equipment:"));
+        formPanel.add(equipmentField);
+        formPanel.add(new JLabel("Session Length *:"));
+        formPanel.add(lengthField);
+        formPanel.add(new JLabel("Frequency *:"));
+        formPanel.add(frequencyField);
+
+        // When a plan is selected, load it into the form
+        planList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                selectedPlanIndex = planList.getSelectedIndex();
+                selectedPlan = planList.getSelectedValue();
+                if (selectedPlan != null) {
+                    titleField.setText(selectedPlan.getTitle());
+                    descriptionArea.setText(selectedPlan.getDescription());
+                    fitnessLevelField.setSelectedItem(selectedPlan.getFitnessLevel());
+                    equipmentField.setText(selectedPlan.getEquipment());
+                    lengthField.setText(selectedPlan.getSessionLength());
+                    frequencyField.setText(selectedPlan.getFrequency());
+                }
+            }
+        });
+
+        // "New Plan" clears selection + form
+        newPlanButton.addActionListener(e -> {
+            planList.clearSelection();
+            selectedPlanIndex = -1;
+            selectedPlan = null;
+            titleField.setText("");
+            descriptionArea.setText("");
+            fitnessLevelField.setSelectedIndex(0);
+            equipmentField.setText("");
+            lengthField.setText("");
+            frequencyField.setText("");
+        });
+
+        centerPanel.add(leftPanel);
+        centerPanel.add(formPanel);
+        plansPanel.add(centerPanel, BorderLayout.CENTER);
+
+        // ===== BOTTOM: Save button and status label =====
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+        bottomPanel.setBackground(BACKGROUND_COLOR);
+
+        JLabel statusLabel = new JLabel(" ", SwingConstants.LEFT);
+        statusLabel.setFont(new Font("Arial", Font.ITALIC, 12));
+
+        JButton saveButton = new JButton("Save Plan");
+        saveButton.setBackground(BAYLOR_GREEN);
+        saveButton.setForeground(Color.WHITE);
+        saveButton.setOpaque(true);
+        saveButton.setBorderPainted(false);
+        saveButton.setFocusPainted(false);
+        saveButton.setFont(new Font("Arial", Font.BOLD, 14));
+        saveButton.setPreferredSize(new Dimension(140, 35));
+
+        saveButton.addActionListener(e -> {
+            if (userId == -1) {
+                JOptionPane.showMessageDialog(
+                        DashboardUI.this,
+                        "Unable to save plan: trainer not found.",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE
+                );
+                return;
+            }
+
+            // Build plan object from form
+            SelfPacedPlan planToSave;
+            if (selectedPlan != null) {
+                // editing existing plan
+                planToSave = new SelfPacedPlan(
+                        selectedPlan.getId(),
+                        selectedPlan.getTrainerId(),
+                        titleField.getText().trim(),
+                        descriptionArea.getText().trim(),
+                        (String) fitnessLevelField.getSelectedItem(),
+                        equipmentField.getText().trim(),
+                        lengthField.getText().trim(),
+                        frequencyField.getText().trim()
+                );
+            } else {
+                // new plan (id + trainerId filled in by manager)
+                planToSave = new SelfPacedPlan(
+                        titleField.getText().trim(),
+                        descriptionArea.getText().trim(),
+                        (String) fitnessLevelField.getSelectedItem(),
+                        equipmentField.getText().trim(),
+                        lengthField.getText().trim(),
+                        frequencyField.getText().trim()
+                );
+            }
+
+            // Validation: missing required fields
+            java.util.List<String> missing = new java.util.ArrayList<>();
+            boolean hasMissing = selfPacedPlanManager.hasMissingRequiredFields(planToSave, missing);
+            if (hasMissing) {
+                JOptionPane.showMessageDialog(
+                        DashboardUI.this,
+                        "Please fill in the required fields: " + String.join(", ", missing),
+                        "Missing Information",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                statusLabel.setText("Missing required fields: " + String.join(", ", missing));
+                statusLabel.setForeground(Color.RED);
+                return;
+            }
+
+            // savePlan(trainerID, planDetails)
+            boolean ok = selfPacedPlanManager.savePlan(userId, planToSave);
+            if (!ok) {
+                JOptionPane.showMessageDialog(
+                        DashboardUI.this,
+                        "Unable to save your plan right now. Please try again later.",
+                        "System Error",
+                        JOptionPane.ERROR_MESSAGE
+                );
+                statusLabel.setText("Unable to save your plan right now. Please try again later.");
+                statusLabel.setForeground(Color.RED);
+                return;
+            }
+
+            // Update list model (new or edited)
+            if (selectedPlanIndex >= 0 && selectedPlanIndex < planListModel.size()) {
+                planListModel.set(selectedPlanIndex, planToSave);
+            } else {
+                planListModel.addElement(planToSave);
+                selectedPlanIndex = planListModel.size() - 1;
+                planList.setSelectedIndex(selectedPlanIndex);
+                selectedPlan = planToSave;
+            }
+
+            // Also refresh library so users can see it
+            refreshTrainerPlansList();
+            refreshPlanLibraryList();
+
+            statusLabel.setText("Plan saved and published to Workout Library.");
+            statusLabel.setForeground(new Color(0, 128, 64));
+        });
+
+        bottomPanel.add(statusLabel, BorderLayout.CENTER);
+        bottomPanel.add(saveButton, BorderLayout.EAST);
+        plansPanel.add(bottomPanel, BorderLayout.SOUTH);
+
+        // Initial load of trainer's plans (if manager already has some)
+        refreshTrainerPlansList();
+
+        return plansPanel;
+    }
+
+    private void refreshTrainerPlansList() {
+        if (selfPacedPlanManager == null || planListModel == null || userId == -1) {
+            return;
+        }
+        planListModel.clear();
+        for (SelfPacedPlan p : selfPacedPlanManager.getPlansForTrainer(userId)) {
+            planListModel.addElement(p);
+        }
+    }
+
+    private JPanel createPlanLibraryTab() {
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(BACKGROUND_COLOR);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel header = new JLabel(
+                "<html><h2>Workout Library</h2>" +
+                        "<p>Browse self-paced plans created by trainers.</p></html>",
+                SwingConstants.LEFT
+        );
+        mainPanel.add(header, BorderLayout.NORTH);
+
+        // List of all plans
+        libraryPlanListModel = new DefaultListModel<>();
+        libraryPlanList = new JList<>(libraryPlanListModel);
+        libraryPlanList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        JScrollPane listScroll = new JScrollPane(libraryPlanList);
+        listScroll.setBorder(BorderFactory.createTitledBorder("Available Self-Paced Plans"));
+
+        // Details panel
+        JTextArea detailsArea = new JTextArea();
+        detailsArea.setEditable(false);
+        detailsArea.setLineWrap(true);
+        detailsArea.setWrapStyleWord(true);
+        detailsArea.setBackground(BACKGROUND_COLOR);
+        detailsArea.setFont(new Font("Arial", Font.PLAIN, 12));
+
+        JScrollPane detailsScroll = new JScrollPane(detailsArea);
+        detailsScroll.setBorder(BorderFactory.createTitledBorder("Plan Details"));
+        detailsScroll.setPreferredSize(new Dimension(0, 150));
+
+        JSplitPane splitPane = new JSplitPane(
+                JSplitPane.VERTICAL_SPLIT,
+                listScroll,
+                detailsScroll
+        );
+        splitPane.setResizeWeight(0.6);
+
+        mainPanel.add(splitPane, BorderLayout.CENTER);
+
+        // When user selects a plan, show its details
+        libraryPlanList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                SelfPacedPlan selected = libraryPlanList.getSelectedValue();
+                if (selected != null) {
+                    String text = "Title: " + selected.getTitle() + "\n\n" +
+                            "Fitness Level: " + selected.getFitnessLevel() + "\n" +
+                            "Equipment: " + selected.getEquipment() + "\n" +
+                            "Session Length: " + selected.getSessionLength() + "\n" +
+                            "Frequency: " + selected.getFrequency() + "\n\n" +
+                            "Description:\n" +
+                            (selected.getDescription() != null ? selected.getDescription() : "None");
+                    detailsArea.setText(text);
+                } else {
+                    detailsArea.setText("");
+                }
+            }
+        });
+
+        // Initial fill
+        refreshPlanLibraryList();
+
+        return mainPanel;
+    }
+
+
+
+    private void refreshPlanLibraryList() {
+        if (selfPacedPlanManager == null || libraryPlanListModel == null) {
+            return;
+        }
+        libraryPlanListModel.clear();
+        for (SelfPacedPlan p : selfPacedPlanManager.getAllPlans()) {
+            libraryPlanListModel.addElement(p);
+        }
+    }
+
 
 
     private JPanel createClassesTab() {
