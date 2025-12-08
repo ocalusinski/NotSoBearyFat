@@ -1,4 +1,5 @@
 package myPackage;
+import java.time.Duration;
 import java.time.LocalDateTime;
 public class WorkoutClass {
 
@@ -8,7 +9,7 @@ public class WorkoutClass {
     private String description;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
-    private int duration;
+    private long duration;
     private int maxParticipants;
     private double cost;
 
@@ -21,6 +22,7 @@ public class WorkoutClass {
         this.description = description;
         this.startTime = startTime;
         this.endTime = endTime;
+        this.duration = Duration.between(startTime, endTime).toMinutes();
         this.maxParticipants = maxParticipants;
         this.cost = cost;
     }
@@ -57,6 +59,8 @@ public class WorkoutClass {
     public double getCost() {
         return cost;
     }
+
+    public long getDuration() {return duration;}
     
     //Setters
     public void setId(int id) {
@@ -90,6 +94,7 @@ public class WorkoutClass {
     public void setCost(double cost) {
         this.cost = cost;
     }
+
 
     @Override
     public String toString() {

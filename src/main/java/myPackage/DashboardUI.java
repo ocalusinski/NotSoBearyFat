@@ -17,6 +17,7 @@ public class DashboardUI extends JFrame {
     private int userId;
     private String username;
     private String userType;
+    private ClassSearchParams csp = new ClassSearchParams();
     private GoalManager goalManager;
     private JProgressBar calorieProgressBar;
     private JLabel goalStatusLabel;
@@ -40,7 +41,7 @@ public class DashboardUI extends JFrame {
     private JTextField durationField;
     private JTextArea descriptionArea;
 
-    
+
     // References to Classes tab components for refreshing
     private DefaultListModel<WorkoutClass> classListModel;
     private JList<WorkoutClass> classList;
@@ -73,13 +74,13 @@ public class DashboardUI extends JFrame {
             this.userType = dbManager.getUserType(this.userId);
         }
 
-        
+
         // Record login for streak tracking
         if (this.userId != -1) {
             dbManager.recordLogin(this.userId);
             // Streak is displayed in the header and streak tab
         }
-        
+
         setTitle("Dashboard - Not So Beary Fat");
         setSize(1200, 800);
         setLocationRelativeTo(null);
@@ -96,19 +97,19 @@ public class DashboardUI extends JFrame {
         JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
         leftPanel.setBackground(BAYLOR_GREEN);
         leftPanel.setOpaque(true);
-        
+
         JLabel header = new JLabel("Welcome back, " + username + "!");
         header.setForeground(Color.WHITE);
         header.setFont(new Font("Arial", Font.BOLD, 18));
         leftPanel.add(header);
-        
+
         // Streak display
         int currentStreak = userId != -1 ? dbManager.getCurrentStreak(userId) : 0;
         JLabel streakLabel = new JLabel("🔥 " + currentStreak + " day streak");
         streakLabel.setForeground(new Color(255, 199, 44)); // Baylor gold
         streakLabel.setFont(new Font("Arial", Font.BOLD, 16));
         leftPanel.add(streakLabel);
-        
+
         headerPanel.add(leftPanel, BorderLayout.CENTER);
         
         // Logout button
@@ -206,7 +207,7 @@ public class DashboardUI extends JFrame {
                 refreshPlanLibraryList();
             }
         });
-        
+
         add(tabbedPane, BorderLayout.CENTER);
 
         // Message label at bottom
@@ -260,7 +261,7 @@ public class DashboardUI extends JFrame {
         mainPanel.add(new JLabel("Goal Status:"));
         goalStatusLabel = new JLabel("Set a goal in the Goals tab to start tracking.");
         mainPanel.add(goalStatusLabel);
-        
+
         return mainPanel;
     }
 
@@ -268,16 +269,16 @@ public class DashboardUI extends JFrame {
         JPanel friendsPanel = new JPanel(new BorderLayout());
         friendsPanel.setBackground(BACKGROUND_COLOR);
         friendsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
+
         // Create main content panel with search and lists
         JPanel mainContent = new JPanel(new BorderLayout());
         mainContent.setBackground(BACKGROUND_COLOR);
-        
+
         // Top panel: Search for users
         JPanel searchPanel = new JPanel(new BorderLayout());
         searchPanel.setBackground(BACKGROUND_COLOR);
         searchPanel.setBorder(BorderFactory.createTitledBorder("Search for Users"));
-        
+
         JPanel searchInputPanel = new JPanel(new BorderLayout());
         searchInputPanel.setBackground(BACKGROUND_COLOR);
         JTextField searchField = new JTextField(20);
@@ -296,22 +297,22 @@ public class DashboardUI extends JFrame {
                 searchButton.setBackground(BAYLOR_GREEN);
             }
         });
-        
+
         searchInputPanel.add(searchField, BorderLayout.CENTER);
         searchInputPanel.add(searchButton, BorderLayout.EAST);
         searchPanel.add(searchInputPanel, BorderLayout.CENTER);
-        
+
         // Search results list with send request button
         JPanel searchResultsPanel = new JPanel(new BorderLayout());
         searchResultsPanel.setBackground(BACKGROUND_COLOR);
-        
+
         DefaultListModel<User> searchResultsModel = new DefaultListModel<>();
         JList<User> searchResultsList = new JList<>(searchResultsModel);
         searchResultsList.setCellRenderer(new UserListCellRenderer());
         JScrollPane searchScroll = new JScrollPane(searchResultsList);
         searchScroll.setPreferredSize(new Dimension(0, 120));
         searchResultsPanel.add(searchScroll, BorderLayout.CENTER);
-        
+
         JButton sendRequestButton = new JButton("Send Friend Request");
         sendRequestButton.setBackground(BAYLOR_GREEN);
         sendRequestButton.setForeground(Color.WHITE);
@@ -329,7 +330,7 @@ public class DashboardUI extends JFrame {
                 sendRequestButton.setBackground(BAYLOR_GREEN);
             }
         });
-        
+
         sendRequestButton.addActionListener(e -> {
             User selected = searchResultsList.getSelectedValue();
             if (selected != null) {
@@ -348,14 +349,14 @@ public class DashboardUI extends JFrame {
                 }
             }
         });
-        
+
         searchResultsList.addListSelectionListener(e -> {
             sendRequestButton.setEnabled(searchResultsList.getSelectedValue() != null);
         });
-        
+
         searchResultsPanel.add(sendRequestButton, BorderLayout.SOUTH);
         searchPanel.add(searchResultsPanel, BorderLayout.SOUTH);
-        
+
         // Search button action
         searchButton.addActionListener(e -> {
             String searchTerm = searchField.getText().trim();
@@ -373,23 +374,23 @@ public class DashboardUI extends JFrame {
                 }
             }
         });
-        
+
         // Allow Enter key to search
         searchField.addActionListener(e -> searchButton.doClick());
-        
+
         // Center panel: Tabbed pane for friend requests and friends list
         JTabbedPane friendsTabbedPane = new JTabbedPane();
         friendsTabbedPane.setBackground(BACKGROUND_COLOR);
         friendsTabbedPane.setForeground(BAYLOR_GREEN);
-        
+
         // Pending requests tab
         JPanel requestsPanel = createFriendRequestsPanel();
         friendsTabbedPane.addTab("Friend Requests", requestsPanel);
-        
+
         // Friends list tab
         JPanel friendsListPanel = createFriendsListPanel();
         friendsTabbedPane.addTab("My Friends", friendsListPanel);
-        
+
         // Refresh when switching tabs
         friendsTabbedPane.addChangeListener(e -> {
             int selectedIndex = friendsTabbedPane.getSelectedIndex();
@@ -401,35 +402,35 @@ public class DashboardUI extends JFrame {
                 refreshAllFriendData();
             }
         });
-        
+
         mainContent.add(searchPanel, BorderLayout.NORTH);
         mainContent.add(friendsTabbedPane, BorderLayout.CENTER);
-        
+
         friendsPanel.add(mainContent, BorderLayout.CENTER);
-        
+
         return friendsPanel;
     }
-    
+
     private JPanel createFriendRequestsPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(BACKGROUND_COLOR);
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
+
         // Split into incoming and outgoing requests
         JPanel splitPanel = new JPanel(new GridLayout(1, 2, 10, 0));
         splitPanel.setBackground(BACKGROUND_COLOR);
-        
+
         // Incoming requests
         JPanel incomingPanel = new JPanel(new BorderLayout());
         incomingPanel.setBackground(BACKGROUND_COLOR);
         incomingPanel.setBorder(BorderFactory.createTitledBorder("Incoming Requests"));
-        
+
         DefaultListModel<User> incomingModel = new DefaultListModel<>();
         JList<User> incomingList = new JList<>(incomingModel);
         incomingList.setCellRenderer(new UserListCellRenderer());
         JScrollPane incomingScroll = new JScrollPane(incomingList);
         incomingPanel.add(incomingScroll, BorderLayout.CENTER);
-        
+
         JPanel incomingButtons = new JPanel(new FlowLayout());
         incomingButtons.setBackground(BACKGROUND_COLOR);
         JButton acceptButton = new JButton("Accept");
@@ -446,7 +447,7 @@ public class DashboardUI extends JFrame {
                 acceptButton.setBackground(BAYLOR_GREEN);
             }
         });
-        
+
         JButton rejectButton = new JButton("Reject");
         rejectButton.setBackground(new Color(200, 0, 0));
         rejectButton.setForeground(Color.WHITE);
@@ -461,7 +462,7 @@ public class DashboardUI extends JFrame {
                 rejectButton.setBackground(new Color(200, 0, 0));
             }
         });
-        
+
         acceptButton.addActionListener(e -> {
             User selected = incomingList.getSelectedValue();
             if (selected != null) {
@@ -479,7 +480,7 @@ public class DashboardUI extends JFrame {
                 }
             }
         });
-        
+
         rejectButton.addActionListener(e -> {
             User selected = incomingList.getSelectedValue();
             if (selected != null) {
@@ -493,22 +494,22 @@ public class DashboardUI extends JFrame {
                 }
             }
         });
-        
+
         incomingButtons.add(acceptButton);
         incomingButtons.add(rejectButton);
         incomingPanel.add(incomingButtons, BorderLayout.SOUTH);
-        
+
         // Outgoing requests
         JPanel outgoingPanel = new JPanel(new BorderLayout());
         outgoingPanel.setBackground(BACKGROUND_COLOR);
         outgoingPanel.setBorder(BorderFactory.createTitledBorder("Outgoing Requests"));
-        
+
         DefaultListModel<User> outgoingModel = new DefaultListModel<>();
         JList<User> outgoingList = new JList<>(outgoingModel);
         outgoingList.setCellRenderer(new UserListCellRenderer());
         JScrollPane outgoingScroll = new JScrollPane(outgoingList);
         outgoingPanel.add(outgoingScroll, BorderLayout.CENTER);
-        
+
         JPanel outgoingButtons = new JPanel(new FlowLayout());
         outgoingButtons.setBackground(BACKGROUND_COLOR);
         JButton cancelButton = new JButton("Cancel Request");
@@ -525,7 +526,7 @@ public class DashboardUI extends JFrame {
                 cancelButton.setBackground(new Color(200, 0, 0));
             }
         });
-        
+
         cancelButton.addActionListener(e -> {
             User selected = outgoingList.getSelectedValue();
             if (selected != null) {
@@ -539,55 +540,55 @@ public class DashboardUI extends JFrame {
                 }
             }
         });
-        
+
         outgoingButtons.add(cancelButton);
         outgoingPanel.add(outgoingButtons, BorderLayout.SOUTH);
-        
+
         splitPanel.add(incomingPanel);
         splitPanel.add(outgoingPanel);
         panel.add(splitPanel, BorderLayout.CENTER);
-        
+
         // Store references for refreshing
         incomingRequestsModelRef = incomingModel;
         outgoingRequestsModelRef = outgoingModel;
-        
+
         // Initial load
         refreshAllFriendData();
-        
+
         return panel;
     }
-    
+
     private JPanel createFriendsListPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(BACKGROUND_COLOR);
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
+
         // Split into friends list and classes view
         JPanel splitPanel = new JPanel(new GridLayout(1, 2, 10, 0));
         splitPanel.setBackground(BACKGROUND_COLOR);
-        
+
         // Friends list
         JPanel friendsListPanel = new JPanel(new BorderLayout());
         friendsListPanel.setBackground(BACKGROUND_COLOR);
         friendsListPanel.setBorder(BorderFactory.createTitledBorder("Friends"));
-        
+
         DefaultListModel<User> friendsModel = new DefaultListModel<>();
         JList<User> friendsList = new JList<>(friendsModel);
         friendsList.setCellRenderer(new UserListCellRenderer());
         JScrollPane friendsScroll = new JScrollPane(friendsList);
         friendsListPanel.add(friendsScroll, BorderLayout.CENTER);
-        
+
         // Friend's classes view
         JPanel classesPanel = new JPanel(new BorderLayout());
         classesPanel.setBackground(BACKGROUND_COLOR);
         classesPanel.setBorder(BorderFactory.createTitledBorder("Friend's Enrolled Classes"));
-        
+
         DefaultListModel<WorkoutClass> friendClassesModel = new DefaultListModel<>();
         JList<WorkoutClass> friendClassesList = new JList<>(friendClassesModel);
         friendClassesList.setCellRenderer(new FriendClassListCellRenderer());
         JScrollPane classesScroll = new JScrollPane(friendClassesList);
         classesPanel.add(classesScroll, BorderLayout.CENTER);
-        
+
         // When a friend is selected, show their classes
         friendsList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -608,26 +609,26 @@ public class DashboardUI extends JFrame {
                 }
             }
         });
-        
+
         splitPanel.add(friendsListPanel);
         splitPanel.add(classesPanel);
         panel.add(splitPanel, BorderLayout.CENTER);
-        
+
         // Store reference for refreshing
         friendsModelRef = friendsModel;
-        
+
         // Initial load
         refreshAllFriendData();
-        
+
         return panel;
     }
-    
-    
+
+
     // Store references to models for refreshing
     private DefaultListModel<User> friendsModelRef;
     private DefaultListModel<User> incomingRequestsModelRef;
     private DefaultListModel<User> outgoingRequestsModelRef;
-    
+
     private void refreshAllFriendData() {
         // Refresh friend requests
         if (incomingRequestsModelRef != null) {
@@ -637,7 +638,7 @@ public class DashboardUI extends JFrame {
                 incomingRequestsModelRef.addElement(user);
             }
         }
-        
+
         if (outgoingRequestsModelRef != null) {
             outgoingRequestsModelRef.clear();
             List<User> outgoing = dbManager.getSentFriendRequests(userId);
@@ -655,7 +656,7 @@ public class DashboardUI extends JFrame {
             }
         }
     }
-    
+
     // Custom cell renderer for user list
     private class UserListCellRenderer extends DefaultListCellRenderer {
         @Override
@@ -677,7 +678,7 @@ public class DashboardUI extends JFrame {
             return this;
         }
     }
-    
+
     // Custom cell renderer for friend's classes list (handles null)
     private class FriendClassListCellRenderer extends DefaultListCellRenderer {
         @Override
@@ -689,7 +690,9 @@ public class DashboardUI extends JFrame {
                 setForeground(Color.GRAY);
             } else if (value instanceof WorkoutClass) {
                 WorkoutClass wc = (WorkoutClass) value;
-                String text = wc.getClassType() + " - " + wc.getStartTime() + 
+                int currentEnrolled = dbManager.getCurrentEnrollmentCount(wc.getId());
+                int spotsAvailable = wc.getMaxParticipants() - currentEnrolled;
+                String text = wc.getClassType() + " - " + wc.getStartTime() +
                              " ($" + String.format("%.2f", wc.getCost()) + ")";
                 setText(text);
                 setForeground(Color.BLACK);
@@ -1535,7 +1538,7 @@ public class DashboardUI extends JFrame {
     private void refreshClassesList() {
         if (classListModel != null && dbManager != null) {
             classListModel.clear();
-            List<WorkoutClass> classes = dbManager.getAllClasses();
+            List<WorkoutClass> classes = dbManager.getAllClasses(csp);
             for (WorkoutClass wc : classes) {
                 classListModel.addElement(wc);
             }
@@ -1560,6 +1563,10 @@ public class DashboardUI extends JFrame {
         // My Classes tab (enrolled classes)
         JPanel enrolledPanel = createEnrolledClassesPanel();
         clientTabbedPane.addTab("My Classes", enrolledPanel);
+
+        //My Classes tab (classes Search)
+        JPanel searchPanel = createClassesSearchPanel();
+        clientTabbedPane.addTab("Search", searchPanel);
 
         mainPanel.add(clientTabbedPane, BorderLayout.CENTER);
 
@@ -1734,10 +1741,61 @@ public class DashboardUI extends JFrame {
         return panel;
     }
 
+    private JPanel createClassesSearchPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        JPanel centerPanel = new JPanel(new GridLayout(2,2));
+
+        //initializing buttons
+        //class type box
+        List<String> classTypes = ClassType.getClassTypes();
+        JComboBox<String> classTypeBox = new JComboBox<>(classTypes.toArray(new String[classTypes.size()]));
+        centerPanel.add(classTypeBox);
+        //available trainers box
+        List<String> trainers = dbManager.getAllTrainers();
+        trainers.add(0, "Trainer--");
+        JComboBox<String> trainerBox = new JComboBox<>(trainers.toArray(new String[trainers.size()]));
+        centerPanel.add(trainerBox);
+        //Duration Box
+        String[] durationOptions = {"Duration--", "30 min", "1 Hour", "1.5 Hours", "2 Hours", "2+ Hours"};
+        JComboBox<String> durationBox = new JComboBox<>(durationOptions);
+        centerPanel.add(durationBox);
+        //Time of day box
+        String[] timeOfDayOptions = {"Time of Day--", "Early Morning", "Morning", "Afternoon", "Evening", "Night", "The Witching Hour"};
+        JComboBox<String> timeOfDayBox = new JComboBox<>(timeOfDayOptions);
+        centerPanel.add(timeOfDayBox);
+
+        JButton apply = new JButton("Apply");
+        apply.addActionListener(e -> {
+            String classType = (String) classTypeBox.getSelectedItem();
+            String trainer = (String) trainerBox.getSelectedItem();
+            String duration = (String) durationBox.getSelectedItem();
+            String timeOfDay = (String) timeOfDayBox.getSelectedItem();
+
+
+            csp.assignVals(classType, trainer, duration, timeOfDay);
+            //dbManager.selectValidClasses(classType, trainer, duration, timeOfDay);
+        });
+        panel.add(apply, BorderLayout.PAGE_END);
+        panel.setBackground(BACKGROUND_COLOR);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JLabel header = new JLabel("Classes Search", SwingConstants.CENTER);
+        header.setFont(new Font("Arial", Font.BOLD, 18));
+        header.setForeground(BAYLOR_GREEN);
+        panel.add(header, BorderLayout.NORTH);
+        panel.add(centerPanel, BorderLayout.CENTER);
+
+
+        // Load enrolled classes
+        refreshEnrolledClasses();
+
+        return panel;
+    }
+
     private void refreshAvailableClasses() {
         if (availableClassesModel != null && dbManager != null) {
             availableClassesModel.clear();
-            List<WorkoutClass> classes = dbManager.getAllClasses();
+            List<WorkoutClass> classes = dbManager.getAllClasses(csp);
             for (WorkoutClass wc : classes) {
                 availableClassesModel.addElement(wc);
             }
@@ -1841,7 +1899,7 @@ public class DashboardUI extends JFrame {
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.fill = GridBagConstraints.NONE;
         gbc.weightx = 0.0;
-        
+
         JLabel titleLabel = new JLabel("Create New Class");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
         titleLabel.setForeground(BAYLOR_GREEN);
@@ -1939,7 +1997,7 @@ public class DashboardUI extends JFrame {
         infoTextArea.setWrapStyleWord(true);
         infoTextArea.setAlignmentX(Component.CENTER_ALIGNMENT);
         infoTextArea.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-        
+
         gbc.gridy = 3;
         gbc.insets = new Insets(20, 40, 20, 40);
         gbc.weightx = 1.0;
@@ -1955,13 +2013,13 @@ public class DashboardUI extends JFrame {
         JPanel streakPanel = new JPanel(new BorderLayout());
         streakPanel.setBackground(BACKGROUND_COLOR);
         streakPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        
+
         // Main content panel
         JPanel mainContent = new JPanel(new GridBagLayout());
         mainContent.setBackground(BACKGROUND_COLOR);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(15, 20, 15, 20);
-        
+
         // Title
         JLabel titleLabel = new JLabel("🔥 Login Streak 🔥");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 28));
@@ -1971,12 +2029,12 @@ public class DashboardUI extends JFrame {
         gbc.gridwidth = 2;
         gbc.anchor = GridBagConstraints.CENTER;
         mainContent.add(titleLabel, gbc);
-        
+
         // Get streak data
         int currentStreak = userId != -1 ? dbManager.getCurrentStreak(userId) : 0;
         int longestStreak = userId != -1 ? dbManager.getLongestStreak(userId) : 0;
         int totalLogins = userId != -1 ? dbManager.getTotalLoginDays(userId) : 0;
-        
+
         // Current Streak Display
         JPanel currentStreakPanel = new JPanel(new BorderLayout());
         currentStreakPanel.setBackground(new Color(255, 199, 44));
@@ -1994,23 +2052,23 @@ public class DashboardUI extends JFrame {
         currentStreakValue.setFont(new Font("Arial", Font.BOLD, 48));
         currentStreakValue.setForeground(BAYLOR_GREEN);
         currentStreakPanel.add(currentStreakValue, BorderLayout.CENTER);
-        
+
         JLabel daysLabel = new JLabel("day" + (currentStreak != 1 ? "s" : ""), SwingConstants.CENTER);
         daysLabel.setFont(new Font("Arial", Font.PLAIN, 16));
         daysLabel.setForeground(BAYLOR_GREEN);
         currentStreakPanel.add(daysLabel, BorderLayout.SOUTH);
-        
+
         gbc.gridx = 0;
         gbc.gridy = 1;
         gbc.gridwidth = 2;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
         mainContent.add(currentStreakPanel, gbc);
-        
+
         // Stats panel
         JPanel statsPanel = new JPanel(new GridLayout(1, 2, 20, 0));
         statsPanel.setBackground(BACKGROUND_COLOR);
-        
+
         // Longest Streak
         JPanel longestStreakPanel = new JPanel(new BorderLayout());
         longestStreakPanel.setBackground(BACKGROUND_COLOR);
@@ -2018,12 +2076,12 @@ public class DashboardUI extends JFrame {
             BorderFactory.createLineBorder(BAYLOR_GREEN, 2),
             "Longest Streak"
         ));
-        
+
         JLabel longestStreakValue = new JLabel(String.valueOf(longestStreak), SwingConstants.CENTER);
         longestStreakValue.setFont(new Font("Arial", Font.BOLD, 36));
         longestStreakValue.setForeground(BAYLOR_GREEN);
         longestStreakPanel.add(longestStreakValue, BorderLayout.CENTER);
-        
+
         // Total Logins
         JPanel totalLoginsPanel = new JPanel(new BorderLayout());
         totalLoginsPanel.setBackground(BACKGROUND_COLOR);
@@ -2031,15 +2089,15 @@ public class DashboardUI extends JFrame {
             BorderFactory.createLineBorder(BAYLOR_GREEN, 2),
             "Total Login Days"
         ));
-        
+
         JLabel totalLoginsValue = new JLabel(String.valueOf(totalLogins), SwingConstants.CENTER);
         totalLoginsValue.setFont(new Font("Arial", Font.BOLD, 36));
         totalLoginsValue.setForeground(BAYLOR_GREEN);
         totalLoginsPanel.add(totalLoginsValue, BorderLayout.CENTER);
-        
+
         statsPanel.add(longestStreakPanel);
         statsPanel.add(totalLoginsPanel);
-        
+
         gbc.gridx = 0;
         gbc.gridy = 2;
         gbc.gridwidth = 2;
@@ -2047,7 +2105,7 @@ public class DashboardUI extends JFrame {
         gbc.weightx = 1.0;
         gbc.weighty = 0.5;
         mainContent.add(statsPanel, gbc);
-        
+
         // Rewards/Milestones section
         JPanel rewardsPanel = new JPanel(new BorderLayout());
         rewardsPanel.setBackground(BACKGROUND_COLOR);
@@ -2055,7 +2113,7 @@ public class DashboardUI extends JFrame {
             BorderFactory.createLineBorder(BAYLOR_GREEN, 2),
             "Streak Milestones & Rewards"
         ));
-        
+
         JTextArea rewardsText = new JTextArea();
         rewardsText.setEditable(false);
         rewardsText.setFont(new Font("Arial", Font.PLAIN, 14));
@@ -2063,7 +2121,7 @@ public class DashboardUI extends JFrame {
         rewardsText.setForeground(BAYLOR_GREEN);
         rewardsText.setLineWrap(true);
         rewardsText.setWrapStyleWord(true);
-        
+
         StringBuilder rewards = new StringBuilder();
         rewards.append("🎯 Streak Milestones:\n\n");
         rewards.append("• 1 day: Welcome! You're on your way!\n");
@@ -2074,7 +2132,7 @@ public class DashboardUI extends JFrame {
         rewards.append("• 100 days: Centurion! 💯\n\n");
         rewards.append("💡 Tip: Log in every day to maintain your streak!\n");
         rewards.append("Your streak resets if you miss a day.");
-        
+
         // Check if user has reached any milestones
         if (currentStreak >= 100) {
             rewards.append("\n\n🎉 CONGRATULATIONS! You've reached 100 days!");
@@ -2089,12 +2147,12 @@ public class DashboardUI extends JFrame {
         } else if (currentStreak > 0) {
             rewards.append("\n\n🚀 You're building your streak! Keep logging in daily!");
         }
-        
+
         rewardsText.setText(rewards.toString());
         JScrollPane rewardsScroll = new JScrollPane(rewardsText);
         rewardsScroll.setBorder(null);
         rewardsPanel.add(rewardsScroll, BorderLayout.CENTER);
-        
+
         gbc.gridx = 0;
         gbc.gridy = 3;
         gbc.gridwidth = 2;
@@ -2102,31 +2160,31 @@ public class DashboardUI extends JFrame {
         gbc.weightx = 1.0;
         gbc.weighty = 0.5;
         mainContent.add(rewardsPanel, gbc);
-        
+
         streakPanel.add(mainContent, BorderLayout.CENTER);
-        
+
         return streakPanel;
     }
 
     private JPanel createHistoricalTab() {
         JPanel historicalPanel = new JPanel(new BorderLayout());
         historicalPanel.setBackground(BACKGROUND_COLOR);
-        
+
         // Create a tabbed pane for different graph pages
         JTabbedPane graphTabbedPane = new JTabbedPane();
         graphTabbedPane.setBackground(BACKGROUND_COLOR);
         graphTabbedPane.setForeground(BAYLOR_GREEN);
-        
+
         // First page: Main data graphs (calories, weight, sleep, total calories burnt)
         JPanel mainGraphsPanel = createMainGraphsPanel();
         graphTabbedPane.addTab("Health Data", mainGraphsPanel);
-        
+
         // Second page: Workout graphs
         JPanel workoutGraphsPanel = createWorkoutGraphsPanel();
         graphTabbedPane.addTab("Workout Data", workoutGraphsPanel);
-        
+
         historicalPanel.add(graphTabbedPane, BorderLayout.CENTER);
-        
+
         return historicalPanel;
     }
     
@@ -2134,93 +2192,93 @@ public class DashboardUI extends JFrame {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBackground(BACKGROUND_COLOR);
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
+
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(10, 10, 10, 10);
         gbc.fill = GridBagConstraints.BOTH;
         gbc.weightx = 1.0;
         gbc.weighty = 1.0;
-        
+
         // Create graphs with user data
         int days = 0; // 0 means all data, can be changed based on time filter buttons
         drawCaloriesConsumedGraph calorieGraph = new drawCaloriesConsumedGraph(userId, dbManager, days);
         drawWeightGraph weightGraph = new drawWeightGraph(userId, dbManager, days);
         drawSleepGraph sleepGraph = new drawSleepGraph(userId, dbManager, days);
         drawTotalCaloriesBurntGraph burntGraph = new drawTotalCaloriesBurntGraph(userId, dbManager, days);
-        
+
         gbc.gridx = 0;
         gbc.gridy = 0;
         panel.add(calorieGraph, gbc);
-        
+
         gbc.gridx = 1;
         gbc.gridy = 0;
         panel.add(burntGraph, gbc);
-        
+
         gbc.gridx = 0;
         gbc.gridy = 1;
         panel.add(weightGraph, gbc);
-        
+
         gbc.gridx = 1;
         gbc.gridy = 1;
         panel.add(sleepGraph, gbc);
-        
+
         // Wrap in scroll pane
         JScrollPane scrollPane = new JScrollPane(panel);
         scrollPane.setBorder(null);
         scrollPane.setBackground(BACKGROUND_COLOR);
         scrollPane.getViewport().setBackground(BACKGROUND_COLOR);
-        
+
         JPanel wrapper = new JPanel(new BorderLayout());
         wrapper.add(scrollPane, BorderLayout.CENTER);
         wrapper.setBackground(BACKGROUND_COLOR);
-        
+
         return wrapper;
     }
-    
+
     private JPanel createWorkoutGraphsPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBackground(BACKGROUND_COLOR);
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
+
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;
         gbc.weightx = 1.0;
         gbc.weighty = 1.0;
-        
+
         int days = 0; // 0 means all data
         drawWorkoutTypeGraph workoutTypeGraph = new drawWorkoutTypeGraph(userId, dbManager, days);
         drawMinutesOfExerciseGraph minutesGraph = new drawMinutesOfExerciseGraph(userId, dbManager, days);
         drawActiveCaloriesBurntGraph activeCaloriesGraph = new drawActiveCaloriesBurntGraph(userId, dbManager, days);
-        
+
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.gridwidth = 2;
         gbc.insets = new Insets(10, 10, 20, 10);
         panel.add(workoutTypeGraph, gbc);
-        
+
         gbc.gridwidth = 1;
         gbc.gridx = 0;
         gbc.gridy = 1;
         gbc.insets = new Insets(10, 10, 10, 10);
         panel.add(minutesGraph, gbc);
-        
+
         gbc.gridx = 1;
         gbc.insets = new Insets(10, 10, 10, 10);
         panel.add(activeCaloriesGraph, gbc);
-        
+
         // Wrap in scroll pane
         JScrollPane scrollPane = new JScrollPane(panel);
         scrollPane.setBorder(null);
         scrollPane.setBackground(BACKGROUND_COLOR);
         scrollPane.getViewport().setBackground(BACKGROUND_COLOR);
-        
+
         JPanel wrapper = new JPanel(new BorderLayout());
         wrapper.add(scrollPane, BorderLayout.CENTER);
         wrapper.setBackground(BACKGROUND_COLOR);
-        
+
         return wrapper;
     }
-    
+
     private boolean isTrainer() {
         return userType != null && userType.equalsIgnoreCase("trainer");
     }
@@ -2361,6 +2419,6 @@ public class DashboardUI extends JFrame {
 
     public static void main(String[] args) {
         // Test main - in production, DashboardUI is called from LoginPage with actual first name
-        SwingUtilities.invokeLater(() -> new DashboardUI("hippowenc"));
+        SwingUtilities.invokeLater(() -> new DashboardUI("mowen"));
     }
 }

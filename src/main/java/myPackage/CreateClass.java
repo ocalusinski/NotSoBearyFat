@@ -7,7 +7,7 @@ import java.awt.event.ActionListener;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.Date;
+import java.util.List;
 import com.github.lgooddatepicker.components.DatePicker;
 import com.github.lgooddatepicker.components.TimePicker;
 import static myPackage.Constants.*;
@@ -83,14 +83,14 @@ public class CreateClass{
             GridBagConstraints gbc = new GridBagConstraints();
             gbc.anchor = GridBagConstraints.WEST;
             gbc.fill = GridBagConstraints.HORIZONTAL;
-            
+
             JLabel typeLabel = new JLabel("Class Type:");
             JLabel descLabel = new JLabel("Description:");
             JLabel startLabel = new JLabel("Start Time:");
             JLabel endLabel = new JLabel("End Time:");
             JLabel maxLabel = new JLabel("Max Participants:");
             JLabel costLabel = new JLabel("Cost ($):");
-            
+
             // Set preferred sizes for labels to prevent text cutoff
             typeLabel.setPreferredSize(new Dimension(150, 25));
             descLabel.setPreferredSize(new Dimension(150, 25));
@@ -98,8 +98,9 @@ public class CreateClass{
             endLabel.setPreferredSize(new Dimension(150, 25));
             maxLabel.setPreferredSize(new Dimension(150, 25));
             costLabel.setPreferredSize(new Dimension(150, 25));
-            
-            JComboBox<String> typeField = new JComboBox<>(ClassType.getClassTypes());
+
+            List<String> classTypes = ClassType.getClassTypes();
+            JComboBox<String> typeField = new JComboBox<String>(classTypes.toArray(new String[classTypes.size()]));
             typeField.setPreferredSize(new Dimension(200, 30));
             JTextField descField = new JTextField(25);
             descField.setPreferredSize(new Dimension(200, 30));
@@ -128,7 +129,7 @@ public class CreateClass{
             saveButton.setPreferredSize(new Dimension(100, 35));
             JButton cancelButton = new JButton("Cancel");
             cancelButton.setPreferredSize(new Dimension(100, 35));
-            
+
             // Action listeners to store field values when user types
             typeField.addActionListener(new ActionListener() {
                 @Override
@@ -242,7 +243,7 @@ public class CreateClass{
             gbc.insets = new Insets(10, 10, 5, 20);
             gbc.weightx = 1.0;
             panel.add(typeField, gbc);
-            
+
             gbc.gridx = 0;
             gbc.gridy = 1;
             gbc.insets = new Insets(5, 20, 5, 10);
@@ -300,7 +301,7 @@ public class CreateClass{
             gbc.insets = new Insets(5, 10, 20, 20);
             gbc.weightx = 1.0;
             panel.add(costField, gbc);
-            
+
             // Buttons
             gbc.gridx = 0;
             gbc.gridy = 8;

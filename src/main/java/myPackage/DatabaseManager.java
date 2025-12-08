@@ -11,7 +11,6 @@ import java.util.List;
  */
 public class DatabaseManager {
     private static final String DB_URL = "jdbc:sqlite:notsobearyfat.db";
-    private static final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private Connection connection;
 
     /**
@@ -146,8 +145,8 @@ public class DatabaseManager {
             "trainer_username TEXT NOT NULL, " +
             "class_type TEXT NOT NULL, " +
             "description TEXT, " +
-            "start_time TEXT NOT NULL, " +
-            "end_time TEXT NOT NULL, " +
+            "start_time TIMESTAMP NOT NULL, " +
+            "end_time TIMESTAMP NOT NULL, " +
             "max_participants INTEGER NOT NULL, " +
             "cost REAL NOT NULL" +
             ")";
@@ -553,8 +552,8 @@ public class DatabaseManager {
             pstmt.setString(1, trainerUsername);
             pstmt.setString(2, classType);
             pstmt.setString(3, description);
-            pstmt.setString(4, startTime.format(dtf));
-            pstmt.setString(5, endTime.format(dtf));
+            pstmt.setTimestamp(4, Timestamp.valueOf(startTime));
+            pstmt.setTimestamp(5, Timestamp.valueOf(endTime));
             pstmt.setInt(6, maxParticipants);
             pstmt.setDouble(7, cost);
             pstmt.executeUpdate();
@@ -569,9 +568,91 @@ public class DatabaseManager {
     /**
      * Returns all classes created by any trainer
      */
-    public java.util.List<WorkoutClass> getAllClasses() {
+    public java.util.List<WorkoutClass> getAllClasses(ClassSearchParams csp) {
         java.util.List<WorkoutClass> classes = new java.util.ArrayList<>();
-        String sql = "SELECT * FROM classes ORDER BY start_time ASC";
+        String switchVal;
+        StringBuilder sb = new StringBuilder();
+        sb.append("SELECT * FROM classes");
+
+        //if statement guards entire statement in case of default search attributes
+        if(!csp.getClassType().getType().equals("Class Type--") || !csp.getTrainerUsername().equals("Trainer--")
+        || !csp.getTimeOfDay().equals("Time of Day--") || !csp.getDuration().equals("Duration--")) {
+            sb.append(" WHERE ");
+            //class type
+            switchVal = csp.getClassType().getType();
+            if (!switchVal.equals("Class Type--")) {
+                sb.append("class_type = '" + csp.getClassType().getType() + "' AND");
+            }
+            //trainer username
+            switchVal = csp.getTrainerUsername();
+            if (!switchVal.equals("Trainer--")) {
+                sb.append(" trainer_username = '" + csp.getTrainerUsername() + "' AND");
+            }
+
+            //time of day
+            switchVal = csp.getTimeOfDay();
+            if (!switchVal.equals("Time of Day--")) {
+                sb.append(" time(start_time / 1000, 'unixepoch', 'localtime') BETWEEN ");
+                switch (switchVal) {
+
+                    case "The Witching Hour":
+                        sb.append("'00:00:00' AND '03:59:59'");
+                        break;
+
+                    case "Early Morning":
+                        sb.append("'04:00:00' AND '07:59:59'");
+                        break;
+
+                    case "Morning":
+                        sb.append("'08:00:00' AND '11:59:59'");
+                        break;
+
+                    case "Afternoon":
+                        sb.append("'12:00:00' AND '15:59:59'");
+                        break;
+
+                    case "Evening":
+                        sb.append("'16:00:00' AND '19:59:59'");
+                        break;
+
+                    case "Night":
+                        sb.append("'20:00:00' AND '23:59:59'");
+                        break;
+
+                    default:
+                        throw new IllegalArgumentException("Unknown timeOfDay: " + switchVal);
+                }
+
+
+                sb.append(" AND");
+            }
+            //duration
+            switchVal = csp.getDuration();
+            if (!switchVal.equals("Duration--")) {
+                sb.append(" ABS(start_time - end_time)");
+                switch (switchVal) {
+                    case "30 min":
+                        sb.append(" < 1800000");
+                        break;
+                    case "1 Hour":
+                        sb.append(" between 1800000 and 3600000");
+                        break;
+                    case "1.5 Hours":
+                        sb.append(" between 3600001 AND 5400000");
+                        break;
+                    case "2 Hours":
+                        sb.append(" between 5400001 AND 7200000");
+                        break;
+                    case "2+ Hours":
+                        sb.append(" > 7200000");
+                }
+                sb.append(" AND");
+            }
+            sb.delete(sb.length() - 4, sb.length());
+        }
+        //end of search query
+        sb.append(" ORDER BY start_time ASC");
+        String sql = sb.toString();
 
         try {
             PreparedStatement pstmt = connection.prepareStatement(sql);
@@ -582,8 +663,8 @@ public class DatabaseManager {
                     rs.getString("trainer_username"),
                     rs.getString("class_type"),
                     rs.getString("description"),
-                    LocalDateTime.parse(rs.getString("start_time"), dtf),
-                    LocalDateTime.parse(rs.getString("end_time"), dtf),
+                    rs.getTimestamp("start_time").toLocalDateTime(),
+                    rs.getTimestamp("end_time").toLocalDateTime(),
                     rs.getInt("max_participants"),
                     rs.getDouble("cost")
                 );
@@ -613,8 +694,8 @@ public class DatabaseManager {
                         rs.getString("trainer_username"),
                         rs.getString("class_type"),
                         rs.getString("description"),
-                        LocalDateTime.parse(rs.getString("start_time"), dtf),
-                        LocalDateTime.parse(rs.getString("end_time"), dtf),
+                        rs.getTimestamp("start_time").toLocalDateTime(),
+                        rs.getTimestamp("end_time").toLocalDateTime(),
                         rs.getInt("max_participants"),
                         rs.getDouble("cost")
                 );
@@ -649,8 +730,8 @@ public class DatabaseManager {
             PreparedStatement pstmt = connection.prepareStatement(sql);
             pstmt.setString(1, classType);
             pstmt.setString(2, description);
-            pstmt.setString(3, startTime.format(dtf));
-            pstmt.setString(4, endTime.format(dtf));
+            pstmt.setTimestamp(3, Timestamp.valueOf(startTime));
+            pstmt.setTimestamp(4, Timestamp.valueOf(endTime));
             pstmt.setInt(5, maxParticipants);
             pstmt.setDouble(6, cost);
             pstmt.setInt(7, id);
@@ -801,8 +882,8 @@ public class DatabaseManager {
                     rs.getString("trainer_username"),
                     rs.getString("class_type"),
                     rs.getString("description"),
-                    LocalDateTime.parse(rs.getString("start_time"), dtf),
-                    LocalDateTime.parse(rs.getString("end_time"), dtf),
+                    rs.getTimestamp("start_time").toLocalDateTime(),
+                    rs.getTimestamp("end_time").toLocalDateTime(),
                     rs.getInt("max_participants"),
                     rs.getDouble("cost")
                 );
@@ -812,6 +893,20 @@ public class DatabaseManager {
             System.err.println("Error getting user enrolled classes: " + e.getMessage());
         }
         return classes;
+    }
+    public List<String> getAllTrainers() {
+        String sql = "SELECT first_name FROM users WHERE user_type = 'Trainer'";
+        List<String> trainers = new java.util.ArrayList<>();
+        try{
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+            while (rs.next()) {
+                trainers.add(rs.getString("first_name"));
+            }
+        }catch(SQLException e){
+            System.err.println("Error getting trainers: " + e.getMessage());
+        }
+        return trainers;
     }
 
     /**
@@ -823,7 +918,7 @@ public class DatabaseManager {
     public java.util.List<Object[]> getHistoricalUserData(int userId, int days) {
         java.util.List<Object[]> data = new java.util.ArrayList<>();
         String sql;
-        
+
         if (days > 0) {
             sql = "SELECT date, calories_consumed, weight, sleep_hours, total_calories_burned " +
                   "FROM user_data WHERE user_id = ? AND date >= date('now', '-' || ? || ' days') " +
@@ -832,7 +927,7 @@ public class DatabaseManager {
             sql = "SELECT date, calories_consumed, weight, sleep_hours, total_calories_burned " +
                   "FROM user_data WHERE user_id = ? ORDER BY date ASC";
         }
-        
+
         try {
             PreparedStatement pstmt = connection.prepareStatement(sql);
             pstmt.setInt(1, userId);
@@ -867,7 +962,7 @@ public class DatabaseManager {
         String sql = "SELECT id, username, email, user_type, first_name, last_name " +
                      "FROM users WHERE username LIKE ? AND id != ? " +
                      "ORDER BY username LIMIT 20";
-        
+
         try {
             PreparedStatement pstmt = connection.prepareStatement(sql);
             pstmt.setString(1, "%" + searchTerm + "%");
@@ -900,7 +995,7 @@ public class DatabaseManager {
         if (requesterId == receiverId) {
             return false; // Can't friend yourself
         }
-        
+
         // Check if request already exists
         String checkSql = "SELECT id FROM friends WHERE " +
                          "(requester_id = ? AND receiver_id = ?) OR " +
@@ -919,7 +1014,7 @@ public class DatabaseManager {
             System.err.println("Error checking existing friend request: " + e.getMessage());
             return false;
         }
-        
+
         String sql = "INSERT INTO friends (requester_id, receiver_id, status) VALUES (?, ?, 'pending')";
         try {
             PreparedStatement pstmt = connection.prepareStatement(sql);
@@ -1115,15 +1210,15 @@ public class DatabaseManager {
             PreparedStatement pstmt = connection.prepareStatement(sql);
             pstmt.setInt(1, userId);
             ResultSet rs = pstmt.executeQuery();
-            
+
             java.time.LocalDate today = java.time.LocalDate.now();
             int streak = 0;
             java.time.LocalDate expectedDate = today;
-            
+
             while (rs.next()) {
                 String dateStr = rs.getString("login_date");
                 java.time.LocalDate loginDate = java.time.LocalDate.parse(dateStr);
-                
+
                 if (loginDate.equals(expectedDate)) {
                     streak++;
                     expectedDate = expectedDate.minusDays(1);
@@ -1133,7 +1228,7 @@ public class DatabaseManager {
                 }
                 // If loginDate is after expectedDate, skip it (shouldn't happen with DESC order)
             }
-            
+
             return streak;
         } catch (SQLException e) {
             System.err.println("Error getting current streak: " + e.getMessage());
@@ -1157,15 +1252,15 @@ public class DatabaseManager {
             PreparedStatement pstmt = connection.prepareStatement(sql);
             pstmt.setInt(1, userId);
             ResultSet rs = pstmt.executeQuery();
-            
+
             int longestStreak = 0;
             int currentStreak = 0;
             java.time.LocalDate previousDate = null;
-            
+
             while (rs.next()) {
                 String dateStr = rs.getString("login_date");
                 java.time.LocalDate loginDate = java.time.LocalDate.parse(dateStr);
-                
+
                 if (previousDate == null) {
                     currentStreak = 1;
                 } else {
@@ -1179,10 +1274,10 @@ public class DatabaseManager {
                         currentStreak = 1;
                     }
                 }
-                
+
                 previousDate = loginDate;
             }
-            
+
             // Check final streak
             longestStreak = Math.max(longestStreak, currentStreak);
             return longestStreak;

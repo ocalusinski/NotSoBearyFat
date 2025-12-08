@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public enum ClassType {
+    CLASS_TYPE("Class Type--"),
     HIIT("HIIT"),
     CARDIO("Cardio"),
     WEIGHT_TRAINING("Weight Training"),
@@ -17,7 +18,7 @@ public enum ClassType {
         this.type = name;
     }
 
-    // Provide a public getter method to retrieve the string valu
+    // Provide a public getter method to retrieve the string value
     public String getType() {
         return this.type;
     }
@@ -31,11 +32,11 @@ public enum ClassType {
         }
         throw new IllegalArgumentException("No constant with text " + text + " found");
     }
-    public static String[] getClassTypes() {
+    public static List getClassTypes() {
         List<String> list = new ArrayList<String>();
         for (ClassType b : ClassType.values()) {
             list.add(b.type);
         }
-        return list.toArray(new String[list.size()]);
+        return list;
     }
 }
