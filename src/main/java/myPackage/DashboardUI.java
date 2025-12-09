@@ -10,7 +10,6 @@ public class DashboardUI extends JFrame {
     private JLabel weightLabel;
     private JLabel sleepLabel;
     private JLabel burnedLabel;
-    private JLabel messageLabel;
     private DatabaseManager dbManager;
     private int userId;
     private String username;
@@ -377,14 +376,8 @@ public class DashboardUI extends JFrame {
         // Show Data by default
         cardLayout.show(contentPanel, "Data");
 
-        // Message label at bottom
-        messageLabel = new JLabel("", SwingConstants.CENTER);
-        messageLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        add(messageLabel, BorderLayout.SOUTH);
-
         // Load and display real data
         loadUserData();
-        checkForReminders();
         
         // Data is already selected by default in sidebar list
         
@@ -3248,7 +3241,43 @@ public class DashboardUI extends JFrame {
         scrollPane.setBackground(BACKGROUND_COLOR);
         scrollPane.getViewport().setBackground(BACKGROUND_COLOR);
 
+        // Add button panel at the top
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttonPanel.setBackground(BACKGROUND_COLOR);
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        JButton quickAddWorkoutButton = new JButton("Quick Add Workout");
+        quickAddWorkoutButton.setBackground(BAYLOR_GREEN);
+        quickAddWorkoutButton.setForeground(Color.WHITE);
+        quickAddWorkoutButton.setOpaque(true);
+        quickAddWorkoutButton.setBorderPainted(false);
+        quickAddWorkoutButton.setFocusPainted(false);
+        quickAddWorkoutButton.setFont(new Font("Arial", Font.BOLD, 14));
+        quickAddWorkoutButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                quickAddWorkoutButton.setBackground(LIGHT_GREEN);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                quickAddWorkoutButton.setBackground(BAYLOR_GREEN);
+            }
+        });
+        quickAddWorkoutButton.addActionListener(e -> {
+            if (userId == -1) {
+                JOptionPane.showMessageDialog(DashboardUI.this,
+                        "Unable to add workout: User not found",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            new recordWorkout.recordWorkoutPage(userId, dbManager, () -> {
+                loadUserData();
+                refreshGraphs();
+            });
+        });
+        buttonPanel.add(quickAddWorkoutButton);
+
         JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.add(buttonPanel, BorderLayout.NORTH);
         wrapper.add(scrollPane, BorderLayout.CENTER);
         wrapper.setBackground(BACKGROUND_COLOR);
 
@@ -3491,23 +3520,6 @@ public class DashboardUI extends JFrame {
         if (sleepLabel != null) sleepLabel.setText("Sleep: No data");
     }
 
-    private void checkForReminders() {
-        if (userId == -1) {
-            messageLabel.setText("User not found in database.");
-            messageLabel.setForeground(Color.RED);
-            return;
-        }
-
-        boolean hasRecentData = dbManager.hasRecentData(userId);
-        
-        if (!hasRecentData) {
-            messageLabel.setText("No entries for the last 7 days. Add today's data to get back on track!");
-            messageLabel.setForeground(new Color(200, 0, 0));
-        } else {
-            messageLabel.setText("Progress data updated successfully");
-            messageLabel.setForeground(new Color(0, 128, 64));
-        }
-    }
 
 
     @Override
