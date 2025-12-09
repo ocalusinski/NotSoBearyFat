@@ -37,6 +37,25 @@ public class DatabaseManager {
             }
             
             createTables();
+            
+            // Verify tables were created successfully
+            if (!verifyTablesExist()) {
+                System.err.println("Tables missing or database is empty. Recreating database...");
+                closeConnection();
+                // Delete the corrupted/empty database file
+                java.io.File dbFile = new java.io.File("notsobearyfat.db");
+                if (dbFile.exists()) {
+                    dbFile.delete();
+                    System.out.println("Empty/corrupted database deleted. Creating fresh database...");
+                }
+                // Reconnect to create fresh database
+                connection = DriverManager.getConnection(DB_URL);
+                try (Statement busyStmt = connection.createStatement()) {
+                    busyStmt.execute("PRAGMA busy_timeout = 5000");
+                }
+                createTables();
+            }
+            
             createOGAdmin();
             System.out.println("Database connected successfully!");
         } catch (SQLException e) {
@@ -78,6 +97,43 @@ public class DatabaseManager {
             return false;
         }
         return false;
+    }
+    
+    /**
+     * Verifies that all required tables exist in the database
+     * @return true if all tables exist, false otherwise
+     */
+    private boolean verifyTablesExist() {
+        String[] requiredTables = {
+            "users", "user_data", "classes", "class_enrollments", 
+            "friends", "login_streaks", "goals", "self_paced_plans", 
+            "plan_enrollments", "workouts"
+        };
+        
+        try {
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+            );
+            
+            java.util.Set<String> existingTables = new java.util.HashSet<>();
+            while (rs.next()) {
+                existingTables.add(rs.getString("name").toLowerCase());
+            }
+            
+            // Check if all required tables exist
+            for (String table : requiredTables) {
+                if (!existingTables.contains(table.toLowerCase())) {
+                    System.err.println("Missing table: " + table);
+                    return false;
+                }
+            }
+            
+            return true;
+        } catch (SQLException e) {
+            System.err.println("Error verifying tables: " + e.getMessage());
+            return false;
+        }
     }
     
     /**
