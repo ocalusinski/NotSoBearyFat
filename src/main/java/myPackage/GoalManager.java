@@ -1,28 +1,24 @@
 package myPackage;
 
 import java.util.List;
-
+import static myPackage.Constants.*;
 public class GoalManager {
-    private final DatabaseManager dbManager;
     private Goal currentGoal;
 
-    public GoalManager(DatabaseManager dbManager) {
-        this.dbManager = dbManager;
-    }
 
     /** Load all goals for this user from the database */
     public List<Goal> loadGoals(int userId) {
-        return dbManager.getGoalsForUser(userId);
+        return DB_MANAGER.getGoalsForUser(userId);
     }
 
     /** Save (insert or update) a goal for this user */
     public boolean saveGoals(int userId, Goal goalDetails) {
-        if (dbManager == null || goalDetails == null) {
-            System.err.println("Unable to save goals: dbManager or goalDetails is null.");
+        if (DB_MANAGER == null || goalDetails == null) {
+            System.err.println("Unable to save goals: DB_MANAGER or goalDetails is null.");
             return false;
         }
 
-        boolean ok = dbManager.saveGoal(userId, goalDetails);
+        boolean ok = DB_MANAGER.saveGoal(userId, goalDetails);
         if (ok) {
             currentGoal = goalDetails;
             System.out.println("Goal saved. Objective: " +
@@ -35,7 +31,7 @@ public class GoalManager {
     /** Delete a goal for this user */
     public boolean deleteGoal(int userId, Goal goal) {
         if (goal == null || goal.getId() == null) return false;
-        return dbManager.deleteGoal(goal.getId(), userId);
+        return DB_MANAGER.deleteGoal(goal.getId(), userId);
     }
 
     public Goal getCurrentGoal() {

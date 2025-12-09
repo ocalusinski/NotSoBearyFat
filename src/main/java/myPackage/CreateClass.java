@@ -19,8 +19,8 @@ public class CreateClass{
     
     // Creates the initial GUI with a button to start creating a class
     // trainerUsername is used to track which trainer created the class
-    // dbManager is passed in so we share one connection with the dashboard
-    public static void CreateAndShowGUI(String trainerUsername, DatabaseManager dbManager){
+    // DB_MANAGER is passed in so we share one connection with the dashboard
+    public static void CreateAndShowGUI(String trainerUsername){
         JFrame frame = new JFrame("Create Class");
         // When closing this window, only dispose this frame instead of exiting the app
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -36,7 +36,7 @@ public class CreateClass{
         createClassButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e){
-                CreateClassPage newPage = new CreateClassPage(trainerUsername, dbManager);
+                CreateClassPage newPage = new CreateClassPage(trainerUsername);
                 newPage.setVisible(true);
                 frame.dispose();
             }
@@ -52,7 +52,7 @@ public class CreateClass{
 
     // Convenience overload for testing without a real trainer user
     public static void CreateAndShowGUI(){
-        CreateAndShowGUI("trainer", DB_MANAGER);
+        CreateAndShowGUI("trainer");
     }
 
     // Inner class that contains the form for creating a class
@@ -60,11 +60,9 @@ public class CreateClass{
     static class CreateClassPage extends JFrame{
 
         private final String trainerUsername;
-        private final DatabaseManager dbManager;
 
-        public CreateClassPage(String trainerUsername, DatabaseManager dbManager){
+        public CreateClassPage(String trainerUsername ){
             this.trainerUsername = trainerUsername;
-            this.dbManager = dbManager;
             // Using arrays to store values because inner classes can't modify local variables
             final String[] classType = new String[1];
             final String[] description = new String[1];
@@ -181,7 +179,7 @@ public class CreateClass{
                     startTime[0] = startDate;
                     endTime[0] = endDate;
                     areYouSure("Cancel", classFrame, trainerUsername, classType[0], description[0],
-                               startTime[0], endTime[0], maxParticipants[0], cost[0], dbManager);
+                               startTime[0], endTime[0], maxParticipants[0], cost[0]);
                 }
             });
             
@@ -216,7 +214,7 @@ public class CreateClass{
                     }
                     else{
                         areYouSure("Save", classFrame, trainerUsername, classType[0], description[0],
-                                   startTime[0], endTime[0], maxParticipants[0], cost[0], dbManager);
+                                   startTime[0], endTime[0], maxParticipants[0], cost[0]);
                     }
                 }
             });
@@ -344,8 +342,7 @@ public class CreateClass{
     // Confirmation dialog that asks "Are you sure?" before saving or canceling
     private static void areYouSure(String message, JFrame prevFrame, String trainerUsername,
                                    String classType, String description, LocalDateTime startTime,
-                                   LocalDateTime endTime, int maxParticipants, double cost,
-                                   DatabaseManager dbManager){
+                                   LocalDateTime endTime, int maxParticipants, double cost){
         JFrame frame = new JFrame(message);
         // Only close this confirmation window when the user exits it
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -380,7 +377,7 @@ public class CreateClass{
             @Override
             public void actionPerformed(ActionEvent e) {
                 if(message.equals("Save")){
-                    boolean success = dbManager.saveClass(
+                    boolean success = DB_MANAGER.saveClass(
                         trainerUsername,
                         classType != null ? classType : "",
                         description != null ? description : "",

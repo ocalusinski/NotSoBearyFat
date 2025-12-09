@@ -7,17 +7,17 @@ import org.jfree.data.category.DefaultCategoryDataset;
 import javax.swing.*;
 import java.awt.*;
 import java.util.List;
-
+import static myPackage.Constants.*;
 public class drawTotalCaloriesBurntGraph extends JPanel {
     public drawTotalCaloriesBurntGraph() {
-        this(-1, null, 0);
+        this(-1, 0);
     }
     
-    public drawTotalCaloriesBurntGraph(int userId, DatabaseManager dbManager, int days) {
+    public drawTotalCaloriesBurntGraph(int userId, int days) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
         
-        if (userId != -1 && dbManager != null) {
-            List<Object[]> data = dbManager.getHistoricalUserData(userId, days);
+        if (userId != -1 && DB_MANAGER != null) {
+            List<Object[]> data = DB_MANAGER.getHistoricalUserData(userId, days);
             System.out.println("Total calories burnt graph: Retrieved " + data.size() + " data points for user " + userId);
             for (Object[] row : data) {
                 String date = (String) row[0];

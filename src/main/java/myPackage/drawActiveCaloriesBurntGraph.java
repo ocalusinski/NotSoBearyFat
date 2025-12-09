@@ -10,17 +10,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
+import static myPackage.Constants.*;
+
 public class drawActiveCaloriesBurntGraph extends JPanel {
 
     public drawActiveCaloriesBurntGraph() {
-        this(-1, null, 0);
+        this(-1, 0);
     }
     
-    public drawActiveCaloriesBurntGraph(int userId, DatabaseManager dbManager, int days) {
+    public drawActiveCaloriesBurntGraph(int userId, int days) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
         
-        if (userId != -1 && dbManager != null) {
-            List<Object[]> workouts = dbManager.getWorkoutData(userId, days);
+        if (userId != -1 && DB_MANAGER != null) {
+            List<Object[]> workouts = DB_MANAGER.getWorkoutData(userId, days);
             System.out.println("Active calories graph: Retrieved " + workouts.size() + " workouts for user " + userId);
             // Sum calories by date
             Map<String, Integer> caloriesByDate = new HashMap<>();

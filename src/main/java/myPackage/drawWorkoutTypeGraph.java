@@ -8,16 +8,18 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.Map;
 
+import static myPackage.Constants.DB_MANAGER;
+
 public class drawWorkoutTypeGraph extends JPanel {
     public drawWorkoutTypeGraph() {
-        this(-1, null, 0);
+        this(-1, 0);
     }
     
-    public drawWorkoutTypeGraph(int userId, DatabaseManager dbManager, int days) {
+    public drawWorkoutTypeGraph(int userId, int days) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
         
-        if (userId != -1 && dbManager != null) {
-            Map<String, Integer> counts = dbManager.getWorkoutCountsByType(userId, days);
+        if (userId != -1 && DB_MANAGER != null) {
+            Map<String, Integer> counts = DB_MANAGER.getWorkoutCountsByType(userId, days);
             System.out.println("Workout type graph: Retrieved " + counts.size() + " workout types for user " + userId);
             for (Map.Entry<String, Integer> entry : counts.entrySet()) {
                 dataset.addValue(entry.getValue(), "Count", entry.getKey());

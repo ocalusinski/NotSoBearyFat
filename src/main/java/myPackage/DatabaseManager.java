@@ -27,7 +27,6 @@ public class DatabaseManager {
             // Check database integrity
             if (!checkDatabaseIntegrity()) {
                 System.err.println("Database corruption detected. Attempting to recover...");
-                closeConnection();
                 recoverDatabase();
                 // Reconnect after recovery
                 connection = DriverManager.getConnection(DB_URL);
@@ -41,7 +40,6 @@ public class DatabaseManager {
             // Verify tables were created successfully
             if (!verifyTablesExist()) {
                 System.err.println("Tables missing or database is empty. Recreating database...");
-                closeConnection();
                 // Delete the corrupted/empty database file
                 java.io.File dbFile = new java.io.File("notsobearyfat.db");
                 if (dbFile.exists()) {

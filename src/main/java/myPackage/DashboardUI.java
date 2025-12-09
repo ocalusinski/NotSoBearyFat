@@ -5,12 +5,13 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
+import static myPackage.Constants.*;
+
 public class DashboardUI extends JFrame {
     private JLabel caloriesLabel;
     private JLabel weightLabel;
     private JLabel sleepLabel;
     private JLabel burnedLabel;
-    private DatabaseManager dbManager;
     private int userId;
     private String username;
     private String userType;
@@ -87,25 +88,24 @@ public class DashboardUI extends JFrame {
     public DashboardUI(String username, String userType) {
         this.username = username;
         this.userType = userType;
-        this.dbManager = new DatabaseManager();
-        this.goalManager = new GoalManager(dbManager);
-        this.selfPacedPlanManager = new SelfPacedPlanManager(dbManager);
+        this.goalManager = new GoalManager();
+        this.selfPacedPlanManager = new SelfPacedPlanManager();
         
         // Try to get user ID by username first, then by first name (for backward compatibility)
-        this.userId = dbManager.getUserIdByUsername(username);
+        this.userId = DB_MANAGER.getUserIdByUsername(username);
         if (this.userId == -1) {
-            this.userId = dbManager.getUserIdByFirstName(username);
+            this.userId = DB_MANAGER.getUserIdByFirstName(username);
         }
         
         // If userType not provided, try to get it from database
         if (this.userType == null && this.userId != -1) {
-            this.userType = dbManager.getUserType(this.userId);
+            this.userType = DB_MANAGER.getUserType(this.userId);
         }
 
 
         // Record login for streak tracking
         if (this.userId != -1) {
-            dbManager.recordLogin(this.userId);
+            DB_MANAGER.recordLogin(this.userId);
             // Streak is displayed in the header and streak tab
         }
 
@@ -132,7 +132,7 @@ public class DashboardUI extends JFrame {
         leftPanel.add(header);
 
         // Streak display
-        int currentStreak = userId != -1 ? dbManager.getCurrentStreak(userId) : 0;
+        int currentStreak = userId != -1 ? DB_MANAGER.getCurrentStreak(userId) : 0;
         JLabel streakLabel = new JLabel(currentStreak + " day streak");
         streakLabel.setForeground(new Color(255, 199, 44)); // Baylor gold
         streakLabel.setFont(new Font("Arial", Font.BOLD, 16));
@@ -150,7 +150,9 @@ public class DashboardUI extends JFrame {
         logoutButton.setFont(new Font("Arial", Font.PLAIN, 12));
         logoutButton.setPreferredSize(new Dimension(100, 35));
         logoutButton.setMargin(new Insets(5, 10, 5, 10));
+
         logoutButton.addActionListener(e -> {
+            resetUserInfo();
             dispose();
             SwingUtilities.invokeLater(() -> new LoginPage());
         });
@@ -387,6 +389,12 @@ public class DashboardUI extends JFrame {
         
         setVisible(true);
     }
+    //added to db allows for multiple logins
+    private void resetUserInfo() {
+        userId = -1;
+        username = null;
+        userType = null;
+    }
 
     private JPanel createDataTab() {
         dataTabPanel = new JPanel(new BorderLayout());
@@ -464,8 +472,8 @@ public class DashboardUI extends JFrame {
             }
         });
         quickAddButton.addActionListener(e -> {
-            if (userId != -1 && dbManager != null) {
-                AddData.openAddDataPage(userId, dbManager, () -> {
+            if (userId != -1 && DB_MANAGER != null) {
+                AddData.openAddDataPage(userId, () -> {
                     // Refresh data tab after adding data
                     loadUserData();
                 });
@@ -711,7 +719,7 @@ public class DashboardUI extends JFrame {
         sendRequestButton.addActionListener(e -> {
             User selected = searchResultsList.getSelectedValue();
             if (selected != null) {
-                if (dbManager.sendFriendRequest(userId, selected.getId())) {
+                if (DB_MANAGER.sendFriendRequest(userId, selected.getId())) {
                     JOptionPane.showMessageDialog(friendsPanel,
                         "Friend request sent to " + selected.getUsername() + "!",
                         "Request Sent",
@@ -739,7 +747,7 @@ public class DashboardUI extends JFrame {
             String searchTerm = searchField.getText().trim();
             if (!searchTerm.isEmpty()) {
                 searchResultsModel.clear();
-                List<User> results = dbManager.searchUsersByUsername(searchTerm, userId);
+                List<User> results = DB_MANAGER.searchUsersByUsername(searchTerm, userId);
                 for (User user : results) {
                     searchResultsModel.addElement(user);
                 }
@@ -843,7 +851,7 @@ public class DashboardUI extends JFrame {
         acceptButton.addActionListener(e -> {
             User selected = incomingList.getSelectedValue();
             if (selected != null) {
-                if (dbManager.acceptFriendRequest(selected.getId(), userId)) {
+                if (DB_MANAGER.acceptFriendRequest(selected.getId(), userId)) {
                     JOptionPane.showMessageDialog(panel,
                         "Friend request accepted!",
                         "Success",
@@ -861,7 +869,7 @@ public class DashboardUI extends JFrame {
         rejectButton.addActionListener(e -> {
             User selected = incomingList.getSelectedValue();
             if (selected != null) {
-                if (dbManager.rejectFriendRequest(selected.getId(), userId)) {
+                if (DB_MANAGER.rejectFriendRequest(selected.getId(), userId)) {
                     refreshAllFriendData();
                 } else {
                     JOptionPane.showMessageDialog(panel,
@@ -907,7 +915,7 @@ public class DashboardUI extends JFrame {
         cancelButton.addActionListener(e -> {
             User selected = outgoingList.getSelectedValue();
             if (selected != null) {
-                if (dbManager.rejectFriendRequest(userId, selected.getId())) {
+                if (DB_MANAGER.rejectFriendRequest(userId, selected.getId())) {
                     refreshAllFriendData();
                 } else {
                     JOptionPane.showMessageDialog(panel,
@@ -972,7 +980,7 @@ public class DashboardUI extends JFrame {
                 friendClassesModel.clear();
                 User selected = friendsList.getSelectedValue();
                 if (selected != null) {
-                    List<WorkoutClass> classes = dbManager.getFriendEnrolledClasses(selected.getId());
+                    List<WorkoutClass> classes = DB_MANAGER.getFriendEnrolledClasses(selected.getId());
                     if (classes.isEmpty()) {
                         // Add a placeholder
                         friendClassesModel.addElement(null);
@@ -1010,7 +1018,7 @@ public class DashboardUI extends JFrame {
         // Refresh friend requests
         if (incomingRequestsModelRef != null) {
             incomingRequestsModelRef.clear();
-            List<User> incoming = dbManager.getPendingFriendRequests(userId);
+            List<User> incoming = DB_MANAGER.getPendingFriendRequests(userId);
             for (User user : incoming) {
                 incomingRequestsModelRef.addElement(user);
             }
@@ -1018,7 +1026,7 @@ public class DashboardUI extends JFrame {
 
         if (outgoingRequestsModelRef != null) {
             outgoingRequestsModelRef.clear();
-            List<User> outgoing = dbManager.getSentFriendRequests(userId);
+            List<User> outgoing = DB_MANAGER.getSentFriendRequests(userId);
             for (User user : outgoing) {
                 outgoingRequestsModelRef.addElement(user);
             }
@@ -1027,7 +1035,7 @@ public class DashboardUI extends JFrame {
         // Refresh friends list
         if (friendsModelRef != null) {
             friendsModelRef.clear();
-            List<User> friends = dbManager.getFriends(userId);
+            List<User> friends = DB_MANAGER.getFriends(userId);
             for (User friend : friends) {
                 friendsModelRef.addElement(friend);
             }
@@ -1067,7 +1075,7 @@ public class DashboardUI extends JFrame {
                 setForeground(Color.GRAY);
             } else if (value instanceof WorkoutClass) {
                 WorkoutClass wc = (WorkoutClass) value;
-                int currentEnrolled = dbManager.getCurrentEnrollmentCount(wc.getId());
+                int currentEnrolled = DB_MANAGER.getCurrentEnrollmentCount(wc.getId());
                 int spotsAvailable = wc.getMaxParticipants() - currentEnrolled;
                 String text = wc.getClassType() + " - " + wc.getStartTime() +
                              " ($" + String.format("%.2f", wc.getCost()) + ")";
@@ -1334,7 +1342,7 @@ public class DashboardUI extends JFrame {
                 return;
             }
 
-            boolean ok = dbManager.deleteGoal(selected.getId(), userId);
+            boolean ok = DB_MANAGER.deleteGoal(selected.getId(), userId);
             if (ok) {
                 goalListModel.removeElement(selected);
                 selectedGoalIndex = -1;
@@ -2334,7 +2342,7 @@ public class DashboardUI extends JFrame {
         calendarGrid.setBorder(BorderFactory.createEmptyBorder(5, 0, 0, 0));
         
         // Get all classes
-        List<WorkoutClass> allClasses = dbManager != null ? dbManager.getAllClasses(csp) : new ArrayList<>();
+        List<WorkoutClass> allClasses = DB_MANAGER != null ? DB_MANAGER.getAllClasses(csp) : new ArrayList<>();
         
         // Create a day panel for each day (6 weeks * 7 days = 42 days)
         java.time.LocalDate currentDay = firstMonday;
@@ -2446,7 +2454,7 @@ public class DashboardUI extends JFrame {
         block.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent e) {
                 // Get enrolled users for this class
-                List<String> enrolledUsers = dbManager != null ? dbManager.getUsersForClass(wc.getId()) : new ArrayList<>();
+                List<String> enrolledUsers = DB_MANAGER != null ? DB_MANAGER.getUsersForClass(wc.getId()) : new ArrayList<>();
                 
                 // Build message with class details and enrolled users
                 StringBuilder message = new StringBuilder();
@@ -2490,9 +2498,9 @@ public class DashboardUI extends JFrame {
     
     // Method to refresh the classes list from the database
     private void refreshClassesList() {
-        if (classListModel != null && dbManager != null) {
+        if (classListModel != null && DB_MANAGER != null) {
             classListModel.clear();
-            List<WorkoutClass> classes = dbManager.getAllClasses(csp);
+            List<WorkoutClass> classes = DB_MANAGER.getAllClasses(csp);
             for (WorkoutClass wc : classes) {
                 classListModel.addElement(wc);
             }
@@ -2636,9 +2644,9 @@ public class DashboardUI extends JFrame {
             if (!e.getValueIsAdjusting()) {
                 WorkoutClass selected = availableClassesList.getSelectedValue();
                 if (selected != null) {
-                    int currentEnrolled = dbManager.getCurrentEnrollmentCount(selected.getId());
+                    int currentEnrolled = DB_MANAGER.getCurrentEnrollmentCount(selected.getId());
                     int spotsAvailable = selected.getMaxParticipants() - currentEnrolled;
-                    boolean alreadyEnrolled = userId != -1 && dbManager.isUserEnrolled(userId, selected.getId());
+                    boolean alreadyEnrolled = userId != -1 && DB_MANAGER.isUserEnrolled(userId, selected.getId());
                     
                     String details = "Class Type: " + selected.getClassType() + "\n" +
                                     "Description: " + (selected.getDescription() != null ? selected.getDescription() : "N/A") + "\n" +
@@ -2705,7 +2713,7 @@ public class DashboardUI extends JFrame {
         JComboBox<String> classTypeBox = new JComboBox<>(classTypes.toArray(new String[classTypes.size()]));
         centerPanel.add(classTypeBox);
         //available trainers box
-        List<String> trainers = dbManager.getAllTrainers();
+        List<String> trainers = DB_MANAGER.getAllTrainers();
         trainers.add(0, "Trainer--");
         JComboBox<String> trainerBox = new JComboBox<>(trainers.toArray(new String[trainers.size()]));
         centerPanel.add(trainerBox);
@@ -2727,7 +2735,7 @@ public class DashboardUI extends JFrame {
 
 
             csp.assignVals(classType, trainer, duration, timeOfDay);
-            //dbManager.selectValidClasses(classType, trainer, duration, timeOfDay);
+            //DB_MANAGER.selectValidClasses(classType, trainer, duration, timeOfDay);
         });
         panel.add(apply, BorderLayout.PAGE_END);
         panel.setBackground(BACKGROUND_COLOR);
@@ -2747,9 +2755,9 @@ public class DashboardUI extends JFrame {
     }
 
     private void refreshAvailableClasses() {
-        if (availableClassesModel != null && dbManager != null) {
+        if (availableClassesModel != null && DB_MANAGER != null) {
             availableClassesModel.clear();
-            List<WorkoutClass> classes = dbManager.getAllClasses(csp);
+            List<WorkoutClass> classes = DB_MANAGER.getAllClasses(csp);
             for (WorkoutClass wc : classes) {
                 availableClassesModel.addElement(wc);
             }
@@ -2757,9 +2765,9 @@ public class DashboardUI extends JFrame {
     }
 
     private void refreshEnrolledClasses() {
-        if (enrolledClassesModel != null && dbManager != null && userId != -1) {
+        if (enrolledClassesModel != null && DB_MANAGER != null && userId != -1) {
             enrolledClassesModel.clear();
-            List<WorkoutClass> classes = dbManager.getUserEnrolledClasses(userId);
+            List<WorkoutClass> classes = DB_MANAGER.getUserEnrolledClasses(userId);
             if (classes.isEmpty()) {
                 // Add a placeholder message
                 // We'll handle this differently - maybe show a label
@@ -2781,7 +2789,7 @@ public class DashboardUI extends JFrame {
         }
 
         // Check if already enrolled
-        if (dbManager.isUserEnrolled(userId, workoutClass.getId())) {
+        if (DB_MANAGER.isUserEnrolled(userId, workoutClass.getId())) {
             JOptionPane.showMessageDialog(this,
                 "You are already enrolled in this class.",
                 "Already Enrolled",
@@ -2790,7 +2798,7 @@ public class DashboardUI extends JFrame {
         }
 
         // Check if class is full
-        int currentEnrolled = dbManager.getCurrentEnrollmentCount(workoutClass.getId());
+        int currentEnrolled = DB_MANAGER.getCurrentEnrollmentCount(workoutClass.getId());
         if (currentEnrolled >= workoutClass.getMaxParticipants()) {
             JOptionPane.showMessageDialog(this,
                 "This class is full. Please select another class.",
@@ -2801,7 +2809,7 @@ public class DashboardUI extends JFrame {
         }
 
         // Attempt enrollment
-        boolean success = dbManager.enrollUserInClass(userId, workoutClass.getId());
+        boolean success = DB_MANAGER.enrollUserInClass(userId, workoutClass.getId());
         if (success) {
             JOptionPane.showMessageDialog(this,
                 "Successfully registered for " + workoutClass.getClassType() + "!",
@@ -2830,7 +2838,7 @@ public class DashboardUI extends JFrame {
             super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             if (value instanceof WorkoutClass) {
                 WorkoutClass wc = (WorkoutClass) value;
-                int currentEnrolled = dbManager.getCurrentEnrollmentCount(wc.getId());
+                int currentEnrolled = DB_MANAGER.getCurrentEnrollmentCount(wc.getId());
                 int spotsAvailable = wc.getMaxParticipants() - currentEnrolled;
                 String text = wc.getClassType() + " - " + wc.getStartTime() + 
                              " ($" + String.format("%.2f", wc.getCost()) + ") - " +
@@ -2876,7 +2884,7 @@ public class DashboardUI extends JFrame {
             // Open CreateClass window, passing the current trainer's username
             // and reusing the existing DatabaseManager connection
             SwingUtilities.invokeLater(() -> {
-                CreateClass.CreateAndShowGUI(username, dbManager);
+                CreateClass.CreateAndShowGUI(username);
             });
         });
         
@@ -2911,7 +2919,7 @@ public class DashboardUI extends JFrame {
         modifyClassButton.addActionListener(e -> {
             SwingUtilities.invokeLater(() -> {
                 // Open ModifyClass window and refresh lists after successful update
-                ModifyClass.openModifyClassPage(username, dbManager, () -> {
+                ModifyClass.openModifyClassPage(username,  () -> {
                     refreshCalendarGrid();    // Trainer "Classes" tab (calendar view)
                     refreshAvailableClasses(); // Client “Available Classes” tab
                     refreshEnrolledClasses();  // Client “My Classes” tab
@@ -2985,9 +2993,9 @@ public class DashboardUI extends JFrame {
         mainContent.add(titleLabel, gbc);
 
         // Get streak data
-        int currentStreak = userId != -1 ? dbManager.getCurrentStreak(userId) : 0;
-        int longestStreak = userId != -1 ? dbManager.getLongestStreak(userId) : 0;
-        int totalLogins = userId != -1 ? dbManager.getTotalLoginDays(userId) : 0;
+        int currentStreak = userId != -1 ? DB_MANAGER.getCurrentStreak(userId) : 0;
+        int longestStreak = userId != -1 ? DB_MANAGER.getLongestStreak(userId) : 0;
+        int totalLogins = userId != -1 ? DB_MANAGER.getTotalLoginDays(userId) : 0;
 
         // Current Streak Display
         JPanel currentStreakPanel = new JPanel(new BorderLayout());
@@ -3174,10 +3182,10 @@ public class DashboardUI extends JFrame {
 
         // Create graphs with user data
         int days = 0; // 0 means all data, can be changed based on time filter buttons
-        drawCaloriesConsumedGraph calorieGraph = new drawCaloriesConsumedGraph(userId, dbManager, days);
-        drawWeightGraph weightGraph = new drawWeightGraph(userId, dbManager, days);
-        drawSleepGraph sleepGraph = new drawSleepGraph(userId, dbManager, days);
-        drawTotalCaloriesBurntGraph burntGraph = new drawTotalCaloriesBurntGraph(userId, dbManager, days);
+        drawCaloriesConsumedGraph calorieGraph = new drawCaloriesConsumedGraph(userId, days);
+        drawWeightGraph weightGraph = new drawWeightGraph(userId, days);
+        drawSleepGraph sleepGraph = new drawSleepGraph(userId, days);
+        drawTotalCaloriesBurntGraph burntGraph = new drawTotalCaloriesBurntGraph(userId, days);
 
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -3219,9 +3227,9 @@ public class DashboardUI extends JFrame {
         gbc.weighty = 1.0;
 
         int days = 0; // 0 means all data
-        drawWorkoutTypeGraph workoutTypeGraph = new drawWorkoutTypeGraph(userId, dbManager, days);
-        drawMinutesOfExerciseGraph minutesGraph = new drawMinutesOfExerciseGraph(userId, dbManager, days);
-        drawActiveCaloriesBurntGraph activeCaloriesGraph = new drawActiveCaloriesBurntGraph(userId, dbManager, days);
+        drawWorkoutTypeGraph workoutTypeGraph = new drawWorkoutTypeGraph(userId, days);
+        drawMinutesOfExerciseGraph minutesGraph = new drawMinutesOfExerciseGraph(userId,  days);
+        drawActiveCaloriesBurntGraph activeCaloriesGraph = new drawActiveCaloriesBurntGraph(userId, days);
 
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -3273,7 +3281,7 @@ public class DashboardUI extends JFrame {
                         JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            new recordWorkout.recordWorkoutPage(userId, dbManager, () -> {
+            new recordWorkout.recordWorkoutPage(userId, () -> {
                 loadUserData();
                 refreshGraphs();
             });
@@ -3324,10 +3332,10 @@ public class DashboardUI extends JFrame {
         }
 
         // Get today's data
-        double[] todayData = dbManager.getLatestUserDataDouble(userId);
+        double[] todayData = DB_MANAGER.getLatestUserDataDouble(userId);
         
         // Get historical data for trends and weekly averages
-        java.util.List<Object[]> historicalData = dbManager.getHistoricalUserData(userId, 7);
+        java.util.List<Object[]> historicalData = DB_MANAGER.getHistoricalUserData(userId, 7);
         
         // Get yesterday's data for trend comparison
         double[] yesterdayData = null;
@@ -3528,8 +3536,7 @@ public class DashboardUI extends JFrame {
 
     @Override
     public void dispose() {
-        if (dbManager != null) {
-            dbManager.closeConnection();
+        if (DB_MANAGER != null) {
         }
         super.dispose();
     }

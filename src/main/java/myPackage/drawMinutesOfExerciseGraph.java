@@ -10,16 +10,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
+import static myPackage.Constants.DB_MANAGER;
+
 public class drawMinutesOfExerciseGraph extends JPanel {
     public drawMinutesOfExerciseGraph() {
-        this(-1, null, 0);
+        this(-1, 0);
     }
     
-    public drawMinutesOfExerciseGraph(int userId, DatabaseManager dbManager, int days) {
+    public drawMinutesOfExerciseGraph(int userId, int days) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
         
-        if (userId != -1 && dbManager != null) {
-            List<Object[]> workouts = dbManager.getWorkoutData(userId, days);
+        if (userId != -1 && DB_MANAGER != null) {
+            List<Object[]> workouts = DB_MANAGER.getWorkoutData(userId, days);
             System.out.println("Minutes graph: Retrieved " + workouts.size() + " workouts for user " + userId);
             // Sum minutes by date
             Map<String, Integer> minutesByDate = new HashMap<>();

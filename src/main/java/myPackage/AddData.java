@@ -18,31 +18,29 @@ public class AddData{
     static JTextField totCalBurn = new JTextField(20);
     // Static method to open AddDataPage directly (for use from DashboardUI)
     // refreshCallback can be null - if provided, it will be called after successful save
-    public static void openAddDataPage(int userId, DatabaseManager dbManager, Runnable refreshCallback) {
+    public static void openAddDataPage(int userId, Runnable refreshCallback) {
         SwingUtilities.invokeLater(() -> {
-            AddDataPage newPage = new AddDataPage(userId, dbManager, refreshCallback);
+            AddDataPage newPage = new AddDataPage(userId, refreshCallback);
             newPage.setVisible(true);
         });
     }
     
     // Overload without refresh callback for backward compatibility
-    public static void openAddDataPage(int userId, DatabaseManager dbManager) {
-        openAddDataPage(userId, dbManager, null);
+    public static void openAddDataPage(int userId) {
+        openAddDataPage(userId, null);
     }
 
     static class AddDataPage extends JFrame{
         private int userId;
-        private DatabaseManager dbManager;
         private Runnable refreshCallback;
 
         // Constructor without refresh callback for backward compatibility
-        public AddDataPage(int userId, DatabaseManager dbManager){
-            this(userId, dbManager, null);
+        public AddDataPage(int userId){
+            this(userId, null);
         }
 
-        public AddDataPage(int userId, DatabaseManager dbManager, Runnable refreshCallback){
+        public AddDataPage(int userId, Runnable refreshCallback){
             this.userId = userId;
-            this.dbManager = dbManager;
             this.refreshCallback = refreshCallback;
 
             dateField.setText("");
@@ -179,7 +177,7 @@ public class AddData{
             cancelButton.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    areYouSure("Cancel", dataFrame, date[0], cal[0], sleep[0], weight[0], totalCal[0], userId, dbManager, refreshCallback);
+                    areYouSure("Cancel", dataFrame, date[0], cal[0], sleep[0], weight[0], totalCal[0], userId, refreshCallback);
                 }
             });
             saveButton.addActionListener(new ActionListener() {
@@ -216,7 +214,7 @@ public class AddData{
                         fieldsNotFull();
                     }
                     else {
-                        areYouSure("Save", dataFrame, date[0], cal[0], sleep[0], weight[0], totalCal[0], userId, dbManager, refreshCallback);
+                        areYouSure("Save", dataFrame, date[0], cal[0], sleep[0], weight[0], totalCal[0], userId, refreshCallback);
                     }
                 }
             });
@@ -327,7 +325,7 @@ public class AddData{
 
     private static void areYouSure(String message, JFrame prevFrame,
                                    LocalDate date, int cal, double sleep, double weight, int totalCal,
-                                   int userId, DatabaseManager dbManager, Runnable refreshCallback){
+                                   int userId, Runnable refreshCallback){
         JFrame frame = new JFrame(message);
         // Don't exit the whole program when closing this window
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -362,10 +360,10 @@ public class AddData{
             @Override
             public void actionPerformed(ActionEvent e) {
                 if(message.equals("Save")){
-                    // Save to database if userId and dbManager are available
-                    if (userId != -1 && dbManager != null && date != null) {
+                    // Save to database if userId and DB_MANAGER are available
+                    if (userId != -1 && DB_MANAGER != null && date != null) {
                         String dateStr = date.format(DateTimeFormatter.ofPattern("MM-dd-yyyy"));
-                        boolean success = dbManager.saveUserData(
+                        boolean success = DB_MANAGER.saveUserData(
                             userId,
                             dateStr,
                             cal,

@@ -9,6 +9,8 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Date;
 
+import static myPackage.Constants.DB_MANAGER;
+
 public class recordWorkout {
 
     static String[] workoutOptions = {"Calisthenics", "HIIT", "Lifting", "Running", "Walking", "Yoga", "Other"};
@@ -17,27 +19,24 @@ public class recordWorkout {
     static JTextField durationField = new JTextField(20);
     static JTextField caloriesBurntField = new JTextField(20);
 
-    public static void openRecordWorkout(int userId, DatabaseManager dbManager, Runnable refreshCallBack){
+    public static void openRecordWorkout(int userId, Runnable refreshCallBack){
         SwingUtilities.invokeLater(() -> {
-            recordWorkoutPage rwp =  new recordWorkoutPage(userId, dbManager, refreshCallBack);
+            recordWorkoutPage rwp =  new recordWorkoutPage(userId, refreshCallBack);
             rwp.setVisible(true);
         });
     }
 
     static class recordWorkoutPage extends JFrame {
         private int userId;
-        private DatabaseManager dbManager;
         private Runnable refreshCallback;
 
-        public recordWorkoutPage(int userId, DatabaseManager dbManager) {
+        public recordWorkoutPage(int userId) {
             this.userId = userId;
-            this.dbManager = dbManager;
             this.refreshCallback = null;
         }
 
-        public recordWorkoutPage(int userId, DatabaseManager dbManager, Runnable refreshCallback) {
+        public recordWorkoutPage(int userId, Runnable refreshCallback) {
             this.userId = userId;
-            this.dbManager = dbManager;
             this.refreshCallback = refreshCallback;
             JFrame frame = new JFrame("RecordWorkout");
             // Don't exit the whole program when closing this window
@@ -197,7 +196,7 @@ public class recordWorkout {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     areYouSure("Cancel", frame, date[0], workoutType[0], exerciseMinutes[0], caloriesBurnt[0], 
-                              userId, dbManager, refreshCallback);
+                              userId, refreshCallback);
                 }
             });
             saveButton.addActionListener(new ActionListener() {
@@ -236,7 +235,7 @@ public class recordWorkout {
                     }
                     else {
                         areYouSure("Save", frame, date[0], workoutType[0], exerciseMinutes[0], caloriesBurnt[0],
-                                  userId, dbManager, refreshCallback);
+                                  userId, refreshCallback);
                     }
                 }
             });
@@ -262,7 +261,7 @@ public class recordWorkout {
 
     private static void areYouSure(String message, JFrame prevFrame,
                                    LocalDate date, String workoutType, int exerciseMinutes, int caloriesBurnt,
-                                   int userId, DatabaseManager dbManager, Runnable refreshCallback){
+                                   int userId, Runnable refreshCallback){
         JFrame frame = new JFrame(message);
         // Don't exit the whole program when closing this window
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -298,12 +297,12 @@ public class recordWorkout {
             public void actionPerformed(ActionEvent e) {
                 if(message.equals("Save")){
                     // Save to database if userId and dbManager are available
-                    if (userId != -1 && dbManager != null && date != null && workoutType != null) {
+                    if (userId != -1 && DB_MANAGER != null && date != null && workoutType != null) {
                         String dateStr = date.format(DateTimeFormatter.ofPattern("MM-dd-yyyy"));
                         // Use caloriesBurnt if provided, otherwise use 0 (optional field)
                         int caloriesToSave = caloriesBurnt > 0 ? caloriesBurnt : 0;
                         
-                        boolean success = dbManager.saveWorkoutData(userId, dateStr, workoutType, exerciseMinutes, caloriesToSave);
+                        boolean success = DB_MANAGER.saveWorkoutData(userId, dateStr, workoutType, exerciseMinutes, caloriesToSave);
                         if (success) {
                             JOptionPane.showMessageDialog(frame,
                                 "Workout saved successfully!",

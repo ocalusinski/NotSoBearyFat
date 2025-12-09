@@ -12,6 +12,7 @@ import java.util.Date;
 import java.util.List;
 import com.github.lgooddatepicker.components.DatePicker;
 import com.github.lgooddatepicker.components.TimePicker;
+import static myPackage.Constants.*;
 /**
  * Allows trainers to modify the classes they have created
  */
@@ -28,7 +29,6 @@ public final class ModifyClass {
      * Opens the Modify Class window
      */
     public static void openModifyClassPage(String trainerUsername,
-                                           DatabaseManager dbManager,
                                            Runnable refreshCallback) {
         // Build GUI components
         JFrame frame = new JFrame("Modify Existing Class");
@@ -45,7 +45,7 @@ public final class ModifyClass {
         container.add(Box.createRigidArea(new Dimension(0, 20)));
 
         // Retrieve classes for the trainer
-        List<WorkoutClass> trainerClasses = dbManager.getClassesForTrainer(trainerUsername);
+        List<WorkoutClass> trainerClasses = DB_MANAGER.getClassesForTrainer(trainerUsername);
 
         // If no classes exist inform the trainer and exit early
         if (trainerClasses.isEmpty()) {
@@ -164,7 +164,7 @@ public final class ModifyClass {
                 return;
             }
             // Persist changes
-            boolean success = dbManager.updateClass(
+            boolean success = DB_MANAGER.updateClass(
                     selected.getId(), classType, description,
                     startLdt, endLdt, maxParticipants, cost);
             if (success) {

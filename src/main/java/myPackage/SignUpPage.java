@@ -11,7 +11,6 @@ import static myPackage.Constants.*;
  * SignUpPage - GUI for user registration (Client and Trainer)
  */
 public class SignUpPage extends JFrame {
-    //private DatabaseManager DB_MANAGER;
     private JRadioButton clientRadio;
     
     public SignUpPage(boolean admin) {
@@ -308,7 +307,6 @@ public class SignUpPage extends JFrame {
                     // Automatically log the user in after successful signup
                     if(!admin) {
                         User newUser = DB_MANAGER.loginUser(username, password);
-                        DB_MANAGER.closeConnection();
                         dispose();
 
 
@@ -338,7 +336,6 @@ public class SignUpPage extends JFrame {
         backButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                DB_MANAGER.closeConnection();
                 dispose();
                 if(!admin) {
                     HomePage.main(null);

@@ -1,47 +1,42 @@
 package myPackage;
 
 import java.util.List;
-
+import static myPackage.Constants.*;
 public class SelfPacedPlanManager {
-    private final DatabaseManager dbManager;
-
-    public SelfPacedPlanManager(DatabaseManager dbManager) {
-        this.dbManager = dbManager;
-    }
 
     /** Trainer-specific list (for editing) */
     public List<SelfPacedPlan> getPlansForTrainer(int trainerId) {
-        return dbManager.getPlansForTrainer(trainerId);
+        return DB_MANAGER.getPlansForTrainer(trainerId);
     }
 
     /** All plans in the workout library (users can browse) */
     public List<SelfPacedPlan> getAllPlans() {
-        return dbManager.getAllSelfPacedPlans();
+        return DB_MANAGER.getAllSelfPacedPlans();
     }
 
     /** Insert or update a plan */
     public boolean savePlan(int trainerId, SelfPacedPlan plan) {
-        return dbManager.saveSelfPacedPlan(trainerId, plan);
+        return DB_MANAGER.saveSelfPacedPlan(trainerId, plan);
     }
 
     /** Delete a plan created by this trainer */
     public boolean deletePlan(int planId) {
-        return dbManager.deleteSelfPacedPlan(planId);
+        return DB_MANAGER.deleteSelfPacedPlan(planId);
     }
 
     /** Check if a user is enrolled in a plan */
     public boolean isUserEnrolledInPlan(int userId, int planId) {
-        return dbManager.isUserEnrolledInPlan(userId, planId);
+        return DB_MANAGER.isUserEnrolledInPlan(userId, planId);
     }
 
     /** Enroll a user in a plan */
     public boolean enrollUserInPlan(int userId, int planId) {
-        return dbManager.enrollUserInPlan(userId, planId);
+        return DB_MANAGER.enrollUserInPlan(userId, planId);
     }
 
     /** Get all plans that a user is enrolled in */
     public List<SelfPacedPlan> getEnrolledPlansForUser(int userId) {
-        return dbManager.getUserEnrolledPlans(userId);
+        return DB_MANAGER.getUserEnrolledPlans(userId);
     }
 
     public boolean hasMissingRequiredFields(SelfPacedPlan plan, List<String> missingFields) {

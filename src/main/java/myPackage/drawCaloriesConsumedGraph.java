@@ -8,16 +8,18 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.List;
 
+import static myPackage.Constants.*;
+
 public class drawCaloriesConsumedGraph extends JPanel {
     public drawCaloriesConsumedGraph() {
-        this(-1, null, 0);
+        this(-1, 0);
     }
     
-    public drawCaloriesConsumedGraph(int userId, DatabaseManager dbManager, int days) {
+    public drawCaloriesConsumedGraph(int userId, int days) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
         
-        if (userId != -1 && dbManager != null) {
-            List<Object[]> data = dbManager.getHistoricalUserData(userId, days);
+        if (userId != -1 && DB_MANAGER != null) {
+            List<Object[]> data = DB_MANAGER.getHistoricalUserData(userId, days);
             System.out.println("Calories graph: Retrieved " + data.size() + " data points for user " + userId);
             for (Object[] row : data) {
                 String date = (String) row[0];

@@ -9,8 +9,7 @@ import static myPackage.Constants.*;
  * LoginPage - GUI for user login (Client and Trainer)
  */
 public class LoginPage extends JFrame {
-    //private DatabaseManager DB_MANAGER;
-    
+
     public LoginPage() {
 
         setTitle("Login");
@@ -129,7 +128,6 @@ public class LoginPage extends JFrame {
                         "Welcome back, " + user.getFirstName() + "!", 
                         "Login Successful", 
                         JOptionPane.INFORMATION_MESSAGE);
-                    DB_MANAGER.closeConnection();
                     dispose();
 
                     //if admin, login to admin portal. Spooky!
@@ -154,7 +152,6 @@ public class LoginPage extends JFrame {
         backButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                DB_MANAGER.closeConnection();
                 dispose();
                 HomePage.main(null);
             }
