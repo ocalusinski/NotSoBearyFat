@@ -214,6 +214,17 @@ public class DatabaseManager {
                         "FOREIGN KEY (trainer_id) REFERENCES users(id)" +
                         ")";
 
+        String createPlanEnrollmentsTable =
+                "CREATE TABLE IF NOT EXISTS plan_enrollments (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        "plan_id INTEGER NOT NULL, " +
+                        "user_id INTEGER NOT NULL, " +
+                        "enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                        "FOREIGN KEY (plan_id) REFERENCES self_paced_plans(id), " +
+                        "FOREIGN KEY (user_id) REFERENCES users(id), " +
+                        "UNIQUE(plan_id, user_id)" +
+                        ")";
+
         try {
             Statement stmt = connection.createStatement();
             stmt.execute(createUsersTable);
@@ -224,10 +235,12 @@ public class DatabaseManager {
             stmt.execute(createLoginStreaksTable);
             stmt.execute(createGoalsTable);
             stmt.execute(createSelfPacedPlansTable);
+            stmt.execute(createPlanEnrollmentsTable);
             System.out.println("Tables created successfully!");
             System.out.println("Friends table created/verified.");
             System.out.println("Login streaks table created/verified.");
             System.out.println("Goals and self-paced plans tables created/verified.");
+            System.out.println("Plan enrollments table created/verified.");
         } catch (SQLException e) {
             System.err.println("Error creating tables: " + e.getMessage());
             e.printStackTrace();
@@ -1609,6 +1622,86 @@ public class DatabaseManager {
             System.err.println("Error deleting self-paced plan: " + e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * Checks if a user is already enrolled in a plan
+     * @return true if enrolled, false otherwise
+     */
+    public boolean isUserEnrolledInPlan(int userId, int planId) {
+        String sql = "SELECT COUNT(*) FROM plan_enrollments WHERE user_id = ? AND plan_id = ?";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            pstmt.setInt(2, planId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            System.err.println("Error checking plan enrollment: " + e.getMessage());
+        }
+        return false;
+    }
+
+    /**
+     * Enrolls a user in a self-paced plan
+     * @return true if enrollment successful, false if user already enrolled or error occurred
+     */
+    public boolean enrollUserInPlan(int userId, int planId) {
+        // First check if user is already enrolled
+        if (isUserEnrolledInPlan(userId, planId)) {
+            System.err.println("User already enrolled in this plan");
+            return false;
+        }
+
+        // Enroll the user
+        String enrollSql = "INSERT INTO plan_enrollments (plan_id, user_id) VALUES (?, ?)";
+        try {
+            PreparedStatement enrollStmt = connection.prepareStatement(enrollSql);
+            enrollStmt.setInt(1, planId);
+            enrollStmt.setInt(2, userId);
+            enrollStmt.executeUpdate();
+            
+            System.out.println("User " + userId + " enrolled in plan " + planId);
+            return true;
+        } catch (SQLException e) {
+            System.err.println("Error enrolling user in plan: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Gets all plans that a user is enrolled in
+     * @return list of SelfPacedPlan objects the user is enrolled in
+     */
+    public java.util.List<SelfPacedPlan> getUserEnrolledPlans(int userId) {
+        java.util.List<SelfPacedPlan> plans = new java.util.ArrayList<>();
+        String sql = "SELECT sp.* FROM self_paced_plans sp " +
+                     "JOIN plan_enrollments pe ON sp.id = pe.plan_id " +
+                     "WHERE pe.user_id = ? " +
+                     "ORDER BY pe.enrolled_at DESC";
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                SelfPacedPlan p = new SelfPacedPlan(
+                        rs.getInt("id"),
+                        rs.getInt("trainer_id"),
+                        rs.getString("title"),
+                        rs.getString("description"),
+                        rs.getString("fitness_level"),
+                        rs.getString("equipment"),
+                        rs.getString("session_length"),
+                        rs.getString("frequency")
+                );
+                plans.add(p);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting user enrolled plans: " + e.getMessage());
+        }
+        return plans;
     }
 
 

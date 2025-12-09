@@ -1,9 +1,5 @@
 package myPackage;
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import java.awt.*;
 import java.util.List;
 import java.util.ArrayList;
@@ -281,6 +277,9 @@ public class DashboardUI extends JFrame {
                         refreshCalendarGrid();
                     } else if ("Library".equals(selected)) {
                         refreshPlanLibraryList();
+                        if (!isTrainer() && availablePlansModel != null) {
+                            refreshAvailablePlans();
+                        }
                     }
                 }
             }
@@ -1513,6 +1512,35 @@ public class DashboardUI extends JFrame {
         mainPanel.setBackground(BACKGROUND_COLOR);
         mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
+        // For clients, create a tabbed pane with "Available Plans" and "My Plans"
+        if (!isTrainer()) {
+            JTabbedPane clientTabbedPane = new JTabbedPane();
+            clientTabbedPane.setBackground(BACKGROUND_COLOR);
+            clientTabbedPane.setForeground(BAYLOR_GREEN);
+
+            // Available Plans tab
+            JPanel availablePanel = createAvailablePlansPanel();
+            clientTabbedPane.addTab("Available Plans", availablePanel);
+
+            // My Plans tab (enrolled plans)
+            JPanel enrolledPanel = createEnrolledPlansPanel();
+            clientTabbedPane.addTab("My Plans", enrolledPanel);
+
+            // Refresh when switching tabs
+            clientTabbedPane.addChangeListener(e -> {
+                int selectedIndex = clientTabbedPane.getSelectedIndex();
+                if (selectedIndex == 0) {
+                    refreshPlanLibraryList();
+                } else if (selectedIndex == 1) {
+                    refreshEnrolledPlans();
+                }
+            });
+
+            mainPanel.add(clientTabbedPane, BorderLayout.CENTER);
+            return mainPanel;
+        }
+
+        // Trainer view: simple browse view
         JLabel header = new JLabel(
                 "<html><h2>Plan Library</h2>" +
                         "<p>Browse self-paced plans created by trainers.</p></html>",
@@ -1583,6 +1611,233 @@ public class DashboardUI extends JFrame {
         libraryPlanListModel.clear();
         for (SelfPacedPlan p : selfPacedPlanManager.getAllPlans()) {
             libraryPlanListModel.addElement(p);
+        }
+    }
+
+    // Panel showing all available plans with sign up buttons (for clients)
+    private DefaultListModel<SelfPacedPlan> availablePlansModel;
+    private JList<SelfPacedPlan> availablePlansList;
+
+    private JPanel createAvailablePlansPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(BACKGROUND_COLOR);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JLabel header = new JLabel(
+                "<html><h2>Available Self-Paced Plans</h2>" +
+                        "<p>Browse and sign up for self-paced plans created by trainers.</p></html>",
+                SwingConstants.LEFT
+        );
+        panel.add(header, BorderLayout.NORTH);
+
+        availablePlansModel = new DefaultListModel<>();
+        availablePlansList = new JList<>(availablePlansModel);
+        availablePlansList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        availablePlansList.setVisibleRowCount(10);
+
+        JScrollPane scrollPane = new JScrollPane(availablePlansList);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Select a plan to sign up"));
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        // Details and sign up button panel
+        JPanel detailsPanel = new JPanel(new BorderLayout());
+        detailsPanel.setBackground(BACKGROUND_COLOR);
+        detailsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JTextArea detailsArea = new JTextArea();
+        detailsArea.setEditable(false);
+        detailsArea.setFont(new Font("Arial", Font.PLAIN, 12));
+        detailsArea.setBackground(BACKGROUND_COLOR);
+        detailsArea.setLineWrap(true);
+        detailsArea.setWrapStyleWord(true);
+        detailsArea.setText("Select a plan to see details and sign up.");
+        JScrollPane detailsScroll = new JScrollPane(detailsArea);
+        detailsScroll.setPreferredSize(new Dimension(0, 150));
+        detailsPanel.add(detailsScroll, BorderLayout.CENTER);
+
+        JButton signUpButton = new JButton("Sign Up for Selected Plan");
+        signUpButton.setBackground(BAYLOR_GREEN);
+        signUpButton.setForeground(Color.WHITE);
+        signUpButton.setOpaque(true);
+        signUpButton.setBorderPainted(false);
+        signUpButton.setFocusPainted(false);
+        signUpButton.setFont(new Font("Arial", Font.BOLD, 14));
+        signUpButton.setPreferredSize(new Dimension(0, 40));
+        signUpButton.setEnabled(false);
+        signUpButton.addActionListener(e -> {
+            SelfPacedPlan selected = availablePlansList.getSelectedValue();
+            if (selected != null) {
+                signUpForPlan(selected, detailsArea);
+            }
+        });
+        signUpButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                if (signUpButton.isEnabled()) {
+                    signUpButton.setBackground(LIGHT_GREEN);
+                }
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                signUpButton.setBackground(BAYLOR_GREEN);
+            }
+        });
+        detailsPanel.add(signUpButton, BorderLayout.SOUTH);
+
+        panel.add(detailsPanel, BorderLayout.SOUTH);
+
+        // Update details and button state when selection changes
+        availablePlansList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                SelfPacedPlan selected = availablePlansList.getSelectedValue();
+                if (selected != null) {
+                    String text = "Title: " + selected.getTitle() + "\n\n" +
+                            "Fitness Level: " + selected.getFitnessLevel() + "\n" +
+                            "Equipment: " + selected.getEquipment() + "\n" +
+                            "Session Length: " + selected.getSessionLength() + "\n" +
+                            "Frequency: " + selected.getFrequency() + "\n\n" +
+                            "Description:\n" +
+                            (selected.getDescription() != null ? selected.getDescription() : "None");
+
+                    boolean alreadyEnrolled = userId != -1 && 
+                            selfPacedPlanManager.isUserEnrolledInPlan(userId, selected.getId());
+                    if (alreadyEnrolled) {
+                        text += "\n\n⚠ You are already enrolled in this plan.";
+                    }
+
+                    detailsArea.setText(text);
+                    signUpButton.setEnabled(!alreadyEnrolled);
+                } else {
+                    detailsArea.setText("Select a plan to see details and sign up.");
+                    signUpButton.setEnabled(false);
+                }
+            }
+        });
+
+        // Initial fill
+        refreshAvailablePlans();
+
+        return panel;
+    }
+
+    // Panel showing user's enrolled plans (for clients)
+    private DefaultListModel<SelfPacedPlan> enrolledPlansModel;
+    private JList<SelfPacedPlan> enrolledPlansList;
+
+    private JPanel createEnrolledPlansPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(BACKGROUND_COLOR);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JLabel header = new JLabel("My Enrolled Plans", SwingConstants.CENTER);
+        header.setFont(new Font("Arial", Font.BOLD, 18));
+        header.setForeground(BAYLOR_GREEN);
+        panel.add(header, BorderLayout.NORTH);
+
+        enrolledPlansModel = new DefaultListModel<>();
+        enrolledPlansList = new JList<>(enrolledPlansModel);
+        enrolledPlansList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        enrolledPlansList.setVisibleRowCount(15);
+
+        JScrollPane scrollPane = new JScrollPane(enrolledPlansList);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Plans You're Following"));
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        // Details panel
+        JTextArea detailsArea = new JTextArea();
+        detailsArea.setEditable(false);
+        detailsArea.setFont(new Font("Arial", Font.PLAIN, 12));
+        detailsArea.setBackground(BACKGROUND_COLOR);
+        detailsArea.setLineWrap(true);
+        detailsArea.setWrapStyleWord(true);
+
+        JScrollPane detailsScroll = new JScrollPane(detailsArea);
+        detailsScroll.setBorder(BorderFactory.createTitledBorder("Plan Details"));
+        detailsScroll.setPreferredSize(new Dimension(0, 150));
+        panel.add(detailsScroll, BorderLayout.SOUTH);
+
+        // Show details when plan is selected
+        enrolledPlansList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                SelfPacedPlan selected = enrolledPlansList.getSelectedValue();
+                if (selected != null) {
+                    String text = "Title: " + selected.getTitle() + "\n\n" +
+                            "Fitness Level: " + selected.getFitnessLevel() + "\n" +
+                            "Equipment: " + selected.getEquipment() + "\n" +
+                            "Session Length: " + selected.getSessionLength() + "\n" +
+                            "Frequency: " + selected.getFrequency() + "\n\n" +
+                            "Description:\n" +
+                            (selected.getDescription() != null ? selected.getDescription() : "None");
+                    detailsArea.setText(text);
+                } else {
+                    detailsArea.setText("");
+                }
+            }
+        });
+
+        // Load enrolled plans
+        refreshEnrolledPlans();
+
+        return panel;
+    }
+
+    private void refreshAvailablePlans() {
+        if (availablePlansModel != null && selfPacedPlanManager != null) {
+            availablePlansModel.clear();
+            for (SelfPacedPlan p : selfPacedPlanManager.getAllPlans()) {
+                availablePlansModel.addElement(p);
+            }
+        }
+    }
+
+    private void refreshEnrolledPlans() {
+        if (enrolledPlansModel != null && selfPacedPlanManager != null && userId != -1) {
+            enrolledPlansModel.clear();
+            List<SelfPacedPlan> plans = selfPacedPlanManager.getEnrolledPlansForUser(userId);
+            for (SelfPacedPlan p : plans) {
+                enrolledPlansModel.addElement(p);
+            }
+        }
+    }
+
+    private void signUpForPlan(SelfPacedPlan plan, JTextArea detailsArea) {
+        if (userId == -1) {
+            JOptionPane.showMessageDialog(this,
+                "Unable to sign up: User not found.",
+                "Sign Up Error",
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Check if already enrolled
+        if (selfPacedPlanManager.isUserEnrolledInPlan(userId, plan.getId())) {
+            JOptionPane.showMessageDialog(this,
+                "You are already enrolled in this plan.",
+                "Already Enrolled",
+                JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // Attempt enrollment
+        boolean success = selfPacedPlanManager.enrollUserInPlan(userId, plan.getId());
+        if (success) {
+            JOptionPane.showMessageDialog(this,
+                "Successfully signed up for: " + plan.getTitle(),
+                "Sign Up Successful",
+                JOptionPane.INFORMATION_MESSAGE);
+            
+            // Refresh both lists
+            refreshAvailablePlans();
+            refreshEnrolledPlans();
+            
+            // Update details area
+            String text = detailsArea.getText();
+            if (!text.contains("⚠ You are already enrolled")) {
+                detailsArea.setText(text + "\n\n✅ You are now enrolled in this plan!");
+            }
+        } else {
+            JOptionPane.showMessageDialog(this,
+                "Failed to sign up. You may already be enrolled in this plan.",
+                "Sign Up Failed",
+                JOptionPane.ERROR_MESSAGE);
         }
     }
 

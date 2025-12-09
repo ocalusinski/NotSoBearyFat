@@ -29,6 +29,21 @@ public class SelfPacedPlanManager {
         return dbManager.deleteSelfPacedPlan(planId);
     }
 
+    /** Check if a user is enrolled in a plan */
+    public boolean isUserEnrolledInPlan(int userId, int planId) {
+        return dbManager.isUserEnrolledInPlan(userId, planId);
+    }
+
+    /** Enroll a user in a plan */
+    public boolean enrollUserInPlan(int userId, int planId) {
+        return dbManager.enrollUserInPlan(userId, planId);
+    }
+
+    /** Get all plans that a user is enrolled in */
+    public List<SelfPacedPlan> getEnrolledPlansForUser(int userId) {
+        return dbManager.getUserEnrolledPlans(userId);
+    }
+
     public boolean hasMissingRequiredFields(SelfPacedPlan plan, List<String> missingFields) {
         if (missingFields != null) {
             missingFields.clear();
