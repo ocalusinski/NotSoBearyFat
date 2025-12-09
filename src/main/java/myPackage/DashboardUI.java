@@ -19,6 +19,21 @@ public class DashboardUI extends JFrame {
     private GoalManager goalManager;
     private JProgressBar calorieProgressBar;
     private JLabel goalStatusLabel;
+    
+    // Redesigned data tab components
+    private JPanel dataTabPanel;
+    private JLabel caloriesValueLabel;
+    private JLabel caloriesTrendLabel;
+    private JLabel burnedValueLabel;
+    private JLabel burnedTrendLabel;
+    private JLabel weightValueLabel;
+    private JLabel weightTrendLabel;
+    private JLabel sleepValueLabel;
+    private JLabel sleepTrendLabel;
+    private JLabel netCaloriesLabel;
+    private JLabel netCaloriesValueLabel;
+    private JProgressBar enhancedCalorieProgressBar;
+    private JLabel weeklyAvgLabel;
     private DefaultListModel<Goal> goalListModel;
     private JList<Goal> goalList;
     private int selectedGoalIndex = -1;
@@ -119,7 +134,7 @@ public class DashboardUI extends JFrame {
 
         // Streak display
         int currentStreak = userId != -1 ? dbManager.getCurrentStreak(userId) : 0;
-        JLabel streakLabel = new JLabel("🔥 " + currentStreak + " day streak");
+        JLabel streakLabel = new JLabel(currentStreak + " day streak");
         streakLabel.setForeground(new Color(255, 199, 44)); // Baylor gold
         streakLabel.setFont(new Font("Arial", Font.BOLD, 16));
         leftPanel.add(streakLabel);
@@ -202,7 +217,7 @@ public class DashboardUI extends JFrame {
         sidebarList.setBackground(BAYLOR_GREEN);
         sidebarList.setForeground(Color.WHITE);
         sidebarList.setFont(new Font("Arial", Font.PLAIN, 14));
-        sidebarList.setSelectedIndex(0); // Select Graphs by default
+        sidebarList.setSelectedIndex(1); // Select Data by default
         
         // Custom cell renderer for sidebar items
         sidebarList.setCellRenderer(new DefaultListCellRenderer() {
@@ -359,8 +374,8 @@ public class DashboardUI extends JFrame {
         
         add(mainSplitPane, BorderLayout.CENTER);
         
-        // Show Graphs by default
-        cardLayout.show(contentPanel, "Graphs");
+        // Show Data by default
+        cardLayout.show(contentPanel, "Data");
 
         // Message label at bottom
         messageLabel = new JLabel("", SwingConstants.CENTER);
@@ -371,52 +386,263 @@ public class DashboardUI extends JFrame {
         loadUserData();
         checkForReminders();
         
-        // Graphs is already selected by default in sidebar list
+        // Data is already selected by default in sidebar list
         
         setVisible(true);
     }
 
     private JPanel createDataTab() {
-        JPanel mainPanel = new JPanel();
-        mainPanel.setLayout(new GridLayout(4, 2, 10, 10));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 40, 20, 40));
-        mainPanel.setBackground(BACKGROUND_COLOR);
+        dataTabPanel = new JPanel(new BorderLayout());
+        dataTabPanel.setBackground(BACKGROUND_COLOR);
+        dataTabPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        caloriesLabel = new JLabel("Calories Consumed: -- kcal");
-        burnedLabel = new JLabel("Calories Burned: -- kcal");
-        weightLabel = new JLabel("Weight: -- lbs");
-        sleepLabel = new JLabel("Sleep: -- hrs");
+        // Top section: Quick summary and net calories
+        JPanel topSection = createTopSummarySection();
+        dataTabPanel.add(topSection, BorderLayout.NORTH);
 
-        // Style the labels
-        Font labelFont = new Font("Arial", Font.PLAIN, 14);
-        caloriesLabel.setFont(labelFont);
-        burnedLabel.setFont(labelFont);
-        weightLabel.setFont(labelFont);
-        sleepLabel.setFont(labelFont);
+        // Center section: Main metric cards in a grid
+        JPanel centerSection = new JPanel(new GridLayout(2, 2, 20, 20));
+        centerSection.setBackground(BACKGROUND_COLOR);
+        centerSection.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
 
-        mainPanel.add(new JLabel("Calorie Intake:"));
-        mainPanel.add(caloriesLabel);
-        mainPanel.add(new JLabel("Calories Burned:"));
-        mainPanel.add(burnedLabel);
-        mainPanel.add(new JLabel("Weight:"));
-        mainPanel.add(weightLabel);
-        mainPanel.add(new JLabel("Sleep:"));
-        mainPanel.add(sleepLabel);
+        // Create metric cards
+        centerSection.add(createMetricCard("", "Calories Consumed", "--", "kcal", Color.decode("#FF6B6B")));
+        centerSection.add(createMetricCard("", "Calories Burned", "--", "kcal", Color.decode("#4ECDC4")));
+        centerSection.add(createMetricCard("", "Weight", "--", "lbs", Color.decode("#95E1D3")));
+        centerSection.add(createMetricCard("", "Sleep", "--", "hrs", Color.decode("#A8DADC")));
 
-        // Calorie goal progress bar
-        mainPanel.add(new JLabel("Calorie Goal Progress:"));
-        calorieProgressBar = new JProgressBar(0, 100);
-        calorieProgressBar.setStringPainted(true);
-        calorieProgressBar.setValue(0);
-        calorieProgressBar.setString("No goal set");
-        mainPanel.add(calorieProgressBar);
+        dataTabPanel.add(centerSection, BorderLayout.CENTER);
 
-        // Statue text for how close the user is to goal
-        mainPanel.add(new JLabel("Goal Status:"));
+        // Bottom section: Goal progress and weekly stats
+        JPanel bottomSection = createBottomSection();
+        dataTabPanel.add(bottomSection, BorderLayout.SOUTH);
+
+        return dataTabPanel;
+    }
+
+    private JPanel createTopSummarySection() {
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.setBackground(BACKGROUND_COLOR);
+        topPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
+
+        // Net calories card (prominent)
+        JPanel netCaloriesCard = createStyledCard();
+        netCaloriesCard.setLayout(new BorderLayout());
+        netCaloriesCard.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BAYLOR_GREEN, 2),
+            BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
+
+        JLabel netTitle = new JLabel("Net Calories Today", SwingConstants.CENTER);
+        netTitle.setFont(new Font("Arial", Font.BOLD, 16));
+        netTitle.setForeground(BAYLOR_GREEN);
+        netCaloriesCard.add(netTitle, BorderLayout.NORTH);
+
+        netCaloriesValueLabel = new JLabel("--", SwingConstants.CENTER);
+        netCaloriesValueLabel.setFont(new Font("Arial", Font.BOLD, 40));
+        netCaloriesValueLabel.setForeground(BAYLOR_GREEN);
+        netCaloriesValueLabel.setVerticalAlignment(SwingConstants.CENTER);
+        netCaloriesCard.add(netCaloriesValueLabel, BorderLayout.CENTER);
+
+        netCaloriesLabel = new JLabel("kcal", SwingConstants.CENTER);
+        netCaloriesLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        netCaloriesLabel.setForeground(Color.GRAY);
+        netCaloriesCard.add(netCaloriesLabel, BorderLayout.SOUTH);
+
+        // Quick Add Data button
+        JButton quickAddButton = new JButton("Quick Add Data");
+        quickAddButton.setBackground(BAYLOR_GREEN);
+        quickAddButton.setForeground(Color.WHITE);
+        quickAddButton.setOpaque(true);
+        quickAddButton.setBorderPainted(false);
+        quickAddButton.setFocusPainted(false);
+        quickAddButton.setFont(new Font("Arial", Font.BOLD, 14));
+        quickAddButton.setPreferredSize(new Dimension(180, 40));
+        quickAddButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                quickAddButton.setBackground(LIGHT_GREEN);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                quickAddButton.setBackground(BAYLOR_GREEN);
+            }
+        });
+        quickAddButton.addActionListener(e -> {
+            if (userId != -1 && dbManager != null) {
+                AddData.openAddDataPage(userId, dbManager, () -> {
+                    // Refresh data tab after adding data
+                    loadUserData();
+                });
+            } else {
+                JOptionPane.showMessageDialog(this,
+                    "Unable to add data: user not found.",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        // Container for net calories card and button
+        JPanel centerContainer = new JPanel(new BorderLayout(20, 0));
+        centerContainer.setBackground(BACKGROUND_COLOR);
+        centerContainer.add(netCaloriesCard, BorderLayout.CENTER);
+        centerContainer.add(quickAddButton, BorderLayout.EAST);
+
+        topPanel.add(centerContainer, BorderLayout.CENTER);
+
+        return topPanel;
+    }
+
+    private JPanel createMetricCard(String icon, String title, String value, String unit, Color accentColor) {
+        JPanel card = createStyledCard();
+        card.setLayout(new BorderLayout());
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 4, 0, 0, accentColor),
+            BorderFactory.createEmptyBorder(15, 20, 15, 20)
+        ));
+
+        // Top: Icon and title (only show title if no icon, or show both if icon provided)
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        topPanel.setOpaque(false);
+        if (!icon.isEmpty()) {
+            JLabel iconLabel = new JLabel(icon);
+            iconLabel.setFont(new Font("Arial", Font.PLAIN, 24));
+            topPanel.add(iconLabel);
+        }
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        titleLabel.setForeground(Color.GRAY);
+        topPanel.add(titleLabel);
+        card.add(topPanel, BorderLayout.NORTH);
+
+        // Center: Value with proper spacing
+        JPanel valuePanel = new JPanel(new BorderLayout());
+        valuePanel.setOpaque(false);
+        valuePanel.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
+        JLabel valueLabel = new JLabel(value, SwingConstants.LEFT);
+        valueLabel.setFont(new Font("Arial", Font.BOLD, 28));
+        valueLabel.setForeground(BAYLOR_GREEN);
+        valueLabel.setVerticalAlignment(SwingConstants.CENTER);
+        valuePanel.add(valueLabel, BorderLayout.CENTER);
+        card.add(valuePanel, BorderLayout.CENTER);
+
+        // Bottom: Unit and trend
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+        bottomPanel.setOpaque(false);
+        JLabel unitLabel = new JLabel(unit);
+        unitLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        unitLabel.setForeground(Color.GRAY);
+        bottomPanel.add(unitLabel, BorderLayout.WEST);
+
+        JLabel trendLabel = new JLabel("", SwingConstants.RIGHT);
+        trendLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        bottomPanel.add(trendLabel, BorderLayout.EAST);
+
+        card.add(bottomPanel, BorderLayout.SOUTH);
+
+        // Store references based on metric type
+        switch (title) {
+            case "Calories Consumed":
+                caloriesValueLabel = valueLabel;
+                caloriesTrendLabel = trendLabel;
+                break;
+            case "Calories Burned":
+                burnedValueLabel = valueLabel;
+                burnedTrendLabel = trendLabel;
+                break;
+            case "Weight":
+                weightValueLabel = valueLabel;
+                weightTrendLabel = trendLabel;
+                break;
+            case "Sleep":
+                sleepValueLabel = valueLabel;
+                sleepTrendLabel = trendLabel;
+                break;
+        }
+
+        // Add hover effect
+        card.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                card.setBackground(new Color(card.getBackground().getRed() - 5,
+                    card.getBackground().getGreen() - 5,
+                    card.getBackground().getBlue() - 5));
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                card.setBackground(Color.WHITE);
+            }
+        });
+
+        return card;
+    }
+
+    private JPanel createBottomSection() {
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+        bottomPanel.setBackground(BACKGROUND_COLOR);
+        bottomPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 0, 0));
+
+        // Left: Goal progress card
+        JPanel goalCard = createStyledCard();
+        goalCard.setLayout(new BorderLayout());
+        goalCard.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel goalTitle = new JLabel("Daily Calorie Goal", SwingConstants.LEFT);
+        goalTitle.setFont(new Font("Arial", Font.BOLD, 16));
+        goalTitle.setForeground(BAYLOR_GREEN);
+        goalCard.add(goalTitle, BorderLayout.NORTH);
+
+        enhancedCalorieProgressBar = new JProgressBar(0, 100);
+        enhancedCalorieProgressBar.setStringPainted(true);
+        enhancedCalorieProgressBar.setFont(new Font("Arial", Font.BOLD, 12));
+        enhancedCalorieProgressBar.setForeground(Color.WHITE);
+        enhancedCalorieProgressBar.setBackground(new Color(220, 220, 220));
+        enhancedCalorieProgressBar.setValue(0);
+        enhancedCalorieProgressBar.setString("No goal set");
+        enhancedCalorieProgressBar.setPreferredSize(new Dimension(0, 40));
+        goalCard.add(enhancedCalorieProgressBar, BorderLayout.CENTER);
+
         goalStatusLabel = new JLabel("Set a goal in the Goals tab to start tracking.");
-        mainPanel.add(goalStatusLabel);
+        goalStatusLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        goalStatusLabel.setForeground(Color.GRAY);
+        goalCard.add(goalStatusLabel, BorderLayout.SOUTH);
 
-        return mainPanel;
+        // Right: Weekly average card
+        JPanel weeklyCard = createStyledCard();
+        weeklyCard.setLayout(new BorderLayout());
+        weeklyCard.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel weeklyTitle = new JLabel("Weekly Average", SwingConstants.LEFT);
+        weeklyTitle.setFont(new Font("Arial", Font.BOLD, 16));
+        weeklyTitle.setForeground(BAYLOR_GREEN);
+        weeklyCard.add(weeklyTitle, BorderLayout.NORTH);
+
+        weeklyAvgLabel = new JLabel("<html><div style='text-align: left;'>" +
+            "Calories: --<br>" +
+            "Burned: --<br>" +
+            "Sleep: -- hrs</div></html>");
+        weeklyAvgLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        weeklyAvgLabel.setForeground(Color.GRAY);
+        weeklyCard.add(weeklyAvgLabel, BorderLayout.CENTER);
+
+        // Use GridLayout for side-by-side
+        JPanel cardsContainer = new JPanel(new GridLayout(1, 2, 20, 0));
+        cardsContainer.setBackground(BACKGROUND_COLOR);
+        cardsContainer.add(goalCard);
+        cardsContainer.add(weeklyCard);
+
+        bottomPanel.add(cardsContainer, BorderLayout.CENTER);
+
+        // Keep old progress bar reference for compatibility
+        calorieProgressBar = enhancedCalorieProgressBar;
+
+        return bottomPanel;
+    }
+
+    private JPanel createStyledCard() {
+        JPanel card = new JPanel();
+        card.setBackground(Color.WHITE);
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(220, 220, 220), 1),
+            BorderFactory.createEmptyBorder(15, 15, 15, 15)
+        ));
+        return card;
     }
 
     private JPanel createFriendsTab() {
@@ -1159,7 +1385,10 @@ public class DashboardUI extends JFrame {
 
 
     private void updateGoalProgress(Integer caloriesConsumed) {
-        if (calorieProgressBar == null || goalStatusLabel == null) {
+        // Use enhanced progress bar if available, otherwise fall back to old one
+        JProgressBar progressBar = (enhancedCalorieProgressBar != null) ? enhancedCalorieProgressBar : calorieProgressBar;
+        
+        if (progressBar == null || goalStatusLabel == null) {
             return; // Data tab not built yet
         }
 
@@ -1168,8 +1397,9 @@ public class DashboardUI extends JFrame {
 
         // No goal set at all
         if (goal == null || goal.getCalories() == null) {
-            calorieProgressBar.setValue(0);
-            calorieProgressBar.setString("No goal set");
+            progressBar.setValue(0);
+            progressBar.setString("No goal set");
+            progressBar.setForeground(Color.GRAY);
             goalStatusLabel.setText("Set a goal in the Goals tab to start tracking.");
             goalStatusLabel.setForeground(Color.DARK_GRAY);
             return;
@@ -1177,8 +1407,9 @@ public class DashboardUI extends JFrame {
 
         int target = goal.getCalories();
         if (target <= 0) {
-            calorieProgressBar.setValue(0);
-            calorieProgressBar.setString("Invalid goal");
+            progressBar.setValue(0);
+            progressBar.setString("Invalid goal");
+            progressBar.setForeground(Color.RED);
             goalStatusLabel.setText("Calorie goal must be greater than 0.");
             goalStatusLabel.setForeground(Color.RED);
             return;
@@ -1186,8 +1417,9 @@ public class DashboardUI extends JFrame {
 
         // No recent data
         if (caloriesConsumed == null) {
-            calorieProgressBar.setValue(0);
-            calorieProgressBar.setString("0% of " + target + " kcal");
+            progressBar.setValue(0);
+            progressBar.setString("0% of " + String.format("%,d", target) + " kcal");
+            progressBar.setForeground(BAYLOR_GREEN);
             goalStatusLabel.setText("No recent data. Log today's calories to start tracking.");
             goalStatusLabel.setForeground(new Color(128, 64, 0));
             return;
@@ -1198,17 +1430,25 @@ public class DashboardUI extends JFrame {
         int percent = (int) Math.round(ratio * 100);
         percent = Math.max(0, Math.min(percent, 200));
 
-        calorieProgressBar.setValue(Math.min(percent, 100));
-        calorieProgressBar.setString(percent + "% of " + target + " kcal");
+        progressBar.setValue(Math.min(percent, 100));
+        progressBar.setString(percent + "% (" + String.format("%,d", caloriesConsumed) + " / " + String.format("%,d", target) + " kcal)");
 
+        // Color code progress bar based on progress
         if (percent >= 100) {
-            goalStatusLabel.setText("🎉 You reached your calorie goal today!");
+            progressBar.setForeground(new Color(0, 180, 0)); // Green for goal reached
+            goalStatusLabel.setText("You reached your calorie goal today!");
             goalStatusLabel.setForeground(new Color(0, 128, 64));
         } else if (percent >= 75) {
-            goalStatusLabel.setText("Almost there! " + (target - caloriesConsumed) + " kcal to go.");
+            progressBar.setForeground(Color.decode("#4ECDC4")); // Teal for close
+            goalStatusLabel.setText("Almost there! " + String.format("%,d", (target - caloriesConsumed)) + " kcal to go.");
+            goalStatusLabel.setForeground(new Color(0, 102, 204));
+        } else if (percent >= 50) {
+            progressBar.setForeground(Color.decode("#95E1D3")); // Light teal for halfway
+            goalStatusLabel.setText("You have " + String.format("%,d", (target - caloriesConsumed)) + " kcal remaining.");
             goalStatusLabel.setForeground(new Color(0, 102, 204));
         } else {
-            goalStatusLabel.setText("You have " + (target - caloriesConsumed) + " kcal remaining.");
+            progressBar.setForeground(BAYLOR_GREEN); // Baylor green for early progress
+            goalStatusLabel.setText("You have " + String.format("%,d", (target - caloriesConsumed)) + " kcal remaining.");
             goalStatusLabel.setForeground(new Color(128, 64, 0));
         }
     }
@@ -2738,7 +2978,7 @@ public class DashboardUI extends JFrame {
         gbc.insets = new Insets(15, 20, 15, 20);
 
         // Title
-        JLabel titleLabel = new JLabel("🔥 Login Streak 🔥");
+        JLabel titleLabel = new JLabel("Login Streak");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 28));
         titleLabel.setForeground(BAYLOR_GREEN);
         gbc.gridx = 0;
@@ -2840,29 +3080,27 @@ public class DashboardUI extends JFrame {
         rewardsText.setWrapStyleWord(true);
 
         StringBuilder rewards = new StringBuilder();
-        rewards.append("🎯 Streak Milestones:\n\n");
-        rewards.append("• 1 day: Welcome! You're on your way!\n");
-        rewards.append("• 7 days: Week Warrior! 🏆\n");
-        rewards.append("• 14 days: Two Week Champion! 🥇\n");
-        rewards.append("• 30 days: Monthly Master! 🎖️\n");
-        rewards.append("• 60 days: Two Month Legend! 👑\n");
-        rewards.append("• 100 days: Centurion! 💯\n\n");
-        rewards.append("💡 Tip: Log in every day to maintain your streak!\n");
-        rewards.append("Your streak resets if you miss a day.");
+        rewards.append("Streak Milestones:\n\n");
+        rewards.append("• 7 days: Week Warrior\n");
+        rewards.append("• 14 days: Two Week Champion\n");
+        rewards.append("• 30 days: Monthly Master\n");
+        rewards.append("• 60 days: Two Month Legend\n");
+        rewards.append("• 100 days: Centurion\n\n");
+        rewards.append("Tip: Log in every day to maintain your streak. Your streak resets if you miss a day.");
 
         // Check if user has reached any milestones
         if (currentStreak >= 100) {
-            rewards.append("\n\n🎉 CONGRATULATIONS! You've reached 100 days!");
+            rewards.append("\n\nCongratulations! You've reached 100 days!");
         } else if (currentStreak >= 60) {
-            rewards.append("\n\n🌟 Amazing! You're a Two Month Legend!");
+            rewards.append("\n\nAmazing! You're a Two Month Legend!");
         } else if (currentStreak >= 30) {
-            rewards.append("\n\n⭐ Great job! You're a Monthly Master!");
+            rewards.append("\n\nGreat job! You're a Monthly Master!");
         } else if (currentStreak >= 14) {
-            rewards.append("\n\n✨ Well done! You're a Two Week Champion!");
+            rewards.append("\n\nWell done! You're a Two Week Champion!");
         } else if (currentStreak >= 7) {
-            rewards.append("\n\n👍 Keep it up! You're a Week Warrior!");
+            rewards.append("\n\nKeep it up! You're a Week Warrior!");
         } else if (currentStreak > 0) {
-            rewards.append("\n\n🚀 You're building your streak! Keep logging in daily!");
+            rewards.append("\n\nYou're building your streak! Keep logging in daily!");
         }
 
         rewardsText.setText(rewards.toString());
@@ -3048,33 +3286,209 @@ public class DashboardUI extends JFrame {
     private void loadUserData() {
         if (userId == -1) {
             // User not found in database
-            caloriesLabel.setText("Calories Consumed: N/A");
-            burnedLabel.setText("Calories Burned: N/A");
-            weightLabel.setText("Weight: N/A");
-            sleepLabel.setText("Sleep: N/A");
+            updateDataTabWithNoData();
             return;
         }
 
-        double[] data = dbManager.getLatestUserDataDouble(userId);
-        if (data != null && data.length == 4) {
-            int caloriesConsumed = (int)data[0];
-            double weight = data[1];
-            double sleepHours = data[2];
-            int totalCaloriesBurned = (int)data[3];
+        // Get today's data
+        double[] todayData = dbManager.getLatestUserDataDouble(userId);
+        
+        // Get historical data for trends and weekly averages
+        java.util.List<Object[]> historicalData = dbManager.getHistoricalUserData(userId, 7);
+        
+        // Get yesterday's data for trend comparison
+        double[] yesterdayData = null;
+        if (historicalData != null && historicalData.size() >= 2) {
+            // Get second most recent entry (yesterday)
+            Object[] yesterdayEntry = historicalData.get(historicalData.size() - 2);
+            if (yesterdayEntry != null && yesterdayEntry.length >= 5) {
+                Integer cal = (Integer) yesterdayEntry[1];
+                Double wt = (Double) yesterdayEntry[2];
+                Double slp = (Double) yesterdayEntry[3];
+                Integer brn = (Integer) yesterdayEntry[4];
+                if (cal != null && wt != null && slp != null && brn != null) {
+                    yesterdayData = new double[]{cal, wt, slp, brn};
+                }
+            }
+        }
+
+        if (todayData != null && todayData.length == 4) {
+            int caloriesConsumed = (int)todayData[0];
+            double weight = todayData[1];
+            double sleepHours = todayData[2];
+            int totalCaloriesBurned = (int)todayData[3];
             
-            caloriesLabel.setText("Calories Consumed: " + caloriesConsumed + " kcal");
-            burnedLabel.setText("Calories Burned: " + totalCaloriesBurned + " kcal");
-            weightLabel.setText("Weight: " + String.format("%.1f", weight) + " lbs");
-            sleepLabel.setText("Sleep: " + String.format("%.1f", sleepHours) + " hrs");
+            // Update new components if they exist
+            if (caloriesValueLabel != null) {
+                caloriesValueLabel.setText(String.format("%,d", caloriesConsumed));
+                updateTrendLabel(caloriesTrendLabel, caloriesConsumed, 
+                    yesterdayData != null ? (int)yesterdayData[0] : -1, true);
+            }
+            
+            if (burnedValueLabel != null) {
+                burnedValueLabel.setText(String.format("%,d", totalCaloriesBurned));
+                updateTrendLabel(burnedTrendLabel, totalCaloriesBurned, 
+                    yesterdayData != null ? (int)yesterdayData[3] : -1, true);
+            }
+            
+            if (weightValueLabel != null) {
+                weightValueLabel.setText(String.format("%.1f", weight));
+                updateTrendLabel(weightTrendLabel, weight, 
+                    yesterdayData != null ? yesterdayData[1] : -1, false);
+            }
+            
+            if (sleepValueLabel != null) {
+                sleepValueLabel.setText(String.format("%.1f", sleepHours));
+                updateTrendLabel(sleepTrendLabel, sleepHours, 
+                    yesterdayData != null ? yesterdayData[2] : -1, false);
+            }
+            
+            // Calculate and display net calories
+            if (netCaloriesValueLabel != null) {
+                int netCalories = caloriesConsumed - totalCaloriesBurned;
+                netCaloriesValueLabel.setText(String.format("%,d", netCalories));
+                // Color code net calories
+                if (netCalories < 0) {
+                    netCaloriesValueLabel.setForeground(Color.decode("#FF6B6B")); // Red for deficit
+                } else if (netCalories < 500) {
+                    netCaloriesValueLabel.setForeground(Color.decode("#FFA500")); // Orange for small surplus
+                } else {
+                    netCaloriesValueLabel.setForeground(Color.decode("#4ECDC4")); // Teal for larger surplus
+                }
+            }
+            
+            // Calculate weekly averages
+            if (weeklyAvgLabel != null && historicalData != null && historicalData.size() > 0) {
+                updateWeeklyAverages(historicalData);
+            }
+            
+            // Update goal progress
             updateGoalProgress(caloriesConsumed);
+            
+            // Keep old labels updated for backward compatibility
+            if (caloriesLabel != null) {
+                caloriesLabel.setText("Calories Consumed: " + caloriesConsumed + " kcal");
+            }
+            if (burnedLabel != null) {
+                burnedLabel.setText("Calories Burned: " + totalCaloriesBurned + " kcal");
+            }
+            if (weightLabel != null) {
+                weightLabel.setText("Weight: " + String.format("%.1f", weight) + " lbs");
+            }
+            if (sleepLabel != null) {
+                sleepLabel.setText("Sleep: " + String.format("%.1f", sleepHours) + " hrs");
+            }
         } else {
             // No data found
-            caloriesLabel.setText("Calories Consumed: No data");
-            burnedLabel.setText("Calories Burned: No data");
-            weightLabel.setText("Weight: No data");
-            sleepLabel.setText("Sleep: No data");
+            updateDataTabWithNoData();
             updateGoalProgress(null);
         }
+    }
+
+    private void updateTrendLabel(JLabel trendLabel, double todayValue, double yesterdayValue, boolean isInteger) {
+        if (trendLabel == null) return;
+        
+        if (yesterdayValue < 0) {
+            trendLabel.setText("");
+            trendLabel.setForeground(Color.GRAY);
+            return;
+        }
+        
+        double change = todayValue - yesterdayValue;
+        double percentChange = yesterdayValue != 0 ? (change / yesterdayValue) * 100 : 0;
+        
+        String arrow;
+        Color color;
+        if (change > 0) {
+            arrow = "↑";
+            color = Color.decode("#4ECDC4"); // Teal for increase
+        } else if (change < 0) {
+            arrow = "↓";
+            color = Color.decode("#FF6B6B"); // Red for decrease
+        } else {
+            arrow = "→";
+            color = Color.GRAY;
+        }
+        
+        String changeText;
+        if (isInteger) {
+            changeText = String.format("%s %d (%.1f%%)", arrow, Math.abs((int)change), Math.abs(percentChange));
+        } else {
+            changeText = String.format("%s %.1f (%.1f%%)", arrow, Math.abs(change), Math.abs(percentChange));
+        }
+        
+        trendLabel.setText(changeText);
+        trendLabel.setForeground(color);
+    }
+
+    private void updateWeeklyAverages(java.util.List<Object[]> historicalData) {
+        if (weeklyAvgLabel == null || historicalData == null || historicalData.isEmpty()) {
+            return;
+        }
+        
+        int count = 0;
+        double totalCalories = 0;
+        double totalBurned = 0;
+        double totalSleep = 0;
+        
+        for (Object[] entry : historicalData) {
+            if (entry.length >= 5) {
+                Integer cal = (Integer) entry[1];
+                Double slp = (Double) entry[3];
+                Integer brn = (Integer) entry[4];
+                
+                if (cal != null) totalCalories += cal;
+                if (brn != null) totalBurned += brn;
+                if (slp != null) totalSleep += slp;
+                count++;
+            }
+        }
+        
+        if (count > 0) {
+            int avgCalories = (int)(totalCalories / count);
+            int avgBurned = (int)(totalBurned / count);
+            double avgSleep = totalSleep / count;
+            
+            weeklyAvgLabel.setText(String.format(
+                "<html><div style='text-align: left;'>" +
+                "Calories: %,d<br>" +
+                "Burned: %,d<br>" +
+                "Sleep: %.1f hrs</div></html>",
+                avgCalories, avgBurned, avgSleep
+            ));
+        } else {
+            weeklyAvgLabel.setText("<html><div style='text-align: left;'>" +
+                "Calories: --<br>" +
+                "Burned: --<br>" +
+                "Sleep: -- hrs</div></html>");
+        }
+    }
+
+    private void updateDataTabWithNoData() {
+        if (caloriesValueLabel != null) caloriesValueLabel.setText("--");
+        if (burnedValueLabel != null) burnedValueLabel.setText("--");
+        if (weightValueLabel != null) weightValueLabel.setText("--");
+        if (sleepValueLabel != null) sleepValueLabel.setText("--");
+        if (netCaloriesValueLabel != null) {
+            netCaloriesValueLabel.setText("--");
+            netCaloriesValueLabel.setForeground(Color.GRAY);
+        }
+        if (caloriesTrendLabel != null) caloriesTrendLabel.setText("");
+        if (burnedTrendLabel != null) burnedTrendLabel.setText("");
+        if (weightTrendLabel != null) weightTrendLabel.setText("");
+        if (sleepTrendLabel != null) sleepTrendLabel.setText("");
+        if (weeklyAvgLabel != null) {
+            weeklyAvgLabel.setText("<html><div style='text-align: left;'>" +
+                "Calories: --<br>" +
+                "Burned: --<br>" +
+                "Sleep: -- hrs</div></html>");
+        }
+        
+        // Keep old labels updated for backward compatibility
+        if (caloriesLabel != null) caloriesLabel.setText("Calories Consumed: No data");
+        if (burnedLabel != null) burnedLabel.setText("Calories Burned: No data");
+        if (weightLabel != null) weightLabel.setText("Weight: No data");
+        if (sleepLabel != null) sleepLabel.setText("Sleep: No data");
     }
 
     private void checkForReminders() {
@@ -3089,99 +3503,12 @@ public class DashboardUI extends JFrame {
         if (!hasRecentData) {
             messageLabel.setText("No entries for the last 7 days. Add today's data to get back on track!");
             messageLabel.setForeground(new Color(200, 0, 0));
-            addQuickLogButtons();
         } else {
             messageLabel.setText("Progress data updated successfully");
             messageLabel.setForeground(new Color(0, 128, 64));
         }
     }
 
-    private void addQuickLogButtons() {
-        JPanel quickPanel = new JPanel(new FlowLayout());
-        quickPanel.setBackground(BACKGROUND_COLOR);
-        
-        JButton quickCalories = new JButton("Quick Add Calories");
-        JButton quickWorkout = new JButton("Quick Add Workout");
-        
-        // Style buttons with Baylor green
-        quickCalories.setBackground(BAYLOR_GREEN);
-        quickCalories.setForeground(Color.WHITE);
-        quickCalories.setOpaque(true);
-        quickCalories.setBorderPainted(false);
-        quickCalories.setFocusPainted(false);
-        
-        quickWorkout.setBackground(BAYLOR_GREEN);
-        quickWorkout.setForeground(Color.WHITE);
-        quickWorkout.setOpaque(true);
-        quickWorkout.setBorderPainted(false);
-        quickWorkout.setFocusPainted(false);
-        
-        // Add hover effects
-        quickCalories.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                quickCalories.setBackground(LIGHT_GREEN);
-            }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                quickCalories.setBackground(BAYLOR_GREEN);
-            }
-        });
-        
-        quickWorkout.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                quickWorkout.setBackground(LIGHT_GREEN);
-            }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                quickWorkout.setBackground(BAYLOR_GREEN);
-            }
-        });
-        
-        // Add action listener to Quick Add Calories button
-        quickCalories.addActionListener(e -> {
-            if (userId == -1) {
-                JOptionPane.showMessageDialog(DashboardUI.this,
-                    "Unable to add data: User not found.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            // Open AddData page with current user's ID and database manager
-            // Pass a callback to refresh dashboard data after saving
-            AddData.openAddDataPage(userId, dbManager, () -> {
-                loadUserData();
-                checkForReminders();
-            });
-        });
-        
-        // TODO: Add action listener for Quick Add Workout button when implemented
-        quickWorkout.addActionListener(e -> {
-            if (userId == -1) {
-                JOptionPane.showMessageDialog(DashboardUI.this,
-                        "Unable to add workout: User not found",
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            new recordWorkout.recordWorkoutPage(userId, dbManager, () -> {
-                loadUserData();
-                checkForReminders();
-            });
-        });
-
-        quickPanel.add(quickCalories);
-        quickPanel.add(quickWorkout);
-        
-        // Add to a panel that can be placed in the data tab
-        // For now, we'll add it to the message area or create a separate panel
-        JPanel bottomPanel = new JPanel(new BorderLayout());
-        bottomPanel.setBackground(BACKGROUND_COLOR);
-        bottomPanel.add(messageLabel, BorderLayout.CENTER);
-        bottomPanel.add(quickPanel, BorderLayout.SOUTH);
-        
-        // Replace the message label area
-        remove(messageLabel);
-        add(bottomPanel, BorderLayout.SOUTH);
-        validate();
-    }
 
     @Override
     public void dispose() {
