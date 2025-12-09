@@ -527,24 +527,6 @@ public class DatabaseManager {
     }
 
     /**
-     * Ensures the database connection is open. Reconnects if closed or null.
-     */
-    public void ensureConnection() {
-        try {
-            if (connection == null || connection.isClosed()) {
-                connection = DriverManager.getConnection(DB_URL);
-                // If another connection is writing, wait up to 5 seconds instead of failing immediately
-                try (Statement busyStmt = connection.createStatement()) {
-                    busyStmt.execute("PRAGMA busy_timeout = 5000");
-                }
-                System.out.println("Database connection re-established.");
-            }
-        } catch (SQLException e) {
-            System.err.println("Error ensuring connection: " + e.getMessage());
-        }
-    }
-
-    /**
      * Closes the database connection
      */
     public void closeConnection() {
