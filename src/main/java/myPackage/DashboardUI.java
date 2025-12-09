@@ -57,6 +57,10 @@ public class DashboardUI extends JFrame {
     private JPanel sidebarPanel;
     private boolean sidebarVisible = true;
     
+    // Graph tab references for refreshing
+    private JTabbedPane graphTabbedPane;
+    private JPanel historicalTabPanel;
+    
     // Baylor green color scheme
     private static final Color BAYLOR_GREEN = new Color(0, 71, 56);
     private static final Color LIGHT_GREEN = new Color(0, 100, 80);
@@ -280,6 +284,9 @@ public class DashboardUI extends JFrame {
                         if (!isTrainer() && availablePlansModel != null) {
                             refreshAvailablePlans();
                         }
+                    } else if ("Graphs".equals(selected)) {
+                        // Refresh graphs when switching to Graphs tab
+                        refreshGraphs();
                     }
                 }
             }
@@ -2877,11 +2884,11 @@ public class DashboardUI extends JFrame {
     }
 
     private JPanel createHistoricalTab() {
-        JPanel historicalPanel = new JPanel(new BorderLayout());
-        historicalPanel.setBackground(BACKGROUND_COLOR);
+        historicalTabPanel = new JPanel(new BorderLayout());
+        historicalTabPanel.setBackground(BACKGROUND_COLOR);
 
         // Create a tabbed pane for different graph pages
-        JTabbedPane graphTabbedPane = new JTabbedPane();
+        graphTabbedPane = new JTabbedPane();
         graphTabbedPane.setBackground(BACKGROUND_COLOR);
         graphTabbedPane.setForeground(BAYLOR_GREEN);
 
@@ -2893,9 +2900,30 @@ public class DashboardUI extends JFrame {
         JPanel workoutGraphsPanel = createWorkoutGraphsPanel();
         graphTabbedPane.addTab("Workout Data", workoutGraphsPanel);
 
-        historicalPanel.add(graphTabbedPane, BorderLayout.CENTER);
+        // Add refresh button panel at the top
+        JPanel refreshPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        refreshPanel.setBackground(BACKGROUND_COLOR);
+        JButton refreshButton = new JButton("Refresh Graphs");
+        refreshButton.setBackground(BAYLOR_GREEN);
+        refreshButton.setForeground(Color.WHITE);
+        refreshButton.setOpaque(true);
+        refreshButton.setBorderPainted(false);
+        refreshButton.setFocusPainted(false);
+        refreshButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                refreshButton.setBackground(LIGHT_GREEN);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                refreshButton.setBackground(BAYLOR_GREEN);
+            }
+        });
+        refreshButton.addActionListener(e -> refreshGraphs());
+        refreshPanel.add(refreshButton);
 
-        return historicalPanel;
+        historicalTabPanel.add(refreshPanel, BorderLayout.NORTH);
+        historicalTabPanel.add(graphTabbedPane, BorderLayout.CENTER);
+
+        return historicalTabPanel;
     }
     
     private JPanel createMainGraphsPanel() {
@@ -2993,6 +3021,29 @@ public class DashboardUI extends JFrame {
         return userType != null && userType.equalsIgnoreCase("trainer");
     }
     
+    private void refreshGraphs() {
+        if (graphTabbedPane == null) {
+            return;
+        }
+        
+        System.out.println("refreshGraphs: Refreshing all graphs...");
+        
+        // Remove existing tabs
+        graphTabbedPane.removeAll();
+        
+        // Recreate graph panels
+        JPanel mainGraphsPanel = createMainGraphsPanel();
+        graphTabbedPane.addTab("Health Data", mainGraphsPanel);
+        
+        JPanel workoutGraphsPanel = createWorkoutGraphsPanel();
+        graphTabbedPane.addTab("Workout Data", workoutGraphsPanel);
+        
+        // Refresh the panel to show updated graphs
+        historicalTabPanel.revalidate();
+        historicalTabPanel.repaint();
+        
+        System.out.println("refreshGraphs: Graphs refreshed successfully");
+    }
 
     private void loadUserData() {
         if (userId == -1) {

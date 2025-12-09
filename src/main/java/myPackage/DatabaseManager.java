@@ -225,6 +225,18 @@ public class DatabaseManager {
                         "UNIQUE(plan_id, user_id)" +
                         ")";
 
+        String createWorkoutsTable =
+                "CREATE TABLE IF NOT EXISTS workouts (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        "user_id INTEGER NOT NULL, " +
+                        "date TEXT NOT NULL, " +
+                        "workout_type TEXT NOT NULL, " +
+                        "exercise_minutes INTEGER NOT NULL, " +
+                        "calories_burnt INTEGER, " +
+                        "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                        "FOREIGN KEY (user_id) REFERENCES users(id)" +
+                        ")";
+
         try {
             Statement stmt = connection.createStatement();
             stmt.execute(createUsersTable);
@@ -236,11 +248,13 @@ public class DatabaseManager {
             stmt.execute(createGoalsTable);
             stmt.execute(createSelfPacedPlansTable);
             stmt.execute(createPlanEnrollmentsTable);
+            stmt.execute(createWorkoutsTable);
             System.out.println("Tables created successfully!");
             System.out.println("Friends table created/verified.");
             System.out.println("Login streaks table created/verified.");
             System.out.println("Goals and self-paced plans tables created/verified.");
             System.out.println("Plan enrollments table created/verified.");
+            System.out.println("Workouts table created/verified.");
         } catch (SQLException e) {
             System.err.println("Error creating tables: " + e.getMessage());
             e.printStackTrace();
@@ -419,6 +433,163 @@ public class DatabaseManager {
             System.err.println("Error saving user data: " + e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * Saves workout data for a user. Saves to workouts table and also updates user_data total_calories_burned.
+     */
+    public boolean saveWorkoutData(int userId, String date, String workoutType, int exerciseMinutes, int caloriesBurned) {
+        try {
+            System.out.println("saveWorkoutData: Saving workout for user " + userId + ", date: " + date + ", type: " + workoutType + ", minutes: " + exerciseMinutes + ", calories: " + caloriesBurned);
+            
+            // Save to workouts table
+            String workoutSql = "INSERT INTO workouts (user_id, date, workout_type, exercise_minutes, calories_burnt) " +
+                               "VALUES (?, ?, ?, ?, ?)";
+            PreparedStatement workoutStmt = connection.prepareStatement(workoutSql);
+            workoutStmt.setInt(1, userId);
+            workoutStmt.setString(2, date);
+            workoutStmt.setString(3, workoutType);
+            workoutStmt.setInt(4, exerciseMinutes);
+            workoutStmt.setInt(5, caloriesBurned);
+            int rowsInserted = workoutStmt.executeUpdate();
+            System.out.println("saveWorkoutData: Inserted " + rowsInserted + " row(s) into workouts table");
+            
+            // Also update user_data total_calories_burned
+            String checkSql = "SELECT id, total_calories_burned FROM user_data WHERE user_id = ? AND date = ?";
+            PreparedStatement checkStmt = connection.prepareStatement(checkSql);
+            checkStmt.setInt(1, userId);
+            checkStmt.setString(2, date);
+            ResultSet rs = checkStmt.executeQuery();
+            
+            if (rs.next()) {
+                // Data exists - update total_calories_burned (add to existing)
+                int existingCaloriesBurned = rs.getInt("total_calories_burned");
+                int newTotalCaloriesBurned = existingCaloriesBurned + caloriesBurned;
+                
+                String updateSql = "UPDATE user_data SET total_calories_burned = ? WHERE user_id = ? AND date = ?";
+                PreparedStatement updateStmt = connection.prepareStatement(updateSql);
+                updateStmt.setInt(1, newTotalCaloriesBurned);
+                updateStmt.setInt(2, userId);
+                updateStmt.setString(3, date);
+                updateStmt.executeUpdate();
+            } else {
+                // No data exists - insert new row with workout data
+                String insertSql = "INSERT INTO user_data (user_id, date, calories_consumed, weight, sleep_hours, total_calories_burned) " +
+                                 "VALUES (?, ?, 0, 0.0, 0.0, ?)";
+                PreparedStatement insertStmt = connection.prepareStatement(insertSql);
+                insertStmt.setInt(1, userId);
+                insertStmt.setString(2, date);
+                insertStmt.setInt(3, caloriesBurned);
+                insertStmt.executeUpdate();
+            }
+            
+            System.out.println("Workout data saved for user ID: " + userId + " on date: " + date);
+            return true;
+        } catch (SQLException e) {
+            System.err.println("Error saving workout data: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Gets workout data for a user, optionally filtered by number of days
+     * @param userId The user ID
+     * @param days Number of days to retrieve (0 or negative for all data)
+     * @return List of arrays containing [date, workoutType, exerciseMinutes, caloriesBurnt]
+     */
+    public java.util.List<Object[]> getWorkoutData(int userId, int days) {
+        java.util.List<Object[]> data = new java.util.ArrayList<>();
+        String sql;
+        
+        // Note: dates are stored as MM-dd-yyyy, so we can't use SQLite date functions directly
+        // For now, retrieve all data and filter in Java if days > 0
+        sql = "SELECT date, workout_type, exercise_minutes, calories_burnt " +
+              "FROM workouts WHERE user_id = ? ORDER BY date ASC";
+        
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(sql);
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            System.out.println("getWorkoutData: Querying workouts for user " + userId);
+            
+            java.time.LocalDate cutoffDate = null;
+            if (days > 0) {
+                cutoffDate = java.time.LocalDate.now().minusDays(days);
+            }
+            
+            int rowCount = 0;
+            while (rs.next()) {
+                rowCount++;
+                String dateStr = rs.getString("date");
+                System.out.println("getWorkoutData: Found workout row " + rowCount + " with date: " + dateStr);
+                
+                // Parse MM-dd-yyyy format
+                java.time.LocalDate workoutDate = null;
+                try {
+                    String[] parts = dateStr.split("-");
+                    if (parts.length == 3) {
+                        workoutDate = java.time.LocalDate.of(
+                            Integer.parseInt(parts[2]), // year
+                            Integer.parseInt(parts[0]), // month
+                            Integer.parseInt(parts[1])  // day
+                        );
+                    }
+                } catch (Exception e) {
+                    System.err.println("getWorkoutData: Error parsing date " + dateStr + ": " + e.getMessage());
+                    // Skip invalid dates
+                    continue;
+                }
+                
+                // Filter by days if needed
+                if (cutoffDate != null && workoutDate != null && workoutDate.isBefore(cutoffDate)) {
+                    System.out.println("getWorkoutData: Skipping workout dated " + dateStr + " (before cutoff)");
+                    continue;
+                }
+                
+                String workoutType = rs.getString("workout_type");
+                int exerciseMinutes = rs.getInt("exercise_minutes");
+                int caloriesBurnt = rs.getInt("calories_burnt");
+                if (rs.wasNull()) {
+                    caloriesBurnt = 0;
+                }
+                
+                System.out.println("getWorkoutData: Adding workout - Type: " + workoutType + ", Minutes: " + exerciseMinutes + ", Calories: " + caloriesBurnt);
+                
+                Object[] row = new Object[]{
+                    dateStr,
+                    workoutType,
+                    exerciseMinutes,
+                    caloriesBurnt
+                };
+                data.add(row);
+            }
+            System.out.println("getWorkoutData: Total workouts retrieved: " + data.size() + " (from " + rowCount + " rows)");
+        } catch (SQLException e) {
+            System.err.println("Error getting workout data: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return data;
+    }
+    
+    /**
+     * Gets workout counts by type for a user
+     * @param userId The user ID
+     * @param days Number of days to retrieve (0 or negative for all data)
+     * @return Map of workout type to count
+     */
+    public java.util.Map<String, Integer> getWorkoutCountsByType(int userId, int days) {
+        java.util.Map<String, Integer> counts = new java.util.HashMap<>();
+        
+        // Get all workout data and filter by days in Java
+        java.util.List<Object[]> workouts = getWorkoutData(userId, days);
+        
+        for (Object[] workout : workouts) {
+            String workoutType = (String) workout[1];
+            counts.put(workoutType, counts.getOrDefault(workoutType, 0) + 1);
+        }
+        
+        return counts;
     }
 
     /**
@@ -932,34 +1103,71 @@ public class DatabaseManager {
         java.util.List<Object[]> data = new java.util.ArrayList<>();
         String sql;
 
-        if (days > 0) {
-            sql = "SELECT date, calories_consumed, weight, sleep_hours, total_calories_burned " +
-                  "FROM user_data WHERE user_id = ? AND date >= date('now', '-' || ? || ' days') " +
-                  "ORDER BY date ASC";
-        } else {
-            sql = "SELECT date, calories_consumed, weight, sleep_hours, total_calories_burned " +
-                  "FROM user_data WHERE user_id = ? ORDER BY date ASC";
-        }
+        // Note: dates are stored as MM-dd-yyyy, so we can't use SQLite date functions directly
+        // Retrieve all data and filter in Java if days > 0
+        sql = "SELECT date, calories_consumed, weight, sleep_hours, total_calories_burned " +
+              "FROM user_data WHERE user_id = ? ORDER BY date ASC";
 
         try {
             PreparedStatement pstmt = connection.prepareStatement(sql);
             pstmt.setInt(1, userId);
-            if (days > 0) {
-                pstmt.setInt(2, days);
-            }
             ResultSet rs = pstmt.executeQuery();
+            
+            java.time.LocalDate cutoffDate = null;
+            if (days > 0) {
+                cutoffDate = java.time.LocalDate.now().minusDays(days);
+            }
+            
             while (rs.next()) {
+                String dateStr = rs.getString("date");
+                if (dateStr == null) continue;
+                
+                // Filter by days if needed
+                if (cutoffDate != null) {
+                    // Parse MM-dd-yyyy format
+                    try {
+                        String[] parts = dateStr.split("-");
+                        if (parts.length == 3) {
+                            java.time.LocalDate dataDate = java.time.LocalDate.of(
+                                Integer.parseInt(parts[2]), // year
+                                Integer.parseInt(parts[0]), // month
+                                Integer.parseInt(parts[1])  // day
+                            );
+                            if (dataDate.isBefore(cutoffDate)) {
+                                continue;
+                            }
+                        }
+                    } catch (Exception e) {
+                        // Skip invalid dates
+                        continue;
+                    }
+                }
+                
+                // Handle NULL values properly
+                Integer caloriesConsumed = rs.getInt("calories_consumed");
+                if (rs.wasNull()) caloriesConsumed = null;
+                
+                Double weight = rs.getDouble("weight");
+                if (rs.wasNull()) weight = null;
+                
+                Double sleepHours = rs.getDouble("sleep_hours");
+                if (rs.wasNull()) sleepHours = null;
+                
+                Integer totalCaloriesBurned = rs.getInt("total_calories_burned");
+                if (rs.wasNull()) totalCaloriesBurned = null;
+                
                 Object[] row = new Object[]{
-                    rs.getString("date"),
-                    rs.getInt("calories_consumed"),
-                    rs.getDouble("weight"),
-                    rs.getDouble("sleep_hours"),
-                    rs.getInt("total_calories_burned")
+                    dateStr,
+                    caloriesConsumed,
+                    weight,
+                    sleepHours,
+                    totalCaloriesBurned
                 };
                 data.add(row);
             }
         } catch (SQLException e) {
             System.err.println("Error getting historical user data: " + e.getMessage());
+            e.printStackTrace();
         }
         return data;
     }

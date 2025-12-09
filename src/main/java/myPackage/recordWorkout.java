@@ -36,8 +36,12 @@ public class recordWorkout {
         }
 
         public recordWorkoutPage(int userId, DatabaseManager dbManager, Runnable refreshCallback) {
+            this.userId = userId;
+            this.dbManager = dbManager;
+            this.refreshCallback = refreshCallback;
             JFrame frame = new JFrame("RecordWorkout");
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            // Don't exit the whole program when closing this window
+            frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
             frame.setSize(1200, 800);
             frame.setVisible(true);
@@ -179,21 +183,60 @@ public class recordWorkout {
             });
 
 
+            // Parse workout type from dropdown when it changes
+            workoutDropDown.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    workoutType[0] = (String) workoutDropDown.getSelectedItem();
+                }
+            });
+            // Initialize workout type
+            workoutType[0] = (String) workoutDropDown.getSelectedItem();
+
             cancelButton.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    areYouSure("Cancel", frame, date[0], workoutType[0], exerciseMinutes[0], caloriesBurnt[0]);
+                    areYouSure("Cancel", frame, date[0], workoutType[0], exerciseMinutes[0], caloriesBurnt[0], 
+                              userId, dbManager, refreshCallback);
                 }
             });
             saveButton.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
+                    // Parse date field when Save is clicked (in case user didn't press Enter)
+                    if (!parseDateField(dateField, date, formatter1, formatter2, formatter3, formatter4)) {
+                        JOptionPane.showMessageDialog(frame,
+                            "Please enter a valid date.\nAccepted formats: MM-dd-yyyy, M-d-yyyy, MM/dd/yyyy, or M/d/yyyy\nExample: 12-03-2024 or 12/03/2024",
+                            "Invalid Date Format",
+                            JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+                    
+                    // Validate required fields before showing confirmation
+                    if (date[0] == null) {
+                        date[0] = LocalDate.now();
+                    }
+                    
+                    // Parse calories from field if not already parsed
+                    try {
+                        String calText = caloriesBurntField.getText().trim();
+                        if (!calText.isEmpty()) {
+                            caloriesBurnt[0] = Integer.parseInt(calText);
+                        }
+                    } catch (NumberFormatException ex) {
+                        // Will be handled in checkFields
+                    }
+                    
+                    // Parse workout type
+                    workoutType[0] = (String) workoutDropDown.getSelectedItem();
+                    
                     boolean fieldsFull = checkFields();
                     if(!fieldsFull){
                         fieldsNotFull();
                     }
                     else {
-                        areYouSure("Save", frame, date[0], workoutType[0], exerciseMinutes[0], caloriesBurnt[0]);
+                        areYouSure("Save", frame, date[0], workoutType[0], exerciseMinutes[0], caloriesBurnt[0],
+                                  userId, dbManager, refreshCallback);
                     }
                 }
             });
@@ -218,9 +261,12 @@ public class recordWorkout {
     }
 
     private static void areYouSure(String message, JFrame prevFrame,
-                                   LocalDate date, String workoutType, int exerciseMinutes, int caloriesBurnt){
+                                   LocalDate date, String workoutType, int exerciseMinutes, int caloriesBurnt,
+                                   int userId, DatabaseManager dbManager, Runnable refreshCallback){
         JFrame frame = new JFrame(message);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        // Don't exit the whole program when closing this window
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        frame.getContentPane().setBackground(new Color(0, 100, 80));
 
         JButton yesButton = new JButton("Yes");
         JButton noButton = new JButton("No");
@@ -251,9 +297,39 @@ public class recordWorkout {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if(message.equals("Save")){
-                    workoutData data = new workoutData(date, workoutType, exerciseMinutes, caloriesBurnt );
+                    // Save to database if userId and dbManager are available
+                    if (userId != -1 && dbManager != null && date != null && workoutType != null) {
+                        String dateStr = date.format(DateTimeFormatter.ofPattern("MM-dd-yyyy"));
+                        // Use caloriesBurnt if provided, otherwise use 0 (optional field)
+                        int caloriesToSave = caloriesBurnt > 0 ? caloriesBurnt : 0;
+                        
+                        boolean success = dbManager.saveWorkoutData(userId, dateStr, workoutType, exerciseMinutes, caloriesToSave);
+                        if (success) {
+                            JOptionPane.showMessageDialog(frame,
+                                "Workout saved successfully!",
+                                "Success",
+                                JOptionPane.INFORMATION_MESSAGE);
+                            // Call refresh callback if provided (to refresh dashboard)
+                            SwingUtilities.invokeLater(() -> {
+                                if (refreshCallback != null) {
+                                    refreshCallback.run();
+                                }
+                            });
+                        } else {
+                            JOptionPane.showMessageDialog(frame,
+                                "Error saving workout. Please try again.",
+                                "Error",
+                                JOptionPane.ERROR_MESSAGE);
+                        }
+                    } else {
+                        // Fallback: just create workoutData object (for standalone use)
+                        workoutData data = new workoutData(date, workoutType, exerciseMinutes, caloriesBurnt);
+                        JOptionPane.showMessageDialog(frame,
+                            "Workout object created (not saved to database).",
+                            "Note",
+                            JOptionPane.INFORMATION_MESSAGE);
+                    }
                 }
-                //createAndShowGUI();
                 frame.dispose();
                 prevFrame.dispose();
             }

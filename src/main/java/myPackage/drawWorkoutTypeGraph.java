@@ -6,6 +6,7 @@ import org.jfree.data.category.DefaultCategoryDataset;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Map;
 
 public class drawWorkoutTypeGraph extends JPanel {
     public drawWorkoutTypeGraph() {
@@ -13,13 +14,26 @@ public class drawWorkoutTypeGraph extends JPanel {
     }
     
     public drawWorkoutTypeGraph(int userId, DatabaseManager dbManager, int days) {
-        // TODO: Connect to workout data table when available
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-        dataset.addValue(3, "Count", "Walking");
-        dataset.addValue(1, "Count", "Running");
-        dataset.addValue(4, "Count", "HIIT");
-        dataset.addValue(0, "Count", "Weights");
-        dataset.addValue(7, "Count", "Other");
+        
+        if (userId != -1 && dbManager != null) {
+            Map<String, Integer> counts = dbManager.getWorkoutCountsByType(userId, days);
+            System.out.println("Workout type graph: Retrieved " + counts.size() + " workout types for user " + userId);
+            for (Map.Entry<String, Integer> entry : counts.entrySet()) {
+                dataset.addValue(entry.getValue(), "Count", entry.getKey());
+                System.out.println("Workout type graph: Adding " + entry.getValue() + " workouts of type " + entry.getKey());
+            }
+            System.out.println("Workout type graph: Dataset has " + dataset.getRowCount() + " rows");
+        } else {
+            // Fallback to example data if no database connection
+            dataset.addValue(0, "Count", "Walking");
+            dataset.addValue(0, "Count", "Running");
+            dataset.addValue(0, "Count", "HIIT");
+            dataset.addValue(0, "Count", "Lifting");
+            dataset.addValue(0, "Count", "Calisthenics");
+            dataset.addValue(0, "Count", "Yoga");
+            dataset.addValue(0, "Count", "Other");
+        }
 
         JFreeChart chart = ChartFactory.createBarChart(
                 "Workout Count",
