@@ -2392,7 +2392,20 @@ public class DashboardUI extends JFrame {
         });
         
         // TODO: Add action listener for Quick Add Workout button when implemented
-        
+        quickWorkout.addActionListener(e -> {
+            if (userId == -1) {
+                JOptionPane.showMessageDialog(DashboardUI.this,
+                        "Unable to add workout: User not found",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            new recordWorkout.recordWorkoutPage(userId, dbManager, () -> {
+                loadUserData();
+                checkForReminders();
+            });
+        });
+
         quickPanel.add(quickCalories);
         quickPanel.add(quickWorkout);
         
