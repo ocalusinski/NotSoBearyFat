@@ -17,167 +17,190 @@ public class recordWorkout {
     static JTextField durationField = new JTextField(20);
     static JTextField caloriesBurntField = new JTextField(20);
 
-
-
-    private static void createAndShowGUI(){
-        JFrame frame = new JFrame("RecordWorkout");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-        frame.setSize(1200, 800);
-        frame.setVisible(true);
-
-        JPanel panel = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-
-        final LocalDate date[] = new LocalDate[1];
-        final String workoutType[] = new String[1];
-        final int exerciseMinutes[] = new int[1];
-        final int caloriesBurnt[] = new int[1];
-
-
-        JLabel dateLabel = new JLabel("Date (MM-dd-yyyy)");
-        JLabel workoutTypeLabel = new JLabel("Workout Type");
-        JLabel exerciseMinutesLabel = new JLabel("Duration (in minutes)");
-        JLabel caloriesBurntLabel = new JLabel("Calories burnt");
-        JLabel optionalLabel = new JLabel("(Optional)");
-        JButton saveButton = new JButton("Save");
-        JButton cancelButton = new JButton("Cancel");
-
-        DateTimeFormatter formatter1 = DateTimeFormatter.ofPattern("MM-dd-yyyy");
-        DateTimeFormatter formatter2 = DateTimeFormatter.ofPattern("M-d-yyyy"); // Allow single digit month/day
-        DateTimeFormatter formatter3 = DateTimeFormatter.ofPattern("MM/dd/yyyy"); // Allow slashes
-        DateTimeFormatter formatter4 = DateTimeFormatter.ofPattern("M/d/yyyy"); // Single digit with slashes
-
-        // Set today's date as default/placeholder
-        dateField.setText(LocalDate.now().format(formatter1));
-        date[0] = LocalDate.now();
-
-        gbc.gridx = 1;
-        gbc.gridy = 0;
-        gbc.insets = new Insets(5, 5, 5, 5);
-        panel.add(dateLabel, gbc);
-        gbc.gridy = 1;
-        gbc.insets = new Insets(5, 5, 20, 5);
-        panel.add(dateField, gbc);
-        gbc.gridy = 2;
-        gbc.insets = new Insets(5, 5, 5, 5);
-        panel.add(workoutTypeLabel, gbc);
-        gbc.gridy = 3;
-        gbc.insets = new Insets(5, 5, 20, 5);
-        panel.add(workoutDropDown, gbc);
-        gbc.gridy = 4;
-        gbc.insets = new Insets(5, 5, 5, 5);
-        panel.add(exerciseMinutesLabel, gbc);
-        gbc.gridy = 5;
-        gbc.insets = new Insets(5, 5, 20, 5);
-        panel.add(durationField, gbc);
-        gbc.gridy = 6;
-        gbc.insets = new Insets(5, 5, 5, 5);
-        panel.add(caloriesBurntLabel, gbc);
-        gbc.gridy = 7;
-        gbc.insets = new Insets(5, 5, 1, 5);
-        panel.add(caloriesBurntField, gbc);
-        gbc.gridy = 8;
-        gbc.insets = new Insets(1, 1, 1, 1);
-        panel.add(optionalLabel, gbc);
-        gbc.gridx = 0;
-        gbc.gridy = 15;
-        gbc.insets = new Insets(10, 10, 10, 10);
-        panel.add(cancelButton, gbc);
-        gbc.gridx = 2;
-        panel.add(saveButton, gbc);
-        panel.setBackground(new Color(240, 255, 250));
-
-
-        JPanel menuBar = new JPanel();
-        menuBar.setLayout(new GridBagLayout());
-        menuBar.setPreferredSize(new Dimension(600, 300));
-        GridBagConstraints g = new GridBagConstraints();
-        menuBar.setBackground(new Color(0, 71, 56));
-        menuBar.setOpaque(true);
-        menuBar.setPreferredSize(new Dimension(100, 50));
-        JLabel item = new JLabel("Add Data");
-        item.setForeground(Color.WHITE);
-        menuBar.add(item, g);
-
-        frame.add(menuBar, BorderLayout.NORTH);
-        frame.getContentPane().add(panel);
-        frame.getContentPane().setBackground(new Color(240, 255, 250));
-        frame.setVisible(true);
-
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM-dd-yyyy");
-        dateField.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                parseDateField(dateField, date, formatter, formatter2, formatter3, formatter4);
-            }
-        });
-
-        // Also parse when field loses focus
-        dateField.addFocusListener(new java.awt.event.FocusAdapter() {
-            public void focusLost(java.awt.event.FocusEvent evt) {
-                parseDateField(dateField, date, formatter, formatter2, formatter3, formatter4);
-            }
-        });
-
-        durationField.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String s = e.getActionCommand();
-                if(s.matches("\\d+")){
-                    exerciseMinutes[0] = Integer.parseInt(s);
-                }
-                else {
-                    tempMessage(durationField, "Invalid input, must be an integer");
-                }
-            }
-        });
-
-        durationField.addFocusListener(new java.awt.event.FocusAdapter() {
-            public void focusLost(java.awt.event.FocusEvent evt) {
-                validIntegerField(durationField, exerciseMinutes);
-            }
-        });
-
-        caloriesBurntField.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String s = e.getActionCommand();
-                if(s.matches("\\d+")){
-                    caloriesBurnt[0] = Integer.parseInt(s);
-                }
-                else{
-                    tempMessage(caloriesBurntField, "Invalid input, must be an integer");
-                }
-            }
-        });
-
-        caloriesBurntField.addFocusListener(new java.awt.event.FocusAdapter() {
-            public void focusLost(java.awt.event.FocusEvent evt) {
-                validIntegerField(caloriesBurntField, caloriesBurnt);
-            }
-        });
-
-
-        cancelButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                areYouSure("Cancel", frame, date[0], workoutType[0], exerciseMinutes[0], caloriesBurnt[0]);
-            }
-        });
-        saveButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                boolean fieldsFull = checkFields();
-                if(!fieldsFull){
-                    fieldsNotFull();
-                }
-                else {
-                    areYouSure("Save", frame, date[0], workoutType[0], exerciseMinutes[0], caloriesBurnt[0]);
-                }
-            }
+    public static void openRecordWorkout(int userId, DatabaseManager dbManager, Runnable refreshCallBack){
+        SwingUtilities.invokeLater(() -> {
+            recordWorkoutPage rwp =  new recordWorkoutPage(userId, dbManager, refreshCallBack);
+            rwp.setVisible(true);
         });
     }
+
+    static class recordWorkoutPage extends JFrame {
+        private int userId;
+        private DatabaseManager dbManager;
+        private Runnable refreshCallback;
+
+        public recordWorkoutPage(int userId, DatabaseManager dbManager) {
+            this.userId = userId;
+            this.dbManager = dbManager;
+            this.refreshCallback = null;
+        }
+
+        public recordWorkoutPage(int userId, DatabaseManager dbManager, Runnable refreshCallback) {
+            JFrame frame = new JFrame("RecordWorkout");
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+            frame.setSize(1200, 800);
+            frame.setVisible(true);
+
+            JPanel panel = new JPanel(new GridBagLayout());
+            GridBagConstraints gbc = new GridBagConstraints();
+
+            durationField.setText("");
+            caloriesBurntField.setText("");
+
+            final LocalDate date[] = new LocalDate[1];
+            final String workoutType[] = new String[1];
+            final int exerciseMinutes[] = new int[1];
+            final int caloriesBurnt[] = new int[1];
+
+
+            JLabel dateLabel = new JLabel("Date (MM-dd-yyyy)");
+            JLabel workoutTypeLabel = new JLabel("Workout Type");
+            JLabel exerciseMinutesLabel = new JLabel("Duration (in minutes)");
+            JLabel caloriesBurntLabel = new JLabel("Calories burnt");
+            JLabel optionalLabel = new JLabel("(Optional)");
+            JButton saveButton = new JButton("Save");
+            JButton cancelButton = new JButton("Cancel");
+
+            DateTimeFormatter formatter1 = DateTimeFormatter.ofPattern("MM-dd-yyyy");
+            DateTimeFormatter formatter2 = DateTimeFormatter.ofPattern("M-d-yyyy"); // Allow single digit month/day
+            DateTimeFormatter formatter3 = DateTimeFormatter.ofPattern("MM/dd/yyyy"); // Allow slashes
+            DateTimeFormatter formatter4 = DateTimeFormatter.ofPattern("M/d/yyyy"); // Single digit with slashes
+
+            // Set today's date as default/placeholder
+            dateField.setText(LocalDate.now().format(formatter1));
+            date[0] = LocalDate.now();
+
+            gbc.gridx = 1;
+            gbc.gridy = 0;
+            gbc.insets = new Insets(5, 5, 5, 5);
+            panel.add(dateLabel, gbc);
+            gbc.gridy = 1;
+            gbc.insets = new Insets(5, 5, 20, 5);
+            panel.add(dateField, gbc);
+            gbc.gridy = 2;
+            gbc.insets = new Insets(5, 5, 5, 5);
+            panel.add(workoutTypeLabel, gbc);
+            gbc.gridy = 3;
+            gbc.insets = new Insets(5, 5, 20, 5);
+            panel.add(workoutDropDown, gbc);
+            gbc.gridy = 4;
+            gbc.insets = new Insets(5, 5, 5, 5);
+            panel.add(exerciseMinutesLabel, gbc);
+            gbc.gridy = 5;
+            gbc.insets = new Insets(5, 5, 20, 5);
+            panel.add(durationField, gbc);
+            gbc.gridy = 6;
+            gbc.insets = new Insets(5, 5, 5, 5);
+            panel.add(caloriesBurntLabel, gbc);
+            gbc.gridy = 7;
+            gbc.insets = new Insets(5, 5, 1, 5);
+            panel.add(caloriesBurntField, gbc);
+            gbc.gridy = 8;
+            gbc.insets = new Insets(1, 1, 1, 1);
+            panel.add(optionalLabel, gbc);
+            gbc.gridx = 0;
+            gbc.gridy = 15;
+            gbc.insets = new Insets(10, 10, 10, 10);
+            panel.add(cancelButton, gbc);
+            gbc.gridx = 2;
+            panel.add(saveButton, gbc);
+            panel.setBackground(new Color(240, 255, 250));
+
+
+            JPanel menuBar = new JPanel();
+            menuBar.setLayout(new GridBagLayout());
+            menuBar.setPreferredSize(new Dimension(600, 300));
+            GridBagConstraints g = new GridBagConstraints();
+            menuBar.setBackground(new Color(0, 71, 56));
+            menuBar.setOpaque(true);
+            menuBar.setPreferredSize(new Dimension(100, 50));
+            JLabel item = new JLabel("Add Data");
+            item.setForeground(Color.WHITE);
+            menuBar.add(item, g);
+
+            frame.add(menuBar, BorderLayout.NORTH);
+            frame.getContentPane().add(panel);
+            frame.getContentPane().setBackground(new Color(240, 255, 250));
+            frame.setVisible(true);
+            frame.setLocationRelativeTo(null);
+
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM-dd-yyyy");
+            dateField.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    parseDateField(dateField, date, formatter, formatter2, formatter3, formatter4);
+                }
+            });
+
+            // Also parse when field loses focus
+            dateField.addFocusListener(new java.awt.event.FocusAdapter() {
+                public void focusLost(java.awt.event.FocusEvent evt) {
+                    parseDateField(dateField, date, formatter, formatter2, formatter3, formatter4);
+                }
+            });
+
+            durationField.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    String s = e.getActionCommand();
+                    if(s.matches("\\d+")){
+                        exerciseMinutes[0] = Integer.parseInt(s);
+                    }
+                    else {
+                        tempMessage(durationField, "Invalid input, must be an integer");
+                    }
+                }
+            });
+
+            durationField.addFocusListener(new java.awt.event.FocusAdapter() {
+                public void focusLost(java.awt.event.FocusEvent evt) {
+                    validIntegerField(durationField, exerciseMinutes);
+                }
+            });
+
+            caloriesBurntField.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    String s = e.getActionCommand();
+                    if(s.matches("\\d+")){
+                        caloriesBurnt[0] = Integer.parseInt(s);
+                    }
+                    else{
+                        tempMessage(caloriesBurntField, "Invalid input, must be an integer");
+                    }
+                }
+            });
+
+            caloriesBurntField.addFocusListener(new java.awt.event.FocusAdapter() {
+                public void focusLost(java.awt.event.FocusEvent evt) {
+                    validIntegerField(caloriesBurntField, caloriesBurnt);
+                }
+            });
+
+
+            cancelButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    areYouSure("Cancel", frame, date[0], workoutType[0], exerciseMinutes[0], caloriesBurnt[0]);
+                }
+            });
+            saveButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    boolean fieldsFull = checkFields();
+                    if(!fieldsFull){
+                        fieldsNotFull();
+                    }
+                    else {
+                        areYouSure("Save", frame, date[0], workoutType[0], exerciseMinutes[0], caloriesBurnt[0]);
+                    }
+                }
+            });
+        }
+
+    }
+
     private static void tempMessage(JTextField field, String message){
         field.setText(message);
         field.setForeground(Color.RED);
@@ -230,7 +253,7 @@ public class recordWorkout {
                 if(message.equals("Save")){
                     workoutData data = new workoutData(date, workoutType, exerciseMinutes, caloriesBurnt );
                 }
-                createAndShowGUI();
+                //createAndShowGUI();
                 frame.dispose();
                 prevFrame.dispose();
             }
@@ -334,9 +357,4 @@ public class recordWorkout {
         }
     }
 
-
-
-    public static void main(String[] args) {
-        createAndShowGUI();
-    }
 }
