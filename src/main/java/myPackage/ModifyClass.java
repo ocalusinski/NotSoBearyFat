@@ -1,25 +1,19 @@
 package myPackage;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.util.Date;
 import java.util.List;
 import com.github.lgooddatepicker.components.DatePicker;
 import com.github.lgooddatepicker.components.TimePicker;
+
 import static myPackage.Constants.*;
+
 /**
  * Allows trainers to modify the classes they have created
  */
 public final class ModifyClass {
-    // Color constants reused
-    private static final Color BAYLOR_GREEN = new Color(0, 104, 55);
-    private static final Color LIGHT_GREEN = new Color(33, 166, 81);
 
     private ModifyClass() {
         // static utility class prevent instantiation
@@ -30,136 +24,264 @@ public final class ModifyClass {
      */
     public static void openModifyClassPage(String trainerUsername,
                                            Runnable refreshCallback) {
-        // Build GUI components
-        JFrame frame = new JFrame("Modify Existing Class");
-        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
-        JPanel container = new JPanel();
-        container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
-        container.setBorder(new EmptyBorder(20, 30, 20, 30));
+        JFrame classFrame = new JFrame("Modify Class");
+        classFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        classFrame.setSize(700, 850);
 
-        JLabel title = new JLabel("Modify Your Class");
-        title.setFont(new Font("Arial", Font.BOLD, 20));
-        title.setAlignmentX(Component.CENTER_ALIGNMENT);
-        container.add(title);
-        container.add(Box.createRigidArea(new Dimension(0, 20)));
+        JPanel menuBar = new JPanel(new GridBagLayout());
+        GridBagConstraints g = new GridBagConstraints();
+        menuBar.setBackground(baylorGold);
+        menuBar.setOpaque(true);
+        menuBar.setPreferredSize(new Dimension(700, 60));
+
+        JLabel titleLabel = new JLabel("Modify Class");
+        titleLabel.setFont(new Font(titleLabel.getFont().getName(), Font.BOLD, 18));
+        g.gridx = 0;
+        g.gridy = 0;
+        g.insets = new Insets(10, 10, 10, 10);
+        menuBar.add(titleLabel, g);
+
+        // Main panel
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(baylorGreen);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
         // Retrieve classes for the trainer
         List<WorkoutClass> trainerClasses = DB_MANAGER.getClassesForTrainer(trainerUsername);
 
         // If no classes exist inform the trainer and exit early
         if (trainerClasses.isEmpty()) {
+            JPanel emptyPanel = new JPanel(new GridBagLayout());
+            emptyPanel.setBackground(baylorGreen);
             JLabel info = new JLabel("You haven't created any classes yet.");
             info.setFont(new Font("Arial", Font.ITALIC, 14));
-            info.setAlignmentX(Component.CENTER_ALIGNMENT);
-            container.add(info);
-            frame.setContentPane(container);
-            frame.pack();
-            frame.setLocationRelativeTo(null);
-            frame.setVisible(true);
+            info.setForeground(Color.WHITE);
+            emptyPanel.add(info, new GridBagConstraints());
+
+            classFrame.add(menuBar, BorderLayout.NORTH);
+            classFrame.getContentPane().add(emptyPanel);
+            classFrame.pack();
+            classFrame.setLocationRelativeTo(null);
+            classFrame.setVisible(true);
             return;
         }
 
-        // Class selector
-        JComboBox<WorkoutClass> classSelector = new JComboBox<>(trainerClasses.toArray(new WorkoutClass[0]));
-        classSelector.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
-        container.add(labeledComponent("Select Class", classSelector));
+        // Labels
+        JLabel selectLabel = new JLabel("Select Class:");
+        JLabel typeLabel = new JLabel("Class Type:");
+        JLabel descLabel = new JLabel("Description:");
+        JLabel startLabel = new JLabel("Start Time:");
+        JLabel endLabel = new JLabel("End Time:");
+        JLabel maxLabel = new JLabel("Max Participants:");
+        JLabel costLabel = new JLabel("Cost ($):");
 
-        // Class type field
-        JTextField typeField = new JTextField();
-        container.add(labeledComponent("Class Type", typeField));
+        Dimension labelSize = new Dimension(150, 25);
+        selectLabel.setPreferredSize(labelSize);
+        typeLabel.setPreferredSize(labelSize);
+        descLabel.setPreferredSize(labelSize);
+        startLabel.setPreferredSize(labelSize);
+        endLabel.setPreferredSize(labelSize);
+        maxLabel.setPreferredSize(labelSize);
+        costLabel.setPreferredSize(labelSize);
 
-        // Description area
+        // White text on green background
+        for (JLabel lbl : new JLabel[]{selectLabel, typeLabel, descLabel, startLabel, endLabel, maxLabel, costLabel}) {
+            lbl.setForeground(Color.WHITE);
+        }
+
+        // Components
+        JComboBox<WorkoutClass> classSelector =
+                new JComboBox<>(trainerClasses.toArray(new WorkoutClass[0]));
+        classSelector.setPreferredSize(new Dimension(200, 30));
+
+        JTextField typeField = new JTextField(25);
+        typeField.setPreferredSize(new Dimension(200, 30));
+
         JTextArea descArea = new JTextArea(3, 20);
         descArea.setLineWrap(true);
         descArea.setWrapStyleWord(true);
         JScrollPane descScroll = new JScrollPane(descArea);
-        descScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
-        container.add(labeledComponent("Description", descScroll));
+        descScroll.setPreferredSize(new Dimension(200, 60));
 
-        // Start and end time spinners
-        //start date & time pickers
+        // Start date & time pickers
         TimePicker startTimePicker = new TimePicker();
+        startTimePicker.setPreferredSize(new Dimension(200, 30));
         DatePicker startDatePicker = new DatePicker();
-        container.add(labeledComponent("Start Time", startTimePicker ));
-        container.add(startDatePicker);
+        startDatePicker.setPreferredSize(new Dimension(200, 30));
 
-        //end date & time pickers
+        // End date & time pickers
         TimePicker endTimePicker = new TimePicker();
+        endTimePicker.setPreferredSize(new Dimension(200, 30));
         DatePicker endDatePicker = new DatePicker();
-        container.add(labeledComponent("End Time", endTimePicker ));
-        container.add(endDatePicker);
+        endDatePicker.setPreferredSize(new Dimension(200, 30));
 
-        // Maximum participants spinner
         JSpinner maxSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 1000, 1));
-        container.add(labeledComponent("Max Participants", maxSpinner));
+        maxSpinner.setPreferredSize(new Dimension(200, 30));
 
-        // Cost field
-        JTextField costField = new JTextField();
-        container.add(labeledComponent("Cost ($)", costField));
-
-        container.add(Box.createRigidArea(new Dimension(0, 10)));
-
-        // Button panel
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
-        buttonPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JTextField costField = new JTextField(25);
+        costField.setPreferredSize(new Dimension(200, 30));
 
         JButton saveButton = new JButton("Save Changes");
-        styleSecondaryButton(saveButton);
+        saveButton.setPreferredSize(new Dimension(120, 35));
         JButton cancelButton = new JButton("Cancel");
-        styleSecondaryButton(cancelButton);
-        buttonPanel.add(Box.createHorizontalGlue());
+        cancelButton.setPreferredSize(new Dimension(100, 35));
+
+
+        // Row 0: Select Class
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.insets = new Insets(10, 20, 5, 10);
+        gbc.weightx = 0.0;
+        panel.add(selectLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.insets = new Insets(10, 10, 5, 20);
+        gbc.weightx = 1.0;
+        panel.add(classSelector, gbc);
+
+        // Row 1: Class Type
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.insets = new Insets(5, 20, 5, 10);
+        gbc.weightx = 0.0;
+        panel.add(typeLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.insets = new Insets(5, 10, 15, 20);
+        gbc.weightx = 1.0;
+        panel.add(typeField, gbc);
+
+        // Row 2: Description
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.insets = new Insets(5, 20, 5, 10);
+        gbc.weightx = 0.0;
+        panel.add(descLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.insets = new Insets(5, 10, 15, 20);
+        gbc.weightx = 1.0;
+        panel.add(descScroll, gbc);
+
+        // Row 3 & 4: Start time (time then date)
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.insets = new Insets(5, 20, 5, 10);
+        gbc.weightx = 0.0;
+        panel.add(startLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.insets = new Insets(5, 10, 5, 20);
+        gbc.weightx = 1.0;
+        panel.add(startTimePicker, gbc);
+
+        gbc.gridy = 4;
+        gbc.insets = new Insets(5, 10, 15, 20);
+        panel.add(startDatePicker, gbc);
+
+        // Row 5 & 6: End time (time then date)
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        gbc.insets = new Insets(5, 20, 5, 10);
+        gbc.weightx = 0.0;
+        panel.add(endLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.insets = new Insets(5, 10, 5, 20);
+        gbc.weightx = 1.0;
+        panel.add(endTimePicker, gbc);
+
+        gbc.gridy = 6;
+        gbc.insets = new Insets(5, 10, 15, 20);
+        panel.add(endDatePicker, gbc);
+
+        // Row 7: Max participants
+        gbc.gridx = 0;
+        gbc.gridy = 7;
+        gbc.insets = new Insets(5, 20, 5, 10);
+        gbc.weightx = 0.0;
+        panel.add(maxLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.insets = new Insets(5, 10, 15, 20);
+        gbc.weightx = 1.0;
+        panel.add(maxSpinner, gbc);
+
+        // Row 8: Cost
+        gbc.gridx = 0;
+        gbc.gridy = 8;
+        gbc.insets = new Insets(5, 20, 5, 10);
+        gbc.weightx = 0.0;
+        panel.add(costLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.insets = new Insets(5, 10, 20, 20);
+        gbc.weightx = 1.0;
+        panel.add(costField, gbc);
+
+        // Row 9: Buttons
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setOpaque(false);
         buttonPanel.add(cancelButton);
-        buttonPanel.add(Box.createRigidArea(new Dimension(10, 0)));
+        buttonPanel.add(Box.createHorizontalStrut(10));
         buttonPanel.add(saveButton);
 
-        container.add(buttonPanel);
+        gbc.gridx = 0;
+        gbc.gridy = 9;
+        gbc.gridwidth = 2;
+        gbc.insets = new Insets(20, 20, 20, 20);
+        gbc.weightx = 1.0;
+        gbc.anchor = GridBagConstraints.CENTER;
+        panel.add(buttonPanel, gbc);
 
-        // Populate form with first class details initially
+
+        // populate form with first class details initially
         fillFieldsFromClass((WorkoutClass) classSelector.getSelectedItem(), typeField, descArea,
                 startTimePicker, startDatePicker, endTimePicker, endDatePicker, maxSpinner, costField);
 
-        // When a different class is selected, update fields accordingly
+        //when a different class is selected update fields accordingly
         classSelector.addActionListener(e -> fillFieldsFromClass(
                 (WorkoutClass) classSelector.getSelectedItem(), typeField, descArea,
-                startTimePicker, startDatePicker, endTimePicker, startDatePicker, maxSpinner, costField));
+                startTimePicker, startDatePicker, endTimePicker, endDatePicker, maxSpinner, costField));
 
-        // Cancel closes the window
-        cancelButton.addActionListener(e -> frame.dispose());
+        //cancel closes window
+        cancelButton.addActionListener(e -> classFrame.dispose());
 
-        // Save applies changes to the selected class
+        //save applies changes to the selected class
         saveButton.addActionListener((ActionEvent e) -> {
             WorkoutClass selected = (WorkoutClass) classSelector.getSelectedItem();
             if (selected == null) {
-                JOptionPane.showMessageDialog(frame, "Please select a class to modify.",
+                JOptionPane.showMessageDialog(classFrame, "Please select a class to modify.",
                         "No Class Selected", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            // Validate fields
+
             String classType = typeField.getText().trim();
             String description = descArea.getText().trim();
             String costText = costField.getText().trim();
             if (classType.isEmpty() || description.isEmpty() || costText.isEmpty()) {
-                JOptionPane.showMessageDialog(frame, "Please complete all fields.",
+                JOptionPane.showMessageDialog(classFrame, "Please complete all fields.",
                         "Missing Information", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            // Parse numbers
+
             int maxParticipants = (Integer) maxSpinner.getValue();
             double cost;
             try {
                 cost = Double.parseDouble(costText);
             } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(frame, "Cost must be a valid number.",
+                JOptionPane.showMessageDialog(classFrame, "Cost must be a valid number.",
                         "Invalid Input", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            // Get start and end times
+
             LocalDateTime startLdt = LocalDateTime.of(startDatePicker.getDate(), startTimePicker.getTime());
             LocalDateTime endLdt = LocalDateTime.of(endDatePicker.getDate(), endTimePicker.getTime());
             if (endLdt.isBefore(startLdt)) {
-                JOptionPane.showMessageDialog(frame, "End time must be after start time.",
+                JOptionPane.showMessageDialog(classFrame, "End time must be after start time.",
                         "Invalid Time", JOptionPane.WARNING_MESSAGE);
                 return;
             }
@@ -167,74 +289,25 @@ public final class ModifyClass {
             boolean success = DB_MANAGER.updateClass(
                     selected.getId(), classType, description,
                     startLdt, endLdt, maxParticipants, cost);
+
             if (success) {
-                JOptionPane.showMessageDialog(frame, "Class updated successfully!",
+                JOptionPane.showMessageDialog(classFrame, "Class updated successfully!",
                         "Success", JOptionPane.INFORMATION_MESSAGE);
-                // Refresh lists in dashboard if requested
                 if (refreshCallback != null) {
                     refreshCallback.run();
                 }
-                frame.dispose();
+                classFrame.dispose();
             } else {
-                JOptionPane.showMessageDialog(frame,
+                JOptionPane.showMessageDialog(classFrame,
                         "There was an error updating the class.",
                         "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
 
-        frame.setContentPane(container);
-        frame.pack();
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
-    }
-
-    /**
-     * Creates a panel containing a label and component aligned on a horizontal axis
-     */
-    private static JPanel labeledComponent(String labelText, JComponent comp) {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        JLabel label = new JLabel(labelText);
-        label.setFont(new Font("Arial", Font.PLAIN, 14));
-        panel.add(label);
-        panel.add(Box.createRigidArea(new Dimension(0, 5)));
-        panel.add(comp);
-        panel.add(Box.createRigidArea(new Dimension(0, 15)));
-        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return panel;
-    }
-
-    /**
-     * Applies the primary button styling used throughout the application
-     */
-    private static void stylePrimaryButton(JButton button) {
-        button.setBackground(BAYLOR_GREEN);
-        button.setForeground(Color.WHITE);
-        button.setFocusPainted(false);
-        button.setFont(new Font("Arial", Font.BOLD, 14));
-        button.setPreferredSize(new Dimension(140, 40));
-        // Hover effect
-        button.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseEntered(java.awt.event.MouseEvent e) {
-                button.setBackground(LIGHT_GREEN);
-            }
-            @Override
-            public void mouseExited(java.awt.event.MouseEvent e) {
-                button.setBackground(BAYLOR_GREEN);
-            }
-        });
-    }
-
-    /**
-     * Applies a secondary button style for less prominent actions like cancelling
-     */
-    private static void styleSecondaryButton(JButton button) {
-        button.setBackground(Color.LIGHT_GRAY);
-        button.setForeground(Color.BLACK);
-        button.setFocusPainted(false);
-        button.setFont(new Font("Arial", Font.PLAIN, 14));
-        button.setPreferredSize(new Dimension(100, 40));
+        classFrame.add(menuBar, BorderLayout.NORTH);
+        classFrame.getContentPane().add(panel);
+        classFrame.setLocationRelativeTo(null);
+        classFrame.setVisible(true);
     }
 
     /**
@@ -254,18 +327,15 @@ public final class ModifyClass {
         }
         typeField.setText(wc.getClassType());
         descArea.setText(wc.getDescription());
-        // Parse stored ISO strings into local date time
         try {
             LocalDateTime startLdt = wc.getStartTime();
             LocalDateTime endLdt = wc.getEndTime();
-            //converts the returned LocalDateTime into LocalDates and LocalTimes respectively
             startDatePicker.setDate(startLdt.toLocalDate());
             startTimePicker.setTime(startLdt.toLocalTime());
             endDatePicker.setDate(endLdt.toLocalDate());
             endTimePicker.setTime(endLdt.toLocalTime());
-
         } catch (Exception ignore) {
-            // Fallback to current spinner values if parsing fails
+            // fallback to existing values
         }
         maxSpinner.setValue(wc.getMaxParticipants());
         costField.setText(String.format("%.2f", wc.getCost()));
