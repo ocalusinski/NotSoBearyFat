@@ -201,9 +201,8 @@ public class DashboardUI extends JFrame {
         sidebarModel.addElement("Data");
         sidebarModel.addElement("Goals");
         sidebarModel.addElement("Friends");
-        
+        sidebarModel.addElement("Classes");
         if (isTrainer()) {
-            sidebarModel.addElement("Classes");
             sidebarModel.addElement("New Class");
             sidebarModel.addElement("My Plans");
         }
@@ -275,6 +274,11 @@ public class DashboardUI extends JFrame {
             
             JPanel selfPacedTab = createSelfPacedPlansTab();
             contentPanel.add(selfPacedTab, "My Plans");
+        }
+        //if client
+        else{
+            JPanel classesTab = createClientClassesTab();
+            contentPanel.add(classesTab, "Classes");
         }
         
         JPanel libraryTab = createPlanLibraryTab();
