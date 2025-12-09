@@ -78,7 +78,7 @@ public class drawActiveCaloriesBurntGraph extends JPanel {
         chart.getPlot().setNoDataMessage("No workout calories data available");
 
         ChartPanel chartPanel = new ChartPanel(chart);
-        chartPanel.setPreferredSize(new java.awt.Dimension(500, 350));
+        chartPanel.setPreferredSize(new java.awt.Dimension(400, 250));
 
         this.setLayout(new BorderLayout());
         this.add(chartPanel, BorderLayout.CENTER);

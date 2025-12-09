@@ -43,7 +43,7 @@ public class drawWorkoutTypeGraph extends JPanel {
         );
 
         ChartPanel chartPanel = new ChartPanel(chart);
-        chartPanel.setPreferredSize(new java.awt.Dimension(600, 300));
+        chartPanel.setPreferredSize(new java.awt.Dimension(500, 250));
 
         this.setLayout(new BorderLayout());
         this.add(chartPanel, BorderLayout.CENTER);

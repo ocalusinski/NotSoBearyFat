@@ -568,7 +568,7 @@ public class DashboardUI extends JFrame {
     private JPanel createFriendRequestsPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(BACKGROUND_COLOR);
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         // Split into incoming and outgoing requests
         JPanel splitPanel = new JPanel(new GridLayout(1, 2, 10, 0));
@@ -715,7 +715,7 @@ public class DashboardUI extends JFrame {
     private JPanel createFriendsListPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(BACKGROUND_COLOR);
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         // Split into friends list and classes view
         JPanel splitPanel = new JPanel(new GridLayout(1, 2, 10, 0));
@@ -1628,7 +1628,7 @@ public class DashboardUI extends JFrame {
     private JPanel createAvailablePlansPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(BACKGROUND_COLOR);
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         JLabel header = new JLabel(
                 "<html><h2>Available Self-Paced Plans</h2>" +
@@ -1732,7 +1732,7 @@ public class DashboardUI extends JFrame {
     private JPanel createEnrolledPlansPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(BACKGROUND_COLOR);
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         JLabel header = new JLabel("My Enrolled Plans", SwingConstants.CENTER);
         header.setFont(new Font("Arial", Font.BOLD, 18));
@@ -2309,7 +2309,7 @@ public class DashboardUI extends JFrame {
     private JPanel createAvailableClassesPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(BACKGROUND_COLOR);
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         // Header with refresh button
         JPanel headerPanel = new JPanel(new BorderLayout());
@@ -2436,7 +2436,7 @@ public class DashboardUI extends JFrame {
     private JPanel createEnrolledClassesPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(BACKGROUND_COLOR);
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         JLabel header = new JLabel("My Enrolled Classes", SwingConstants.CENTER);
         header.setFont(new Font("Arial", Font.BOLD, 18));
@@ -2494,7 +2494,7 @@ public class DashboardUI extends JFrame {
         });
         panel.add(apply, BorderLayout.PAGE_END);
         panel.setBackground(BACKGROUND_COLOR);
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         JLabel header = new JLabel("Classes Search", SwingConstants.CENTER);
         header.setFont(new Font("Arial", Font.BOLD, 18));
@@ -2929,10 +2929,10 @@ public class DashboardUI extends JFrame {
     private JPanel createMainGraphsPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBackground(BACKGROUND_COLOR);
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.BOTH;
         gbc.weightx = 1.0;
         gbc.weighty = 1.0;
@@ -2976,7 +2976,7 @@ public class DashboardUI extends JFrame {
     private JPanel createWorkoutGraphsPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBackground(BACKGROUND_COLOR);
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;
@@ -2991,17 +2991,17 @@ public class DashboardUI extends JFrame {
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.gridwidth = 2;
-        gbc.insets = new Insets(10, 10, 20, 10);
+        gbc.insets = new Insets(5, 5, 10, 5);
         panel.add(workoutTypeGraph, gbc);
 
         gbc.gridwidth = 1;
         gbc.gridx = 0;
         gbc.gridy = 1;
-        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.insets = new Insets(5, 5, 5, 5);
         panel.add(minutesGraph, gbc);
 
         gbc.gridx = 1;
-        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.insets = new Insets(5, 5, 5, 5);
         panel.add(activeCaloriesGraph, gbc);
 
         // Wrap in scroll pane
