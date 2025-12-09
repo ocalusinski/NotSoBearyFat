@@ -6,6 +6,8 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import java.awt.*;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 public class DashboardUI extends JFrame {
     private JLabel caloriesLabel;
@@ -46,6 +48,12 @@ public class DashboardUI extends JFrame {
     private DefaultListModel<WorkoutClass> classListModel;
     private JList<WorkoutClass> classList;
     private JTabbedPane tabbedPane;
+    
+    // Calendar view state
+    private java.time.LocalDate calendarCurrentMonth = java.time.LocalDate.now();
+    private JPanel calendarViewPanel;
+    private JLabel calendarMonthLabel;
+    private JPanel calendarGridContainer;
     private JList<String> sidebarList;
     private JPanel contentPanel;
     private CardLayout cardLayout;
@@ -269,8 +277,8 @@ public class DashboardUI extends JFrame {
                     cardLayout.show(contentPanel, selected);
                     
                     // Handle refresh logic
-                    if ("Classes".equals(selected) && classListModel != null) {
-                        refreshClassesList();
+                    if ("Classes".equals(selected)) {
+                        refreshCalendarGrid();
                     } else if ("Library".equals(selected)) {
                         refreshPlanLibraryList();
                     }
@@ -1594,13 +1602,14 @@ public class DashboardUI extends JFrame {
         // Header panel with title and refresh button
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(BACKGROUND_COLOR);
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
         
         JLabel header = new JLabel("All Classes (for all trainers)", SwingConstants.CENTER);
         header.setFont(new Font("Arial", Font.BOLD, 18));
         header.setForeground(BAYLOR_GREEN);
         headerPanel.add(header, BorderLayout.CENTER);
         
-        // Refresh button
+        // Refresh button with proper sizing
         JButton refreshButton = new JButton("Refresh");
         refreshButton.setBackground(BAYLOR_GREEN);
         refreshButton.setForeground(Color.WHITE);
@@ -1608,8 +1617,10 @@ public class DashboardUI extends JFrame {
         refreshButton.setBorderPainted(false);
         refreshButton.setFocusPainted(false);
         refreshButton.setFont(new Font("Arial", Font.PLAIN, 12));
-        refreshButton.setPreferredSize(new Dimension(80, 30));
-        refreshButton.addActionListener(e -> refreshClassesList());
+        refreshButton.setPreferredSize(new Dimension(100, 30));
+        refreshButton.setMinimumSize(new Dimension(100, 30));
+        refreshButton.setMaximumSize(new Dimension(100, 30));
+        refreshButton.addActionListener(e -> refreshCalendarGrid());
         
         // Add hover effect
         refreshButton.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -1621,57 +1632,361 @@ public class DashboardUI extends JFrame {
             }
         });
         
-        headerPanel.add(refreshButton, BorderLayout.EAST);
+        // Wrap button in a panel to ensure it doesn't get compressed
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        buttonPanel.setBackground(BACKGROUND_COLOR);
+        buttonPanel.add(refreshButton);
+        headerPanel.add(buttonPanel, BorderLayout.EAST);
         mainPanel.add(headerPanel, BorderLayout.NORTH);
 
-        JPanel centerPanel = new JPanel(new GridLayout(1, 2, 20, 0));
-        centerPanel.setBackground(BACKGROUND_COLOR);
-
-        // Left: classes list
-        classListModel = new DefaultListModel<>();
-        classList = new JList<>(classListModel);
-        classList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        classList.setVisibleRowCount(12);
-
-        // Load all classes from database
-        refreshClassesList();
-
-        JScrollPane classScroll = new JScrollPane(classList);
-        classScroll.setBorder(BorderFactory.createTitledBorder("Classes"));
-
-        // Right: enrolled users for selected class
-        DefaultListModel<String> userListModel = new DefaultListModel<>();
-        JList<String> userList = new JList<>(userListModel);
-        userList.setVisibleRowCount(12);
-        JScrollPane userScroll = new JScrollPane(userList);
-        userScroll.setBorder(BorderFactory.createTitledBorder("Enrolled Users"));
-
-        // When a class is selected, load its enrolled users
-        classList.addListSelectionListener(new ListSelectionListener() {
-            @Override
-            public void valueChanged(ListSelectionEvent e) {
-                if (!e.getValueIsAdjusting()) {
-                    userListModel.clear();
-                    WorkoutClass selected = classList.getSelectedValue();
-                    if (selected != null) {
-                        List<String> users = dbManager.getUsersForClass(selected.getId());
-                        if (users.isEmpty()) {
-                            userListModel.addElement("No users enrolled yet.");
-                        } else {
-                            for (String u : users) {
-                                userListModel.addElement(u);
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
-        centerPanel.add(classScroll);
-        centerPanel.add(userScroll);
-        mainPanel.add(centerPanel, BorderLayout.CENTER);
+        // Calendar view panel (only view now)
+        calendarViewPanel = createCalendarView();
+        mainPanel.add(calendarViewPanel, BorderLayout.CENTER);
+        
+        // Update refresh button to refresh calendar
+        refreshButton.removeActionListener(refreshButton.getActionListeners()[0]);
+        refreshButton.addActionListener(e -> refreshCalendarGrid());
 
         return mainPanel;
+    }
+    
+    /**
+     * Creates a monthly calendar view showing classes as events
+     */
+    private JPanel createCalendarView() {
+        JPanel calendarPanel = new JPanel(new BorderLayout());
+        calendarPanel.setBackground(BACKGROUND_COLOR);
+        calendarPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        // Calendar header with month/year and view buttons
+        JPanel calendarHeader = new JPanel(new BorderLayout());
+        calendarHeader.setBackground(BACKGROUND_COLOR);
+        calendarHeader.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        calendarHeader.setPreferredSize(new Dimension(0, 60)); // Ensure header has enough height
+        
+        // Use a single panel with BoxLayout to control spacing better
+        JPanel headerContent = new JPanel();
+        headerContent.setLayout(new BoxLayout(headerContent, BoxLayout.X_AXIS));
+        headerContent.setBackground(BACKGROUND_COLOR);
+        headerContent.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        // Left side: Previous month button
+        JButton prevButton = new JButton("Prev");
+        prevButton.setFont(new Font("Arial", Font.BOLD, 12));
+        prevButton.setBackground(LIGHT_GREEN);
+        prevButton.setForeground(Color.WHITE);
+        prevButton.setOpaque(true);
+        prevButton.setBorderPainted(false);
+        prevButton.setFocusPainted(false);
+        prevButton.setPreferredSize(new Dimension(70, 35));
+        prevButton.setMinimumSize(new Dimension(70, 35));
+        prevButton.setMaximumSize(new Dimension(70, 35));
+        prevButton.setMargin(new Insets(5, 10, 5, 10));
+        prevButton.addActionListener(e -> {
+            calendarCurrentMonth = calendarCurrentMonth.minusMonths(1);
+            refreshCalendarGrid();
+        });
+        
+        // Wrap prev button in a panel to enforce size
+        JPanel prevWrapper = new JPanel(new BorderLayout());
+        prevWrapper.setBackground(BACKGROUND_COLOR);
+        prevWrapper.setPreferredSize(new Dimension(70, 35));
+        prevWrapper.add(prevButton, BorderLayout.CENTER);
+        
+        headerContent.add(prevWrapper);
+        headerContent.add(Box.createHorizontalStrut(15)); // Small gap before month
+        
+        // Center: Month/year label
+        java.time.format.DateTimeFormatter monthFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy");
+        calendarMonthLabel = new JLabel(calendarCurrentMonth.format(monthFormatter).toUpperCase());
+        calendarMonthLabel.setFont(new Font("Arial", Font.BOLD, 20));
+        calendarMonthLabel.setForeground(BAYLOR_GREEN);
+        calendarMonthLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        calendarMonthLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        // Add glue before and after month label to center it
+        headerContent.add(Box.createHorizontalGlue());
+        headerContent.add(calendarMonthLabel);
+        headerContent.add(Box.createHorizontalGlue());
+        
+        headerContent.add(Box.createHorizontalStrut(15)); // Small gap after month
+        
+        // Right side: Next button
+        JButton nextButton = new JButton("Next");
+        nextButton.setFont(new Font("Arial", Font.BOLD, 12));
+        nextButton.setBackground(LIGHT_GREEN);
+        nextButton.setForeground(Color.WHITE);
+        nextButton.setOpaque(true);
+        nextButton.setBorderPainted(false);
+        nextButton.setFocusPainted(false);
+        nextButton.setPreferredSize(new Dimension(70, 35));
+        nextButton.setMinimumSize(new Dimension(70, 35));
+        nextButton.setMaximumSize(new Dimension(70, 35));
+        nextButton.setMargin(new Insets(5, 10, 5, 10));
+        nextButton.addActionListener(e -> {
+            calendarCurrentMonth = calendarCurrentMonth.plusMonths(1);
+            refreshCalendarGrid();
+        });
+        
+        // Wrap next button in a panel to enforce size
+        JPanel nextWrapper = new JPanel(new BorderLayout());
+        nextWrapper.setBackground(BACKGROUND_COLOR);
+        nextWrapper.setPreferredSize(new Dimension(70, 35));
+        nextWrapper.add(nextButton, BorderLayout.CENTER);
+        
+        headerContent.add(nextWrapper);
+        headerContent.add(Box.createHorizontalStrut(10)); // Gap before Today button
+        
+        // Today button
+        JButton todayButton = new JButton("Today");
+        todayButton.setBackground(BACKGROUND_COLOR);
+        todayButton.setForeground(BAYLOR_GREEN);
+        todayButton.setOpaque(true);
+        todayButton.setBorderPainted(false);
+        todayButton.setFont(new Font("Arial", Font.PLAIN, 12));
+        todayButton.setPreferredSize(new Dimension(80, 30));
+        todayButton.setMinimumSize(new Dimension(80, 30));
+        todayButton.setMaximumSize(new Dimension(80, 30));
+        todayButton.setMargin(new Insets(5, 10, 5, 10));
+        todayButton.addActionListener(e -> {
+            calendarCurrentMonth = java.time.LocalDate.now();
+            refreshCalendarGrid();
+        });
+        
+        // Wrap today button in a panel to enforce size
+        JPanel todayWrapper = new JPanel(new BorderLayout());
+        todayWrapper.setBackground(BACKGROUND_COLOR);
+        todayWrapper.setPreferredSize(new Dimension(80, 30));
+        todayWrapper.add(todayButton, BorderLayout.CENTER);
+        
+        headerContent.add(todayWrapper);
+        
+        calendarHeader.add(headerContent, BorderLayout.CENTER);
+        
+        calendarPanel.add(calendarHeader, BorderLayout.NORTH);
+        
+        // Monthly calendar grid container
+        calendarGridContainer = new JPanel(new BorderLayout());
+        calendarGridContainer.setBackground(BACKGROUND_COLOR);
+        calendarGridContainer.setPreferredSize(new Dimension(0, 600)); // Prevent shrinking
+        JPanel monthCalendar = createMonthlyCalendarGrid();
+        calendarGridContainer.add(monthCalendar, BorderLayout.CENTER);
+        calendarPanel.add(calendarGridContainer, BorderLayout.CENTER);
+        
+        return calendarPanel;
+    }
+    
+    /**
+     * Refreshes only the calendar grid and month label without recreating the entire panel
+     */
+    private void refreshCalendarGrid() {
+        if (calendarMonthLabel != null && calendarGridContainer != null) {
+            // Update month label
+            java.time.format.DateTimeFormatter monthFormatter = java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy");
+            calendarMonthLabel.setText(calendarCurrentMonth.format(monthFormatter).toUpperCase());
+            
+            // Update calendar grid
+            calendarGridContainer.removeAll();
+            JPanel monthCalendar = createMonthlyCalendarGrid();
+            calendarGridContainer.add(monthCalendar, BorderLayout.CENTER);
+            calendarGridContainer.revalidate();
+            calendarGridContainer.repaint();
+        }
+    }
+    
+    /**
+     * Creates the monthly calendar grid with classes displayed as events
+     */
+    private JPanel createMonthlyCalendarGrid() {
+        JPanel monthPanel = new JPanel(new BorderLayout());
+        monthPanel.setBackground(BACKGROUND_COLOR);
+        monthPanel.setPreferredSize(new Dimension(0, 600)); // Set preferred height to prevent shrinking
+        
+        // Get first day of month and first Monday of the calendar
+        java.time.LocalDate firstDayOfMonth = calendarCurrentMonth.withDayOfMonth(1);
+        java.time.DayOfWeek firstDayOfWeek = firstDayOfMonth.getDayOfWeek();
+        java.time.LocalDate firstMonday = firstDayOfMonth.minusDays(firstDayOfWeek.getValue() - 1);
+        
+        // Days of week header
+        JPanel daysHeader = new JPanel(new GridLayout(1, 7));
+        daysHeader.setBackground(BACKGROUND_COLOR);
+        daysHeader.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, BAYLOR_GREEN));
+        
+        String[] dayNames = {"MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"};
+        
+        for (int i = 0; i < 7; i++) {
+            JPanel dayHeaderPanel = new JPanel(new BorderLayout());
+            dayHeaderPanel.setBackground(new Color(BAYLOR_GREEN.getRed(), BAYLOR_GREEN.getGreen(), BAYLOR_GREEN.getBlue(), 50));
+            dayHeaderPanel.setBorder(BorderFactory.createEmptyBorder(10, 5, 10, 5));
+            
+            JLabel dayNameLabel = new JLabel(dayNames[i], SwingConstants.CENTER);
+            dayNameLabel.setFont(new Font("Arial", Font.BOLD, 12));
+            dayNameLabel.setForeground(BAYLOR_GREEN);
+            dayHeaderPanel.add(dayNameLabel, BorderLayout.CENTER);
+            
+            daysHeader.add(dayHeaderPanel);
+        }
+        
+        monthPanel.add(daysHeader, BorderLayout.NORTH);
+        
+        // Calendar grid for events (6 weeks to cover full month)
+        JPanel calendarGrid = new JPanel(new GridLayout(6, 7, 2, 2));
+        calendarGrid.setBackground(BACKGROUND_COLOR);
+        calendarGrid.setBorder(BorderFactory.createEmptyBorder(5, 0, 0, 0));
+        
+        // Get all classes
+        List<WorkoutClass> allClasses = dbManager != null ? dbManager.getAllClasses(csp) : new ArrayList<>();
+        
+        // Create a day panel for each day (6 weeks * 7 days = 42 days)
+        java.time.LocalDate currentDay = firstMonday;
+        
+        for (int week = 0; week < 6; week++) {
+            for (int day = 0; day < 7; day++) {
+                JPanel dayPanel = new JPanel(new BorderLayout());
+                dayPanel.setBackground(Color.WHITE);
+                dayPanel.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220), 1));
+                
+                // Day number label
+                JLabel dayNumberLabel = new JLabel(String.valueOf(currentDay.getDayOfMonth()), SwingConstants.LEFT);
+                dayNumberLabel.setFont(new Font("Arial", Font.BOLD, 12));
+                dayNumberLabel.setBorder(BorderFactory.createEmptyBorder(3, 5, 0, 0));
+                
+                // Gray out days not in current month
+                if (currentDay.getMonth() != calendarCurrentMonth.getMonth()) {
+                    dayPanel.setBackground(new Color(245, 245, 245));
+                    dayNumberLabel.setForeground(new Color(180, 180, 180));
+                } else {
+                    dayNumberLabel.setForeground(BAYLOR_GREEN);
+                    // Highlight today
+                    if (currentDay.equals(java.time.LocalDate.now())) {
+                        dayPanel.setBackground(new Color(240, 255, 250));
+                        dayNumberLabel.setForeground(LIGHT_GREEN);
+                        dayNumberLabel.setFont(new Font("Arial", Font.BOLD, 14));
+                    }
+                }
+                
+                dayPanel.add(dayNumberLabel, BorderLayout.NORTH);
+                
+                // Events panel
+                JPanel eventsPanel = new JPanel();
+                eventsPanel.setLayout(new BoxLayout(eventsPanel, BoxLayout.Y_AXIS));
+                eventsPanel.setOpaque(false);
+                eventsPanel.setBorder(BorderFactory.createEmptyBorder(20, 2, 2, 2));
+                
+                // Find classes for this day
+                final java.time.LocalDate dayDate = currentDay;
+                List<WorkoutClass> dayClasses = allClasses.stream()
+                    .filter(wc -> wc.getStartTime().toLocalDate().equals(dayDate))
+                    .sorted((a, b) -> a.getStartTime().compareTo(b.getStartTime()))
+                    .collect(Collectors.toList());
+                
+                // Add class blocks (limit to 3 visible, show "+X more" if needed)
+                int maxVisible = 3;
+                for (int i = 0; i < Math.min(dayClasses.size(), maxVisible); i++) {
+                    WorkoutClass wc = dayClasses.get(i);
+                    JPanel classBlock = createClassBlock(wc);
+                    eventsPanel.add(classBlock);
+                }
+                
+                if (dayClasses.size() > maxVisible) {
+                    JLabel moreLabel = new JLabel("+" + (dayClasses.size() - maxVisible) + " more");
+                    moreLabel.setFont(new Font("Arial", Font.PLAIN, 9));
+                    moreLabel.setForeground(BAYLOR_GREEN);
+                    eventsPanel.add(moreLabel);
+                }
+                
+                dayPanel.add(eventsPanel, BorderLayout.CENTER);
+                
+                calendarGrid.add(dayPanel);
+                currentDay = currentDay.plusDays(1);
+            }
+        }
+        
+        JScrollPane scrollPane = new JScrollPane(calendarGrid);
+        scrollPane.setBorder(null);
+        scrollPane.setBackground(BACKGROUND_COLOR);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        
+        monthPanel.add(scrollPane, BorderLayout.CENTER);
+        
+        return monthPanel;
+    }
+    
+    /**
+     * Creates a visual block representing a class event (compact for monthly view)
+     */
+    private JPanel createClassBlock(WorkoutClass wc) {
+        JPanel block = new JPanel(new BorderLayout());
+        block.setBorder(BorderFactory.createEmptyBorder(2, 3, 2, 3));
+        block.setMaximumSize(new Dimension(Integer.MAX_VALUE, 20));
+        
+        // Color based on class type (using hash of class type name for consistency)
+        Color blockColor = getColorForClassType(wc.getClassType());
+        block.setBackground(blockColor);
+        
+        // Class name and time (compact)
+        java.time.format.DateTimeFormatter timeFormatter = java.time.format.DateTimeFormatter.ofPattern("h:mm a");
+        String displayText = wc.getClassType() + " " + wc.getStartTime().format(timeFormatter);
+        JLabel nameLabel = new JLabel(displayText);
+        nameLabel.setFont(new Font("Arial", Font.BOLD, 9));
+        nameLabel.setForeground(Color.WHITE);
+        block.add(nameLabel, BorderLayout.CENTER);
+        
+        // Tooltip with full details
+        String tooltip = String.format("%s\nTrainer: %s\n%s\nTime: %s - %s\nCost: $%.2f",
+            wc.getClassType(),
+            wc.getTrainerUsername(),
+            wc.getDescription(),
+            wc.getStartTime().format(timeFormatter),
+            wc.getEndTime().format(timeFormatter),
+            wc.getCost());
+        block.setToolTipText(tooltip);
+        
+        // Make it clickable
+        block.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        block.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                // Get enrolled users for this class
+                List<String> enrolledUsers = dbManager != null ? dbManager.getUsersForClass(wc.getId()) : new ArrayList<>();
+                
+                // Build message with class details and enrolled users
+                StringBuilder message = new StringBuilder();
+                message.append(String.format("Class: %s\n", wc.getClassType()));
+                message.append(String.format("Trainer: %s\n", wc.getTrainerUsername()));
+                message.append(String.format("Description: %s\n", wc.getDescription()));
+                message.append(String.format("Time: %s - %s\n", 
+                    wc.getStartTime().format(timeFormatter),
+                    wc.getEndTime().format(timeFormatter)));
+                message.append(String.format("Cost: $%.2f\n", wc.getCost()));
+                message.append(String.format("Max Participants: %d\n", wc.getMaxParticipants()));
+                message.append(String.format("Current Enrollment: %d\n\n", enrolledUsers.size()));
+                
+                if (enrolledUsers.isEmpty()) {
+                    message.append("No users enrolled yet.");
+                } else {
+                    message.append("Enrolled Users:\n");
+                    for (int i = 0; i < enrolledUsers.size(); i++) {
+                        message.append(String.format("%d. %s\n", i + 1, enrolledUsers.get(i)));
+                    }
+                }
+                
+                JOptionPane.showMessageDialog(block, message.toString(), "Class Details", JOptionPane.INFORMATION_MESSAGE);
+            }
+        });
+        
+        return block;
+    }
+    
+    /**
+     * Gets a consistent color for a class type
+     */
+    private Color getColorForClassType(String classType) {
+        // Use hash of class type to get consistent colors
+        int hash = classType.hashCode();
+        int r = Math.abs(hash % 100) + 100;
+        int g = Math.abs((hash / 100) % 100) + 100;
+        int b = Math.abs((hash / 10000) % 100) + 100;
+        return new Color(Math.min(r, 200), Math.min(g, 200), Math.min(b, 200));
     }
     
     // Method to refresh the classes list from the database
@@ -2098,7 +2413,7 @@ public class DashboardUI extends JFrame {
             SwingUtilities.invokeLater(() -> {
                 // Open ModifyClass window and refresh lists after successful update
                 ModifyClass.openModifyClassPage(username, dbManager, () -> {
-                    refreshClassesList();     // Trainer “Classes” tab
+                    refreshCalendarGrid();    // Trainer "Classes" tab (calendar view)
                     refreshAvailableClasses(); // Client “Available Classes” tab
                     refreshEnrolledClasses();  // Client “My Classes” tab
                 });
