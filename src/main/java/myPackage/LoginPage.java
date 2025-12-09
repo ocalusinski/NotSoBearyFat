@@ -123,13 +123,15 @@ public class LoginPage extends JFrame {
                     return;
                 }
                 
+                // Ensure connection is open before attempting login
+                DB_MANAGER.ensureConnection();
                 User user = DB_MANAGER.loginUser(username, password);
                 if (user != null) {
                     JOptionPane.showMessageDialog(LoginPage.this, 
                         "Welcome back, " + user.getFirstName() + "!", 
                         "Login Successful", 
                         JOptionPane.INFORMATION_MESSAGE);
-                    DB_MANAGER.closeConnection();
+                    // Don't close connection here - keep it open for potential re-login
                     dispose();
 
                     //if admin, login to admin portal. Spooky!
@@ -154,7 +156,7 @@ public class LoginPage extends JFrame {
         backButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                DB_MANAGER.closeConnection();
+                // Don't close connection - keep it open for potential future use
                 dispose();
                 HomePage.main(null);
             }

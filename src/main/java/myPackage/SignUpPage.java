@@ -290,6 +290,8 @@ public class SignUpPage extends JFrame {
                 if(!admin) {
                     selectedUserType = clientRadio.isSelected() ? "Client" : "Trainer";
                 }
+                // Ensure connection is open before database operations
+                DB_MANAGER.ensureConnection();
                 // Register user
                 boolean success = DB_MANAGER.registerUser(username, password, email,
                                                          selectedUserType, firstName, lastName);
@@ -308,7 +310,7 @@ public class SignUpPage extends JFrame {
                     // Automatically log the user in after successful signup
                     if(!admin) {
                         User newUser = DB_MANAGER.loginUser(username, password);
-                        DB_MANAGER.closeConnection();
+                        // Don't close connection - keep it open for potential re-login
                         dispose();
 
 
@@ -338,7 +340,7 @@ public class SignUpPage extends JFrame {
         backButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                DB_MANAGER.closeConnection();
+                // Don't close connection - keep it open for potential future use
                 dispose();
                 if(!admin) {
                     HomePage.main(null);
