@@ -46,6 +46,12 @@ public class DashboardUI extends JFrame {
     private DefaultListModel<WorkoutClass> classListModel;
     private JList<WorkoutClass> classList;
     private JTabbedPane tabbedPane;
+    private JList<String> sidebarList;
+    private JPanel contentPanel;
+    private CardLayout cardLayout;
+    private JSplitPane mainSplitPane;
+    private JPanel sidebarPanel;
+    private boolean sidebarVisible = true;
     
     // Baylor green color scheme
     private static final Color BAYLOR_GREEN = new Color(0, 71, 56);
@@ -140,75 +146,207 @@ public class DashboardUI extends JFrame {
         headerPanel.add(logoutButton, BorderLayout.EAST);
         add(headerPanel, BorderLayout.NORTH);
 
-        // Create tabbed pane
-        tabbedPane = new JTabbedPane();
-        tabbedPane.setBackground(BACKGROUND_COLOR);
-        tabbedPane.setForeground(BAYLOR_GREEN);
+        // Create sidebar navigation panel
+        sidebarPanel = new JPanel(new BorderLayout());
+        sidebarPanel.setBackground(BAYLOR_GREEN);
+        sidebarPanel.setPreferredSize(new Dimension(200, 0));
+        sidebarPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
-        // Data Tab (main dashboard with real data)
-        JPanel dataTab = createDataTab();
-        tabbedPane.addTab("Data", dataTab);
+        // Create toggle button for sidebar
+        JButton toggleButton = new JButton("◀");
+        toggleButton.setFont(new Font("Arial", Font.BOLD, 16));
+        toggleButton.setBackground(LIGHT_GREEN);
+        toggleButton.setForeground(Color.WHITE);
+        toggleButton.setBorderPainted(false);
+        toggleButton.setFocusPainted(false);
+        toggleButton.setOpaque(true);
+        toggleButton.setPreferredSize(new Dimension(30, 30));
+        toggleButton.setMargin(new Insets(0, 0, 0, 0));
         
-        // Friends Tab (placeholder)
-        JPanel friendsTab = createFriendsTab();
-        tabbedPane.addTab("Friends", friendsTab);
-
-        // Goals Tab
-        JPanel goalsTab = createGoalsTab();
-        tabbedPane.addTab("Goals", goalsTab);
-
-        // Trainer-only tab for creating / editing self-paced plans
+        // Add hover effect
+        toggleButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                toggleButton.setBackground(new Color(0, 120, 100));
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                toggleButton.setBackground(LIGHT_GREEN);
+            }
+        });
+        
+        // Create sidebar list with all navigation items
+        DefaultListModel<String> sidebarModel = new DefaultListModel<>();
+        sidebarModel.addElement("Graphs");
+        sidebarModel.addElement("Data");
+        sidebarModel.addElement("Goals");
+        sidebarModel.addElement("Friends");
+        
         if (isTrainer()) {
-            JPanel selfPacedTab = createSelfPacedPlansTab();
-            tabbedPane.addTab("Self-Paced Plans", selfPacedTab);
-        }
-
-        // Library tab for all users
-        JPanel libraryTab = createPlanLibraryTab();
-        tabbedPane.addTab("Plan Library", libraryTab);
-
-
-        // Classes Tab (placeholder)
-        JPanel classesTab = createClassesTab();
-        tabbedPane.addTab("Classes", classesTab);
-
-        //historical Tab
-        JPanel historicalTab = createHistoricalTab();
-        tabbedPane.addTab("Historical", historicalTab);
-        
-        // Create Class Tab (only for trainers)
-        if (isTrainer()) {
-            JPanel createClassTab = createCreateClassTab();
-            tabbedPane.addTab("Create Class", createClassTab);
+            sidebarModel.addElement("Classes");
+            sidebarModel.addElement("New Class");
+            sidebarModel.addElement("My Plans");
         }
         
-        // Login Streak Tab (replaces Achievements)
-        JPanel streakTab = createStreakTab();
-        tabbedPane.addTab("Login Streak", streakTab);
+        sidebarModel.addElement("Library");
+        sidebarModel.addElement("Streak");
         
-        // Add listener to refresh Classes tab when it becomes visible
-        tabbedPane.addChangeListener(new ChangeListener() {
+        sidebarList = new JList<>(sidebarModel);
+        sidebarList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        sidebarList.setBackground(BAYLOR_GREEN);
+        sidebarList.setForeground(Color.WHITE);
+        sidebarList.setFont(new Font("Arial", Font.PLAIN, 14));
+        sidebarList.setSelectedIndex(0); // Select Graphs by default
+        
+        // Custom cell renderer for sidebar items
+        sidebarList.setCellRenderer(new DefaultListCellRenderer() {
             @Override
-            public void stateChanged(ChangeEvent e) {
-                int selectedIndex = tabbedPane.getSelectedIndex();
-                String selectedTitle = tabbedPane.getTitleAt(selectedIndex);
-                if ("Classes".equals(selectedTitle) && isTrainer() && classListModel != null) {
-                    refreshClassesList();
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                    boolean isSelected, boolean cellHasFocus) {
+                Component c = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (isSelected) {
+                    c.setBackground(LIGHT_GREEN);
+                    c.setForeground(Color.WHITE);
+                } else {
+                    c.setBackground(BAYLOR_GREEN);
+                    c.setForeground(Color.WHITE);
+                }
+                setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
+                return c;
+            }
+        });
+        
+        JScrollPane sidebarScroll = new JScrollPane(sidebarList);
+        sidebarScroll.setBorder(null);
+        sidebarScroll.setBackground(BAYLOR_GREEN);
+        sidebarPanel.add(sidebarScroll, BorderLayout.CENTER);
+        
+        // Add toggle button to top of sidebar
+        JPanel togglePanel = new JPanel(new BorderLayout());
+        togglePanel.setBackground(BAYLOR_GREEN);
+        togglePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        togglePanel.add(toggleButton, BorderLayout.EAST);
+        sidebarPanel.add(togglePanel, BorderLayout.NORTH);
+        
+        // Create content panel with CardLayout
+        cardLayout = new CardLayout();
+        contentPanel = new JPanel(cardLayout);
+        contentPanel.setBackground(BACKGROUND_COLOR);
+        
+        // Create all tab panels and add them to card layout
+        JPanel historicalTab = createHistoricalTab();
+        contentPanel.add(historicalTab, "Graphs");
+        
+        JPanel dataTab = createDataTab();
+        contentPanel.add(dataTab, "Data");
+        
+        JPanel goalsTab = createGoalsTab();
+        contentPanel.add(goalsTab, "Goals");
+        
+        JPanel friendsTab = createFriendsTab();
+        contentPanel.add(friendsTab, "Friends");
+        
+        if (isTrainer()) {
+            JPanel classesTab = createClassesTab();
+            contentPanel.add(classesTab, "Classes");
+            
+            JPanel createClassTab = createCreateClassTab();
+            contentPanel.add(createClassTab, "New Class");
+            
+            JPanel selfPacedTab = createSelfPacedPlansTab();
+            contentPanel.add(selfPacedTab, "My Plans");
+        }
+        
+        JPanel libraryTab = createPlanLibraryTab();
+        contentPanel.add(libraryTab, "Library");
+        
+        JPanel streakTab = createStreakTab();
+        contentPanel.add(streakTab, "Streak");
+        
+        // Add listener to sidebar list to switch content
+        sidebarList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                String selected = sidebarList.getSelectedValue();
+                if (selected != null) {
+                    cardLayout.show(contentPanel, selected);
+                    
+                    // Handle refresh logic
+                    if ("Classes".equals(selected) && classListModel != null) {
+                        refreshClassesList();
+                    } else if ("Library".equals(selected)) {
+                        refreshPlanLibraryList();
+                    }
                 }
             }
         });
-
-        // Add listener for refreshing Plan Library
-        tabbedPane.addChangeListener(e -> {
-            int idx = tabbedPane.getSelectedIndex();
-            String title = tabbedPane.getTitleAt(idx);
-
-            if ("Plan Library".equals(title)) {
-                refreshPlanLibraryList();
+        
+        // Create wrapper panel for content with toggle button when sidebar is hidden
+        JPanel contentWrapper = new JPanel(new BorderLayout());
+        contentWrapper.setBackground(BACKGROUND_COLOR);
+        
+        // Create a small toggle button panel for when sidebar is hidden (initially hidden)
+        JPanel hiddenTogglePanel = new JPanel(new BorderLayout());
+        hiddenTogglePanel.setBackground(BACKGROUND_COLOR);
+        hiddenTogglePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        hiddenTogglePanel.setVisible(false);
+        JButton hiddenToggleButton = new JButton("▶");
+        hiddenToggleButton.setFont(new Font("Arial", Font.BOLD, 16));
+        hiddenToggleButton.setBackground(LIGHT_GREEN);
+        hiddenToggleButton.setForeground(Color.WHITE);
+        hiddenToggleButton.setBorderPainted(false);
+        hiddenToggleButton.setFocusPainted(false);
+        hiddenToggleButton.setOpaque(true);
+        hiddenToggleButton.setPreferredSize(new Dimension(30, 30));
+        hiddenToggleButton.setMargin(new Insets(0, 0, 0, 0));
+        hiddenToggleButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                hiddenToggleButton.setBackground(new Color(0, 120, 100));
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                hiddenToggleButton.setBackground(LIGHT_GREEN);
             }
         });
-
-        add(tabbedPane, BorderLayout.CENTER);
+        hiddenTogglePanel.add(hiddenToggleButton, BorderLayout.WEST);
+        contentWrapper.add(hiddenTogglePanel, BorderLayout.NORTH);
+        contentWrapper.add(contentPanel, BorderLayout.CENTER);
+        
+        // Create main container with sidebar and content
+        mainSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, sidebarPanel, contentWrapper);
+        mainSplitPane.setDividerLocation(200);
+        mainSplitPane.setDividerSize(5);
+        mainSplitPane.setResizeWeight(0);
+        mainSplitPane.setBorder(null);
+        
+        // Toggle button action
+        toggleButton.addActionListener(e -> {
+            if (sidebarVisible) {
+                // Hide sidebar
+                mainSplitPane.setDividerLocation(0);
+                mainSplitPane.setDividerSize(0);
+                toggleButton.setText("▶");
+                hiddenTogglePanel.setVisible(true);
+                sidebarVisible = false;
+            } else {
+                // Show sidebar
+                mainSplitPane.setDividerSize(5);
+                mainSplitPane.setDividerLocation(200);
+                toggleButton.setText("◀");
+                hiddenTogglePanel.setVisible(false);
+                sidebarVisible = true;
+            }
+        });
+        
+        // Hidden toggle button action (shows sidebar)
+        hiddenToggleButton.addActionListener(e -> {
+            mainSplitPane.setDividerSize(5);
+            mainSplitPane.setDividerLocation(200);
+            toggleButton.setText("◀");
+            hiddenTogglePanel.setVisible(false);
+            sidebarVisible = true;
+        });
+        
+        add(mainSplitPane, BorderLayout.CENTER);
+        
+        // Show Graphs by default
+        cardLayout.show(contentPanel, "Graphs");
 
         // Message label at bottom
         messageLabel = new JLabel("", SwingConstants.CENTER);
@@ -218,6 +356,8 @@ public class DashboardUI extends JFrame {
         // Load and display real data
         loadUserData();
         checkForReminders();
+        
+        // Graphs is already selected by default in sidebar list
         
         setVisible(true);
     }
