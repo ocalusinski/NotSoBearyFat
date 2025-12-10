@@ -7,6 +7,10 @@ import java.util.regex.Pattern;
 import static myPackage.Constants.*;
 
 public class UserManagement {
+    /**
+     * Creates and displays the Admin Portal GUI.
+     * @author Owen Chipman
+     */
     private static void CreateAndShowAdminPortal(){
         JFrame frame = new JFrame("Admin Portal");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -60,6 +64,10 @@ public class UserManagement {
         frame.add(buttonPanel, new GridBagConstraints());
         frame.setVisible(true);
     }
+    /**
+     * Creates and displays a GUI for editing a user's username and password.
+     * @author Owen Chipman
+     */
     private static void editUsernameAndPassword(){
         JFrame frame = new JFrame("Edit Username/Password");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -220,6 +228,10 @@ public class UserManagement {
         frame.add(panel);
         frame.setVisible(true);
     }
+    /**
+     * Creates and displays a GUI for removing a user.
+     * @author Owen Chipman
+     */
     private static void removeUser(){
         JFrame frame = new JFrame("Remove User");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -334,6 +346,10 @@ public class UserManagement {
         frame.add(panel);
         frame.setVisible(true);
     }
+    /**
+     * Main method to run the UserManagement application.
+     * @author Owen Chipman
+     */
     public static void main(String[] args) {
         CreateAndShowAdminPortal();
     }

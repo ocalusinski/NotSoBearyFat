@@ -20,6 +20,10 @@ public class CreateClass{
     // Creates the initial GUI with a button to start creating a class
     // trainerUsername is used to track which trainer created the class
     // DB_MANAGER is passed in so we share one connection with the dashboard
+    /**
+     * Creates and shows the GUI for creating a new class, with a specified trainer username.
+     * @author Owen Chipman
+     */
     public static void CreateAndShowGUI(String trainerUsername){
         JFrame frame = new JFrame("Create Class");
         // When closing this window, only dispose this frame instead of exiting the app
@@ -51,6 +55,10 @@ public class CreateClass{
     }
 
     // Convenience overload for testing without a real trainer user
+    /**
+     * Convenience overload for testing without a real trainer user.
+     * @author zachtaylorcsc
+     */
     public static void CreateAndShowGUI(){
         CreateAndShowGUI("trainer");
     }
@@ -61,6 +69,10 @@ public class CreateClass{
 
         private final String trainerUsername;
 
+        /**
+         * Constructor for the CreateClassPage.
+         * @author Owen Chipman
+         */
         public CreateClassPage(String trainerUsername ){
             this.trainerUsername = trainerUsername;
             // Using arrays to store values because inner classes can't modify local variables
@@ -322,6 +334,10 @@ public class CreateClass{
         
         // Shows a temporary error message in a text field
         // The message appears in red and disappears after 2 seconds
+        /**
+         * Temporarily displays a message in a JTextField.
+         * @author zachtaylorcsc
+         */
         private void tempMessage(JTextField field, String message){
             field.setText(message);
             field.setForeground(Color.RED);
@@ -340,6 +356,10 @@ public class CreateClass{
     }
     
     // Confirmation dialog that asks "Are you sure?" before saving or canceling
+    /**
+     * Displays a confirmation dialog before saving or canceling class creation.
+     * @author zachtaylorcsc
+     */
     private static void areYouSure(String message, JFrame prevFrame, String trainerUsername,
                                    String classType, String description, LocalDateTime startTime,
                                    LocalDateTime endTime, int maxParticipants, double cost){
@@ -410,6 +430,10 @@ public class CreateClass{
 
 
     // Main method to start the application
+    /**
+     * Main method to start the CreateClass application.
+     * @author zachtaylorcsc
+     */
     public static void main(String[] args){
         CreateAndShowGUI();
     }

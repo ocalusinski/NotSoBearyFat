@@ -19,6 +19,10 @@ public class recordWorkout {
     static JTextField durationField = new JTextField(20);
     static JTextField caloriesBurntField = new JTextField(20);
 
+    /**
+     * Opens the record workout page in a new Swing thread.
+     * @author ocalusinski
+     */
     public static void openRecordWorkout(int userId, Runnable refreshCallBack){
         SwingUtilities.invokeLater(() -> {
             recordWorkoutPage rwp =  new recordWorkoutPage(userId, refreshCallBack);
@@ -30,11 +34,19 @@ public class recordWorkout {
         private int userId;
         private Runnable refreshCallback;
 
+        /**
+         * Constructor for the record workout page.
+         * @author ocalusinski
+         */
         public recordWorkoutPage(int userId) {
             this.userId = userId;
             this.refreshCallback = null;
         }
 
+        /**
+         * Constructor for the record workout page with a refresh callback.
+         * @author Owen Chipman
+         */
         public recordWorkoutPage(int userId, Runnable refreshCallback) {
             this.userId = userId;
             this.refreshCallback = refreshCallback;
@@ -243,6 +255,10 @@ public class recordWorkout {
 
     }
 
+    /**
+     * Temporarily displays a message in a JTextField.
+     * @author ocalusinski
+     */
     private static void tempMessage(JTextField field, String message){
         field.setText(message);
         field.setForeground(Color.RED);
@@ -259,6 +275,10 @@ public class recordWorkout {
         }};
     }
 
+    /**
+     * Displays a confirmation dialog.
+     * @author ocalusinski
+     */
     private static void areYouSure(String message, JFrame prevFrame,
                                    LocalDate date, String workoutType, int exerciseMinutes, int caloriesBurnt,
                                    int userId, Runnable refreshCallback){
@@ -339,6 +359,11 @@ public class recordWorkout {
         frame.setLocationRelativeTo(null);
     }
 
+    /**
+     * Checks if the required fields have input.
+     * @author ocalusinski
+     * @return boolean True if all required fields are filled, false otherwise.
+     */
     private static boolean checkFields(){
         boolean fieldsFull = true;
         if(dateField.getText().isEmpty()){
@@ -354,6 +379,10 @@ public class recordWorkout {
             return fieldsFull;
     }
 
+    /**
+     * Displays a dialog indicating that one or more fields are missing input.
+     * @author ocalusinski
+     */
     private static void fieldsNotFull(){
         JFrame frame = new JFrame();
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -385,6 +414,11 @@ public class recordWorkout {
         frame.setLocationRelativeTo(null);
     }
 
+    /**
+     * Parses the date from a JTextField and updates the date array.
+     * @author ocalusinski
+     * @return boolean True if the date was parsed successfully, false otherwise.
+     */
     private static boolean parseDateField(JTextField dateField, LocalDate[] date,
                                           DateTimeFormatter... formatters) {
         String dateText = dateField.getText().trim();
@@ -410,6 +444,11 @@ public class recordWorkout {
         return false;
     }
 
+    /**
+     * Validates that the text in a JTextField is a positive integer.
+     * @author ocalusinski
+     * @return boolean True if the field contains a valid positive integer, false otherwise.
+     */
     private static boolean validIntegerField(JTextField textField, int[] input){
         String text = textField.getText().trim();
         if (text.isEmpty()) {

@@ -18,6 +18,10 @@ public class AddData{
     static JTextField totCalBurn = new JTextField(20);
     // Static method to open AddDataPage directly (for use from DashboardUI)
     // refreshCallback can be null - if provided, it will be called after successful save
+    /**
+     * Static method to open AddDataPage directly (for use from DashboardUI).
+     * @author Owen Chipman
+     */
     public static void openAddDataPage(int userId, Runnable refreshCallback) {
         SwingUtilities.invokeLater(() -> {
             AddDataPage newPage = new AddDataPage(userId, refreshCallback);
@@ -26,6 +30,10 @@ public class AddData{
     }
     
     // Overload without refresh callback for backward compatibility
+    /**
+     * Overload without refresh callback for backward compatibility.
+     * @author Owen Chipman
+     */
     public static void openAddDataPage(int userId) {
         openAddDataPage(userId, null);
     }
@@ -35,10 +43,18 @@ public class AddData{
         private Runnable refreshCallback;
 
         // Constructor without refresh callback for backward compatibility
+        /**
+         * Constructor without refresh callback for backward compatibility.
+         * @author Owen Chipman
+         */
         public AddDataPage(int userId){
             this(userId, null);
         }
 
+        /**
+         * Constructor for the AddDataPage.
+         * @author Owen Chipman
+         */
         public AddDataPage(int userId, Runnable refreshCallback){
             this.userId = userId;
             this.refreshCallback = refreshCallback;
@@ -282,6 +298,11 @@ public class AddData{
         }
     }
     // Helper method to parse date field with multiple format support
+    /**
+     * Helper method to parse date field with multiple format support.
+     * @author zachtaylorcsc
+     * @return True if date was successfully parsed, false otherwise.
+     */
     private static boolean parseDateField(JTextField dateField, LocalDate[] date, 
                                          DateTimeFormatter... formatters) {
         String dateText = dateField.getText().trim();
@@ -307,6 +328,10 @@ public class AddData{
         return false;
     }
     
+    /**
+     * Temporarily displays a message in a JTextField, which disappears after a delay.
+     * @author zachtaylorcsc
+     */
     private static void tempMessage(JTextField field, String message){
         field.setText(message);
         field.setForeground(Color.RED);
@@ -323,6 +348,10 @@ public class AddData{
         }};
     }
 
+    /**
+     * Displays a confirmation dialog before performing an action (e.g., saving or canceling).
+     * @author zachtaylorcsc
+     */
     private static void areYouSure(String message, JFrame prevFrame,
                                    LocalDate date, int cal, double sleep, double weight, int totalCal,
                                    int userId, Runnable refreshCallback){
@@ -408,6 +437,11 @@ public class AddData{
     }
 
     //checks to make sure all fields have data inputed
+    /**
+     * Checks if all required input fields have data.
+     * @author ocalusinski
+     * @return True if all fields are filled, false otherwise.
+     */
     private static boolean checkFields(){
         boolean fieldsFull = true;
         if(dateField.getText().isEmpty()){
@@ -427,6 +461,10 @@ public class AddData{
     }
 
     //popup to signify fields are not full
+    /**
+     * Displays a popup to signify that one or more fields are not full.
+     * @author ocalusinski
+     */
     private static void fieldsNotFull(){
         JFrame frame = new JFrame();
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -461,6 +499,11 @@ public class AddData{
         frame.toFront();
     }
 
+    /**
+     * Validates that the text in a JTextField is a positive integer.
+     * @author ocalusinski
+     * @return True if the field contains a valid positive integer, false otherwise.
+     */
     private static boolean validIntegerField(JTextField textField, int[] input){
         String text = textField.getText().trim();
         if (text.isEmpty()) {
@@ -483,6 +526,11 @@ public class AddData{
         }
     }
 
+    /**
+     * Validates that the text in a JTextField is a positive double.
+     * @author ocalusinski
+     * @return True if the field contains a valid positive double, false otherwise.
+     */
     private static boolean validDoubleField(JTextField textField, double[] input){
         String text = textField.getText().trim();
         if (text.isEmpty()) {
