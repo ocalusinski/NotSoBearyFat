@@ -6,7 +6,7 @@ public class ClassSearchParams {
     private String duration;
     private String timeOfDay;
     //default constructor assigns defaults so original search logic works correctly
-    ClassSearchParams(){
+    public ClassSearchParams(){
         classType = ClassType.fromString("Class Type--");
         trainerUsername = "Trainer--";
         duration = "Duration--";
