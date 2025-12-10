@@ -407,6 +407,7 @@ public class DatabaseManager {
 
     /**
      * Checks if an email already exists
+     * @author zach taylor
      */
     public boolean emailExists(String email) {
         String sql = "SELECT COUNT(*) FROM users WHERE email = ?";
@@ -425,6 +426,10 @@ public class DatabaseManager {
         return false;
     }
 
+    /**
+     * updates a user in the database
+     * @author jonahb023
+     */
     public boolean updateUser(String username, String password, String email) {
         String sql = "UPDATE users SET password = ?, username = ? WHERE email = ?";
         int rowsUpdated = 0;
@@ -445,6 +450,10 @@ public class DatabaseManager {
         return false;
     }
 
+    /**
+     * removes a user from the database
+     * @author zach taylor
+     */
     public boolean removeUser(String username, String password) {
         String sql = "DELETE FROM users WHERE username = ? AND password = ?";
         int rowsUpdated = 0;
@@ -947,6 +956,7 @@ public class DatabaseManager {
 
     /**
      * Updates the details of an existing class in the database
+     * @author jonahb023
      */
     public boolean updateClass(int id,
                                String classType,
