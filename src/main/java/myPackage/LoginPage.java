@@ -10,6 +10,10 @@ import static myPackage.Constants.*;
  */
 public class LoginPage extends JFrame {
 
+    /**
+     * Constructs a new LoginPage GUI.
+     * @author zachtaylorcsc
+     */
     public LoginPage() {
 
         setTitle("Login");
@@ -164,6 +168,10 @@ public class LoginPage extends JFrame {
         setVisible(true);
     }
 
+    /**
+     * Main method to run the LoginPage application for testing purposes.
+     * @author zachtaylorcsc
+     */
     public static void main(String[] args) {
         // For testing
         SwingUtilities.invokeLater(() -> new LoginPage());

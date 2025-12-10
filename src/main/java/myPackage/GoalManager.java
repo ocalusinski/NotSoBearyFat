@@ -34,10 +34,19 @@ public class GoalManager {
         return DB_MANAGER.deleteGoal(goal.getId(), userId);
     }
 
+    /**
+     * Gets the current goal set by the user.
+     * @author Oluwalademi Aromolaran
+     * @return The current Goal object.
+     */
     public Goal getCurrentGoal() {
         return currentGoal;
     }
 
+    /**
+     * Sets the current goal for the user.
+     * @author Oluwalademi Aromolaran
+     */
     public void setCurrentGoal(Goal g) {
         this.currentGoal = g;
     }

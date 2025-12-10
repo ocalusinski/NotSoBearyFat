@@ -11,10 +11,18 @@ import java.util.List;
 import static myPackage.Constants.*;
 
 public class drawWeightGraph extends JPanel {
+    /**
+     * Constructs a new graph for tracking weight with default settings.
+     * @author ocalusinski
+     */
     public drawWeightGraph() {
         this(-1, 0);
     }
     
+    /**
+     * Constructs a new graph for tracking weight for a specific user and number of days.
+     * @author Owen Chipman
+     */
     public drawWeightGraph(int userId, int days) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
         
@@ -51,6 +59,11 @@ public class drawWeightGraph extends JPanel {
         this.add(chartPanel, BorderLayout.CENTER);
     }
     
+    /**
+     * Formats a date string for display.
+     * @author zachtaylorcsc
+     * @return The formatted date string.
+     */
     private String formatDateForDisplay(String date) {
         // Date is stored as MM-dd-yyyy, return as-is
         if (date != null && date.length() >= 10) {

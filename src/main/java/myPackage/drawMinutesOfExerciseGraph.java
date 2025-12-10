@@ -13,10 +13,18 @@ import java.util.HashMap;
 import static myPackage.Constants.DB_MANAGER;
 
 public class drawMinutesOfExerciseGraph extends JPanel {
+    /**
+     * Constructs a new graph for minutes of exercise with default settings.
+     * @author ocalusinski
+     */
     public drawMinutesOfExerciseGraph() {
         this(-1, 0);
     }
     
+    /**
+     * Constructs a new graph for minutes of exercise for a specific user and number of days.
+     * @author Owen Chipman
+     */
     public drawMinutesOfExerciseGraph(int userId, int days) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
         
@@ -85,6 +93,11 @@ public class drawMinutesOfExerciseGraph extends JPanel {
         this.add(chartPanel, BorderLayout.CENTER);
     }
     
+    /**
+     * Formats a date string for display.
+     * @author zachtaylorcsc
+     * @return The formatted date string.
+     */
     private String formatDateForDisplay(String date) {
         // Date is stored as MM-dd-yyyy, return as-is
         return date;

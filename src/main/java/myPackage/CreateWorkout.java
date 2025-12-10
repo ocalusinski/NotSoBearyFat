@@ -3,6 +3,10 @@ import javax.swing.*;
 import java.awt.*;
 
 public class CreateWorkout {
+    /**
+     * Creates and displays the Admin Portal GUI.
+     * @author Owen Chipman
+     */
     private static void CreateAndShowAdminPortal(){
        JFrame frame = new JFrame("Admin Portal");
        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -21,6 +25,10 @@ public class CreateWorkout {
        frame.add(buttonPanel);
        frame.setVisible(true);
     }
+    /**
+     * Main method to run the CreateWorkout application.
+     * @author Owen Chipman
+     */
     public static void main(String[] args) {
         CreateAndShowAdminPortal();
     }

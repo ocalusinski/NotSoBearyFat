@@ -5,6 +5,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 public class drawGraphs {
+    /**
+     * Constructs a new panel to draw historical trend graphs.
+     * @author ocalusinski
+     */
     public drawGraphs() {
 
         JFrame frame = new JFrame("Historical Trends Graphs");
@@ -65,6 +69,10 @@ public class drawGraphs {
         });
     }
 
+    /**
+     * Draws the next page of workout trend graphs.
+     * @author ocalusinski
+     */
     private static void drawNextPage(){
         JFrame frame = new JFrame("Workout Trends Graphs");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -121,6 +129,10 @@ public class drawGraphs {
         });
     }
 
+    /**
+     * Main method to run the Historical Trends Graphs.
+     * @author ocalusinski
+     */
     public static void main(String[] args) {
         new drawGraphs();
     }

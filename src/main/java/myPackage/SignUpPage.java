@@ -13,6 +13,10 @@ import static myPackage.Constants.*;
 public class SignUpPage extends JFrame {
     private JRadioButton clientRadio;
     
+    /**
+     * Constructs a new SignUpPage GUI.
+     * @author Owen Chipman
+     */
     public SignUpPage(boolean admin) {
         setTitle("Sign Up");
         setSize(600, 750);
@@ -353,6 +357,10 @@ public class SignUpPage extends JFrame {
         setVisible(true);
     }
 
+    /**
+     * Main method to run the SignUpPage application for testing purposes.
+     * @author zachtaylorcsc
+     */
     public static void main(String[] args) {
         // For testing
         SwingUtilities.invokeLater(() -> new SignUpPage(false));

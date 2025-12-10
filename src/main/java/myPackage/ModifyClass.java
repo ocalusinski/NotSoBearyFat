@@ -22,6 +22,10 @@ public final class ModifyClass {
     /**
      * Opens the Modify Class window
      */
+    /**
+     * Opens the window to modify a workout class.
+     * @author jonahb023
+     */
     public static void openModifyClassPage(String trainerUsername,
                                            Runnable refreshCallback) {
 
@@ -312,6 +316,10 @@ public final class ModifyClass {
 
     /**
      * Fills the provided form fields with values from WorkoutClass
+     */
+    /**
+     * Fills the provided form fields with values from a WorkoutClass object.
+     * @author jonahb023
      */
     private static void fillFieldsFromClass(WorkoutClass wc,
                                             JTextField typeField,

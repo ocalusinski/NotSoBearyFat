@@ -9,10 +9,18 @@ import java.awt.*;
 import java.util.List;
 import static myPackage.Constants.*;
 public class drawTotalCaloriesBurntGraph extends JPanel {
+    /**
+     * Constructs a new graph for tracking total calories burnt with default settings.
+     * @author ocalusinski
+     */
     public drawTotalCaloriesBurntGraph() {
         this(-1, 0);
     }
     
+    /**
+     * Constructs a new graph for tracking total calories burnt for a specific user and number of days.
+     * @author Owen Chipman
+     */
     public drawTotalCaloriesBurntGraph(int userId, int days) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
         
@@ -50,6 +58,11 @@ public class drawTotalCaloriesBurntGraph extends JPanel {
         this.add(chartPanel, BorderLayout.CENTER);
     }
     
+    /**
+     * Formats a date string for display.
+     * @author zachtaylorcsc
+     * @return The formatted date string.
+     */
     private String formatDateForDisplay(String date) {
         // Date is stored as MM-dd-yyyy, return as-is
         if (date != null && date.length() >= 10) {
