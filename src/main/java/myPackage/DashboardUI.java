@@ -81,10 +81,18 @@ public class DashboardUI extends JFrame {
     private static final Color LIGHT_GREEN = new Color(0, 100, 80);
     private static final Color BACKGROUND_COLOR = new Color(240, 255, 250);
 
+    /**
+     * Constructor for the DashboardUI with a specified username.
+     * @author zachtaylorcsc
+     */
     public DashboardUI(String username) {
         this(username, null);
     }
     
+    /**
+     * Constructor for the DashboardUI with a specified username and user type.
+     * @author zachtaylorcsc
+     */
     public DashboardUI(String username, String userType) {
         this.username = username;
         this.userType = userType;
@@ -390,12 +398,21 @@ public class DashboardUI extends JFrame {
         setVisible(true);
     }
     //added to db allows for multiple logins
+    /**
+     * Resets the user information, typically upon logout.
+     * @author Owen Chipman
+     */
     private void resetUserInfo() {
         userId = -1;
         username = null;
         userType = null;
     }
 
+    /**
+     * Creates and returns the data tab panel for the dashboard.
+     * @author zachtaylorcsc
+     * @return A JPanel representing the data tab.
+     */
     private JPanel createDataTab() {
         dataTabPanel = new JPanel(new BorderLayout());
         dataTabPanel.setBackground(BACKGROUND_COLOR);
@@ -425,6 +442,11 @@ public class DashboardUI extends JFrame {
         return dataTabPanel;
     }
 
+    /**
+     * Creates and returns the top summary section for the data tab, including net calories and a quick add button.
+     * @author zachtaylorcsc
+     * @return A JPanel representing the top summary section.
+     */
     private JPanel createTopSummarySection() {
         JPanel topPanel = new JPanel(new BorderLayout());
         topPanel.setBackground(BACKGROUND_COLOR);
@@ -496,6 +518,11 @@ public class DashboardUI extends JFrame {
         return topPanel;
     }
 
+    /**
+     * Creates a styled JPanel to display a single metric (e.g., calories, weight).
+     * @author zachtaylorcsc
+     * @return A JPanel representing a metric card.
+     */
     private JPanel createMetricCard(String icon, String title, String value, String unit, Color accentColor) {
         JPanel card = createStyledCard();
         card.setLayout(new BorderLayout());
@@ -578,6 +605,11 @@ public class DashboardUI extends JFrame {
         return card;
     }
 
+    /**
+     * Creates and returns the bottom section for the data tab, including goal progress and weekly averages.
+     * @author zachtaylorcsc
+     * @return A JPanel representing the bottom section.
+     */
     private JPanel createBottomSection() {
         JPanel bottomPanel = new JPanel(new BorderLayout());
         bottomPanel.setBackground(BACKGROUND_COLOR);
@@ -640,6 +672,11 @@ public class DashboardUI extends JFrame {
         return bottomPanel;
     }
 
+    /**
+     * Creates a styled JPanel with a white background and borders, used as a card component.
+     * @author zachtaylorcsc
+     * @return A JPanel styled as a card.
+     */
     private JPanel createStyledCard() {
         JPanel card = new JPanel();
         card.setBackground(Color.WHITE);
@@ -650,6 +687,11 @@ public class DashboardUI extends JFrame {
         return card;
     }
 
+    /**
+     * Creates and returns the friends tab panel, including user search, friend requests, and friends list.
+     * @author zachtaylorcsc
+     * @return A JPanel representing the friends tab.
+     */
     private JPanel createFriendsTab() {
         JPanel friendsPanel = new JPanel(new BorderLayout());
         friendsPanel.setBackground(BACKGROUND_COLOR);
@@ -796,6 +838,11 @@ public class DashboardUI extends JFrame {
         return friendsPanel;
     }
 
+    /**
+     * Creates and returns the panel for friend requests, including incoming and outgoing requests.
+     * @author zachtaylorcsc
+     * @return A JPanel representing the friend requests section.
+     */
     private JPanel createFriendRequestsPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(BACKGROUND_COLOR);
@@ -943,6 +990,11 @@ public class DashboardUI extends JFrame {
         return panel;
     }
 
+    /**
+     * Creates and returns the panel for displaying the user's friends list.
+     * @author zachtaylorcsc
+     * @return A JPanel representing the friends list section.
+     */
     private JPanel createFriendsListPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(BACKGROUND_COLOR);
@@ -1014,6 +1066,10 @@ public class DashboardUI extends JFrame {
     private DefaultListModel<User> incomingRequestsModelRef;
     private DefaultListModel<User> outgoingRequestsModelRef;
 
+    /**
+     * Refreshes all friend-related data, including incoming requests, outgoing requests, and the friends list.
+     * @author zachtaylorcsc
+     */
     private void refreshAllFriendData() {
         // Refresh friend requests
         if (incomingRequestsModelRef != null) {
@@ -1044,6 +1100,11 @@ public class DashboardUI extends JFrame {
 
     // Custom cell renderer for user list
     private class UserListCellRenderer extends DefaultListCellRenderer {
+        /**
+         * Returns a component that has been configured to display the specified value.
+         * @author zachtaylorcsc
+         * @return A component that has been configured to display the specified value.
+         */
         @Override
         public Component getListCellRendererComponent(JList<?> list, Object value, int index,
                                                      boolean isSelected, boolean cellHasFocus) {
@@ -1066,6 +1127,11 @@ public class DashboardUI extends JFrame {
 
     // Custom cell renderer for friend's classes list (handles null)
     private class FriendClassListCellRenderer extends DefaultListCellRenderer {
+        /**
+         * Returns a component that has been configured to display the specified value, handling null values for classes.
+         * @author zachtaylorcsc
+         * @return A component that has been configured to display the specified value.
+         */
         @Override
         public Component getListCellRendererComponent(JList<?> list, Object value, int index,
                                                      boolean isSelected, boolean cellHasFocus) {
@@ -1086,6 +1152,11 @@ public class DashboardUI extends JFrame {
         }
     }
 
+    /**
+     * Creates and returns the goals tab panel, allowing users to set, view, and manage fitness goals.
+     * @author Oluwalademi Aromolaran
+     * @return A JPanel representing the goals tab.
+     */
     private JPanel createGoalsTab() {
         JPanel goalsPanel = new JPanel(new BorderLayout());
         goalsPanel.setBackground(BACKGROUND_COLOR);
@@ -1389,6 +1460,10 @@ public class DashboardUI extends JFrame {
 
 
 
+    /**
+     * Updates the goal progress display based on the user's calorie consumption.
+     * @author Oluwalademi Aromolaran
+     */
     private void updateGoalProgress(Integer caloriesConsumed) {
         // Use enhanced progress bar if available, otherwise fall back to old one
         JProgressBar progressBar = (enhancedCalorieProgressBar != null) ? enhancedCalorieProgressBar : calorieProgressBar;
@@ -1458,6 +1533,11 @@ public class DashboardUI extends JFrame {
         }
     }
 
+    /**
+     * Creates and returns the self-paced plans tab panel, allowing trainers to create and manage plans.
+     * @author Oluwalademi Aromolaran
+     * @return A JPanel representing the self-paced plans tab.
+     */
     private JPanel createSelfPacedPlansTab() {
         JPanel plansPanel = new JPanel(new BorderLayout());
         plansPanel.setBackground(BACKGROUND_COLOR);
@@ -1749,6 +1829,10 @@ public class DashboardUI extends JFrame {
 
 
 
+    /**
+     * Refreshes the list of self-paced plans created by the current trainer.
+     * @author Oluwalademi Aromolaran
+     */
     private void refreshTrainerPlansList() {
         if (selfPacedPlanManager == null || planListModel == null || userId == -1) {
             return;
@@ -1759,6 +1843,11 @@ public class DashboardUI extends JFrame {
         }
     }
 
+    /**
+     * Creates and returns the plan library tab panel, where users can browse and interact with self-paced plans.
+     * @author Oluwalademi Aromolaran
+     * @return A JPanel representing the plan library tab.
+     */
     private JPanel createPlanLibraryTab() {
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.setBackground(BACKGROUND_COLOR);
@@ -1856,6 +1945,10 @@ public class DashboardUI extends JFrame {
 
 
 
+    /**
+     * Refreshes the list of all available self-paced plans in the library.
+     * @author Oluwalademi Aromolaran
+     */
     private void refreshPlanLibraryList() {
         if (selfPacedPlanManager == null || libraryPlanListModel == null) {
             return;
@@ -1870,6 +1963,11 @@ public class DashboardUI extends JFrame {
     private DefaultListModel<SelfPacedPlan> availablePlansModel;
     private JList<SelfPacedPlan> availablePlansList;
 
+    /**
+     * Creates and returns a panel displaying available self-paced plans for clients to sign up for.
+     * @author zachtaylorcsc
+     * @return A JPanel displaying available plans.
+     */
     private JPanel createAvailablePlansPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(BACKGROUND_COLOR);
@@ -2031,6 +2129,10 @@ public class DashboardUI extends JFrame {
         return panel;
     }
 
+    /**
+     * Refreshes the list of available self-paced plans displayed in the UI.
+     * @author zachtaylorcsc
+     */
     private void refreshAvailablePlans() {
         if (availablePlansModel != null && selfPacedPlanManager != null) {
             availablePlansModel.clear();
@@ -2040,6 +2142,10 @@ public class DashboardUI extends JFrame {
         }
     }
 
+    /**
+     * Refreshes the list of self-paced plans that the current user is enrolled in.
+     * @author zachtaylorcsc
+     */
     private void refreshEnrolledPlans() {
         if (enrolledPlansModel != null && selfPacedPlanManager != null && userId != -1) {
             enrolledPlansModel.clear();
@@ -2050,6 +2156,10 @@ public class DashboardUI extends JFrame {
         }
     }
 
+    /**
+     * Handles the logic for a user to sign up for a self-paced plan.
+     * @author zachtaylorcsc
+     */
     private void signUpForPlan(SelfPacedPlan plan, JTextArea detailsArea) {
         if (userId == -1) {
             JOptionPane.showMessageDialog(this,
@@ -2095,6 +2205,11 @@ public class DashboardUI extends JFrame {
 
 
 
+    /**
+     * Creates and returns the classes tab panel, displaying either available classes for clients or a calendar view for trainers.
+     * @author zachtaylorcsc
+     * @return A JPanel representing the classes tab.
+     */
     private JPanel createClassesTab() {
         // Client view: show available classes and allow registration
         if (!isTrainer()) {
@@ -2159,6 +2274,11 @@ public class DashboardUI extends JFrame {
     
     /**
      * Creates a monthly calendar view showing classes as events
+     */
+    /**
+     * Creates and returns a monthly calendar view panel showing classes as events.
+     * @author zachtaylorcsc
+     * @return A JPanel representing the calendar view.
      */
     private JPanel createCalendarView() {
         JPanel calendarPanel = new JPanel(new BorderLayout());
@@ -2286,6 +2406,10 @@ public class DashboardUI extends JFrame {
     /**
      * Refreshes only the calendar grid and month label without recreating the entire panel
      */
+    /**
+     * Refreshes only the calendar grid and month label without recreating the entire panel.
+     * @author zachtaylorcsc
+     */
     private void refreshCalendarGrid() {
         if (calendarMonthLabel != null && calendarGridContainer != null) {
             // Update month label
@@ -2303,6 +2427,11 @@ public class DashboardUI extends JFrame {
     
     /**
      * Creates the monthly calendar grid with classes displayed as events
+     */
+    /**
+     * Creates the monthly calendar grid with classes displayed as events.
+     * @author zachtaylorcsc
+     * @return A JPanel representing the monthly calendar grid.
      */
     private JPanel createMonthlyCalendarGrid() {
         JPanel monthPanel = new JPanel(new BorderLayout());
@@ -2422,6 +2551,11 @@ public class DashboardUI extends JFrame {
     /**
      * Creates a visual block representing a class event (compact for monthly view)
      */
+    /**
+     * Creates a visual block representing a class event for the calendar view.
+     * @author zachtaylorcsc
+     * @return A JPanel representing a class event block.
+     */
     private JPanel createClassBlock(WorkoutClass wc) {
         JPanel block = new JPanel(new BorderLayout());
         block.setBorder(BorderFactory.createEmptyBorder(2, 3, 2, 3));
@@ -2487,6 +2621,11 @@ public class DashboardUI extends JFrame {
     /**
      * Gets a consistent color for a class type
      */
+    /**
+     * Gets a consistent color for a class type based on its hash code.
+     * @author zachtaylorcsc
+     * @return A Color object for the given class type.
+     */
     private Color getColorForClassType(String classType) {
         // Use hash of class type to get consistent colors
         int hash = classType.hashCode();
@@ -2497,6 +2636,10 @@ public class DashboardUI extends JFrame {
     }
     
     // Method to refresh the classes list from the database
+    /**
+     * Refreshes the list of all classes displayed in the UI.
+     * @author zachtaylorcsc
+     */
     private void refreshClassesList() {
         if (classListModel != null && DB_MANAGER != null) {
             classListModel.clear();
@@ -2508,6 +2651,11 @@ public class DashboardUI extends JFrame {
     }
 
     // Client view for Classes tab - shows available classes and allows registration
+    /**
+     * Creates and returns the client's view of the classes tab, showing available and enrolled classes.
+     * @author zachtaylorcsc
+     * @return A JPanel representing the client's classes tab.
+     */
     private JPanel createClientClassesTab() {
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.setBackground(BACKGROUND_COLOR);
@@ -2551,6 +2699,11 @@ public class DashboardUI extends JFrame {
     private DefaultListModel<WorkoutClass> availableClassesModel;
     private JList<WorkoutClass> availableClassesList;
 
+    /**
+     * Creates and returns a panel displaying available classes for clients to register for.
+     * @author zachtaylorcsc
+     * @return A JPanel displaying available classes.
+     */
     private JPanel createAvailableClassesPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(BACKGROUND_COLOR);
@@ -2678,6 +2831,11 @@ public class DashboardUI extends JFrame {
     private DefaultListModel<WorkoutClass> enrolledClassesModel;
     private JList<WorkoutClass> enrolledClassesList;
 
+    /**
+     * Creates and returns a panel displaying classes the user is currently enrolled in.
+     * @author zachtaylorcsc
+     * @return A JPanel displaying enrolled classes.
+     */
     private JPanel createEnrolledClassesPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(BACKGROUND_COLOR);
@@ -2703,6 +2861,11 @@ public class DashboardUI extends JFrame {
         return panel;
     }
 
+    /**
+     * Creates and returns a panel for searching classes.
+     * @author Owen Chipman
+     * @return A JPanel representing the class search functionality.
+     */
     private JPanel createClassesSearchPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         JPanel centerPanel = new JPanel(new GridLayout(2,2));
@@ -2754,6 +2917,10 @@ public class DashboardUI extends JFrame {
         return panel;
     }
 
+    /**
+     * Refreshes the list of available classes displayed in the UI.
+     * @author zachtaylorcsc
+     */
     private void refreshAvailableClasses() {
         if (availableClassesModel != null && DB_MANAGER != null) {
             availableClassesModel.clear();
@@ -2764,6 +2931,10 @@ public class DashboardUI extends JFrame {
         }
     }
 
+    /**
+     * Refreshes the list of classes the user is currently enrolled in.
+     * @author zachtaylorcsc
+     */
     private void refreshEnrolledClasses() {
         if (enrolledClassesModel != null && DB_MANAGER != null && userId != -1) {
             enrolledClassesModel.clear();
@@ -2779,6 +2950,10 @@ public class DashboardUI extends JFrame {
         }
     }
 
+    /**
+     * Handles the logic for a user to register for a workout class.
+     * @author zachtaylorcsc
+     */
     private void registerForClass(WorkoutClass workoutClass, JTextArea detailsArea) {
         if (userId == -1) {
             JOptionPane.showMessageDialog(this,
@@ -2832,6 +3007,11 @@ public class DashboardUI extends JFrame {
 
     // Custom cell renderer for class list to show more info
     private class ClassListCellRenderer extends DefaultListCellRenderer {
+        /**
+         * Returns a component that has been configured to display the specified value, representing a WorkoutClass.
+         * @author zachtaylorcsc
+         * @return A component that has been configured to display the specified value.
+         */
         @Override
         public Component getListCellRendererComponent(JList<?> list, Object value, int index,
                                                      boolean isSelected, boolean cellHasFocus) {
@@ -2849,6 +3029,11 @@ public class DashboardUI extends JFrame {
         }
     }
 
+    /**
+     * Creates and returns the "Create Class" tab panel for trainers to create new classes.
+     * @author zachtaylorcsc
+     * @return A JPanel representing the "Create Class" tab.
+     */
     private JPanel createCreateClassTab() {
         JPanel createClassPanel = new JPanel(new BorderLayout());
         createClassPanel.setBackground(BACKGROUND_COLOR);
@@ -2971,6 +3156,11 @@ public class DashboardUI extends JFrame {
         return createClassPanel;
     }
 
+    /**
+     * Creates and returns the login streak tab panel.
+     * @author zachtaylorcsc
+     * @return A JPanel representing the login streak tab.
+     */
     private JPanel createStreakTab() {
         JPanel streakPanel = new JPanel(new BorderLayout());
         streakPanel.setBackground(BACKGROUND_COLOR);
@@ -3126,6 +3316,11 @@ public class DashboardUI extends JFrame {
         return streakPanel;
     }
 
+    /**
+     * Creates and returns the historical data tab panel, containing various graphs.
+     * @author Owen Chipman
+     * @return A JPanel representing the historical data tab.
+     */
     private JPanel createHistoricalTab() {
         historicalTabPanel = new JPanel(new BorderLayout());
         historicalTabPanel.setBackground(BACKGROUND_COLOR);
@@ -3169,6 +3364,11 @@ public class DashboardUI extends JFrame {
         return historicalTabPanel;
     }
     
+    /**
+     * Creates and returns a panel containing the main health data graphs (calories, weight, sleep, total calories burnt).
+     * @author zachtaylorcsc
+     * @return A JPanel displaying the main health data graphs.
+     */
     private JPanel createMainGraphsPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBackground(BACKGROUND_COLOR);
@@ -3216,6 +3416,11 @@ public class DashboardUI extends JFrame {
         return wrapper;
     }
 
+    /**
+     * Creates and returns a panel containing the workout data graphs (workout type, minutes of exercise, active calories burnt).
+     * @author zachtaylorcsc
+     * @return A JPanel displaying the workout data graphs.
+     */
     private JPanel createWorkoutGraphsPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBackground(BACKGROUND_COLOR);
@@ -3296,10 +3501,19 @@ public class DashboardUI extends JFrame {
         return wrapper;
     }
 
+    /**
+     * Checks if the current user has a "trainer" user type.
+     * @author zachtaylorcsc
+     * @return True if the user is a trainer, false otherwise.
+     */
     private boolean isTrainer() {
         return userType != null && userType.equalsIgnoreCase("trainer");
     }
     
+    /**
+     * Refreshes all graphs displayed in the historical data tab.
+     * @author zachtaylorcsc
+     */
     private void refreshGraphs() {
         if (graphTabbedPane == null) {
             return;
@@ -3324,6 +3538,10 @@ public class DashboardUI extends JFrame {
         System.out.println("refreshGraphs: Graphs refreshed successfully");
     }
 
+    /**
+     * Loads and updates the user's fitness data displayed on the dashboard.
+     * @author zachtaylorcsc
+     */
     private void loadUserData() {
         if (userId == -1) {
             // User not found in database
@@ -3426,6 +3644,10 @@ public class DashboardUI extends JFrame {
         }
     }
 
+    /**
+     * Updates a trend label to show the change and percentage change from yesterday's value.
+     * @author zachtaylorcsc
+     */
     private void updateTrendLabel(JLabel trendLabel, double todayValue, double yesterdayValue, boolean isInteger) {
         if (trendLabel == null) return;
         
@@ -3462,6 +3684,10 @@ public class DashboardUI extends JFrame {
         trendLabel.setForeground(color);
     }
 
+    /**
+     * Calculates and displays the weekly averages for calories, burned, and sleep.
+     * @author zachtaylorcsc
+     */
     private void updateWeeklyAverages(java.util.List<Object[]> historicalData) {
         if (weeklyAvgLabel == null || historicalData == null || historicalData.isEmpty()) {
             return;
@@ -3505,6 +3731,10 @@ public class DashboardUI extends JFrame {
         }
     }
 
+    /**
+     * Updates the data tab UI to reflect that no data is available.
+     * @author zachtaylorcsc
+     */
     private void updateDataTabWithNoData() {
         if (caloriesValueLabel != null) caloriesValueLabel.setText("--");
         if (burnedValueLabel != null) burnedValueLabel.setText("--");
@@ -3534,6 +3764,10 @@ public class DashboardUI extends JFrame {
 
 
 
+    /**
+     * Disposes of the DashboardUI frame, ensuring database connections are properly closed.
+     * @author zachtaylorcsc
+     */
     @Override
     public void dispose() {
         if (DB_MANAGER != null) {
@@ -3541,6 +3775,10 @@ public class DashboardUI extends JFrame {
         super.dispose();
     }
 
+    /**
+     * Main method to run the DashboardUI application for testing purposes.
+     * @author zachtaylorcsc
+     */
     public static void main(String[] args) {
         // Test main - in production, DashboardUI is called from LoginPage with actual first name
         SwingUtilities.invokeLater(() -> new DashboardUI("mowen"));

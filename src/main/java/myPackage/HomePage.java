@@ -5,9 +5,17 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 public class HomePage {
+    /**
+     * Constructor for the HomePage.
+     * @author Owen Chipman
+     */
     HomePage() {
         CreateAndShowGUI();
     }
+    /**
+     * Creates and displays the main GUI for the HomePage.
+     * @author Owen Chipman
+     */
     private static void CreateAndShowGUI(){
         JFrame frame = new JFrame("Not So Beary Fat");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -127,6 +135,10 @@ public class HomePage {
         frame.setVisible(true);
     }
 
+    /**
+     * Main method to run the HomePage GUI.
+     * @author zachtaylorcsc
+     */
     public static void main(String[] args){
         CreateAndShowGUI();
     }

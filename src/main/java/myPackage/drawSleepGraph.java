@@ -12,10 +12,18 @@ import java.util.List;
 import static myPackage.Constants.*;
 
 public class drawSleepGraph extends JPanel {
+    /**
+     * Constructs a new graph for tracking sleep hours with default settings.
+     * @author ocalusinski
+     */
     public drawSleepGraph() {
         this(-1, 0);
     }
     
+    /**
+     * Constructs a new graph for tracking sleep hours for a specific user and number of days.
+     * @author Owen Chipman
+     */
     public drawSleepGraph(int userId, int days) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
         
@@ -53,6 +61,11 @@ public class drawSleepGraph extends JPanel {
         this.add(chartPanel, BorderLayout.CENTER);
     }
     
+    /**
+     * Formats a date string for display.
+     * @author zachtaylorcsc
+     * @return The formatted date string.
+     */
     private String formatDateForDisplay(String date) {
         // Date is stored as MM-dd-yyyy, return as-is
         if (date != null && date.length() >= 10) {
