@@ -50,7 +50,7 @@ public class UserManagement {
             @Override
             public void actionPerformed(ActionEvent e) {
                 System.out.println("Return to Main Page");
-                frame.dispose();
+                SwingUtilities.invokeLater(() -> frame.dispose());
                 new HomePage();
             }
         });
