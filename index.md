@@ -1,13 +1,10 @@
-# Welcome to our website
+# Welcome to Not So Beary Fat!
 
-Click below to download deliverable 5:
-
-Showing that we all have access to the repository:
-This is Zach Taylor
-
-[download ZIP] (Project Deliverable 5 Iteration 1.zip)
-
-<a class="download-btn" href="{{ '/ProjectDeliverable5Iteration1.zip' | relative_url }}" download>
-  ⬇️ Download ZIP
-</a>
+## Links to our videos
+- Olivia Calusinski - https://www.youtube.com/watch?v=o1x8BqOd6hU
+- Lademi Aromolaran - https://www.youtube.com/watch?v=vRmtCiozmgs
+- Zach Taylor - https://www.youtube.com/watch?v=oGWgqlBC_SE
+- Jonah Beck - 
+- Owen Chipman - 
+- Final demo - https://www.youtube.com/watch?v=0ig6f-VjNPQ
 
