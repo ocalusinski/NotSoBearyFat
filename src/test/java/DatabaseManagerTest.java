@@ -308,4 +308,85 @@ public class DatabaseManagerTest {
         assertEquals("HIIT", classes.get(0).getClassType());
     }
 
+    @Test
+    public void testCreateExercise_SaveSelfPacedPlan_Success() {
+        int trainerId = createTestUser("trainerCreateExercise", "Trainer");
+        SelfPacedPlan plan = new SelfPacedPlan(
+                "Cardio Blast",
+                "High-energy cardio program",
+                "Beginner",
+                "None",
+                "30 min",
+                "3/week"
+        );
+        boolean saved = db.saveSelfPacedPlan(trainerId, plan);
+        assertTrue(saved, "saveSelfPacedPlan should return true for valid plan");
+        assertTrue(plan.getId() > 0, "Plan id should be set after insert");
+        List<SelfPacedPlan> trainerPlans = db.getPlansForTrainer(trainerId);
+        assertEquals(1, trainerPlans.size(), "Trainer should have exactly one plan");
+
+        SelfPacedPlan fromDb = trainerPlans.get(0);
+        assertEquals("Cardio Blast", fromDb.getTitle());
+        assertEquals("High-energy cardio program", fromDb.getDescription());
+        assertEquals("Beginner", fromDb.getFitnessLevel());
+        assertEquals("None", fromDb.getEquipment());
+        assertEquals("30 min", fromDb.getSessionLength());
+        assertEquals("3/week", fromDb.getFrequency());
+    }
+
+    @Test
+    public void testCreateExercise_UpdateExistingPlan() {
+        int trainerId = createTestUser("trainerUpdateExercise", "Trainer");
+
+        SelfPacedPlan plan = new SelfPacedPlan(
+                "Strength Plan",
+                "Build muscle",
+                "Intermediate",
+                "Dumbbells",
+                "45 min",
+                "3/week"
+        );
+        boolean saved = db.saveSelfPacedPlan(trainerId, plan);
+        assertTrue(saved);
+        assertTrue(plan.getId() > 0);
+        int originalId = plan.getId();
+        plan.setTitle("Strength Plan - Advanced");
+        plan.setFrequency("4/week");
+
+        boolean updated = db.saveSelfPacedPlan(trainerId, plan);
+        assertTrue(updated, "Saving an existing plan (id > 0) should go through UPDATE path");
+        List<SelfPacedPlan> trainerPlans = db.getPlansForTrainer(trainerId);
+        assertEquals(1, trainerPlans.size(), "Should still be only one plan for this trainer");
+
+        SelfPacedPlan fromDb = trainerPlans.get(0);
+        assertEquals(originalId, fromDb.getId(), "Plan id should remain the same");
+        assertEquals("Strength Plan - Advanced", fromDb.getTitle());
+        assertEquals("4/week", fromDb.getFrequency());
+        assertEquals("Build muscle", fromDb.getDescription());
+        assertEquals("Intermediate", fromDb.getFitnessLevel());
+
+    }
+
+    @Test
+    public void testCreateExercise_InvalidTrainerId() {
+        int invalidTrainerId = 0;
+        SelfPacedPlan plan = new SelfPacedPlan(
+                "Invalid Trainer Plan",
+                "Should not be saved for invalid trainer",
+                "Beginner",
+                "None",
+                "30 min",
+                "2/week"
+        );
+
+        boolean saved = db.saveSelfPacedPlan(invalidTrainerId, plan);
+
+        assertTrue(saved, "Current implementation saves the plan even with an invalid trainerId");
+        assertTrue(plan.getId() > 0, "Plan id should still be assigned after insert");
+
+        List<SelfPacedPlan> trainerPlans = db.getPlansForTrainer(invalidTrainerId);
+        assertEquals(1, trainerPlans.size(), "A plan should be associated with trainerId=0 in the current setup");
+        assertEquals("Invalid Trainer Plan", trainerPlans.get(0).getTitle());
+    }
+
 }

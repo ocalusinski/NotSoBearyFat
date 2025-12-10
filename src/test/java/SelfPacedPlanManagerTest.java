@@ -71,4 +71,27 @@ public class SelfPacedPlanManagerTest {
         assertEquals(1, missing.size());
         assertEquals("Plan", missing.get(0));
     }
+
+    @Test
+    public void testHasMissingRequiredFieldsWhitespaceOnly() {
+        SelfPacedPlanManager mgr = new SelfPacedPlanManager();
+
+        SelfPacedPlan plan = new SelfPacedPlan(
+                "   ",
+                "Some description",
+                "   ",
+                "   ",
+                "30 min",
+                "   "
+        );
+        List<String> missing = new ArrayList<>();
+        boolean result = mgr.hasMissingRequiredFields(plan, missing);
+        assertTrue(result, "Whitespace-only required fields should be treated as missing");
+        assertTrue(missing.contains("Title"));
+        assertTrue(missing.contains("Fitness Level"));
+        assertTrue(missing.contains("Equipment Needs"));
+        assertTrue(missing.contains("Frequency"));
+        assertFalse(missing.contains("Description"));
+        assertFalse(missing.contains("Session Length"));
+    }
 }
