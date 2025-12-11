@@ -86,3 +86,6 @@ Owen Chipman:
 [Owen 3](https://www.youtube.com/watch?v=H0R2fb_fvpA)
 - Final demo - [Demo](https://www.youtube.com/watch?v=0ig6f-VjNPQ)
 
+## Download Deliverable Here!
+[Deliverable](https://github.com/ocalusinski/NotSoBearyFat/releases/tag/NSBF)
+
