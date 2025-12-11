@@ -87,6 +87,6 @@ Owen Chipman:
 - Final demo - [Demo](https://www.youtube.com/watch?v=0ig6f-VjNPQ)
 
 ## Download Deliverable Here!
-[Download ZIP](./FinalDeliverableNSBF.zip)
+[Download ZIP](https://raw.githubusercontent.com/ocalusinski/NotSoBearyFat/main/FinalDeliverableNSBF.zip)
 
 
